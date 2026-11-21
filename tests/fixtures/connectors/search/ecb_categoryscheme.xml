@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- An ECB-like answer to categoryscheme/ECB/all/latest?references=parentsandsiblings, written by hand from the SDMX 2.1
+     standard (SDMX-ML structure message: CategorySchemes, Categorisations, Dataflows) since the ECB could not be reached
+     when it was made. It is not the ECB's own answer. Its categories hold the dataflows of ecb_dataflows.xml:
+     - nested categories, referred to by path (05.05_01), by a nested category's own id (06_02, unique in the scheme) and
+       by URN (07.07_01);
+     - EXR in two categories (07 and 08); FM in none (so in "Other"); 01 and 09 hold no dataflow (left out);
+     - categorisations that are not of a listed dataflow (a data structure; a dataflow the ECB does not list; a category
+       that does not exist) are ignored;
+     - names in German and English (English is used). -->
+<message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure" xmlns:common="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common" xmlns:xml="http://www.w3.org/XML/1998/namespace">
+<message:Header><message:ID>IREF000101</message:ID><message:Test>false</message:Test><message:Prepared>2026-11-08T09:00:00Z</message:Prepared><message:Sender id="ECB"/></message:Header>
+<message:Structures>
+<structure:Categorisations>
+<structure:Categorisation id="BSI_0601" agencyID="ECB" version="1.0"><common:Name xml:lang="en">BSI in Balance sheet items</common:Name>
+  <structure:Source><Ref id="BSI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/></structure:Source>
+  <structure:Target><Ref id="06.06_01" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/></structure:Target></structure:Categorisation>
+<structure:Categorisation id="MIR_0602" agencyID="ECB" version="1.0"><common:Name xml:lang="en">MIR in MFI interest rates</common:Name>
+  <structure:Source><Ref id="MIR" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/></structure:Source>
+  <structure:Target><Ref id="06_02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/></structure:Target></structure:Categorisation>
+<structure:Categorisation id="ICP_0501" agencyID="ECB" version="1.0"><common:Name xml:lang="en">ICP in Prices</common:Name>
+  <structure:Source><Ref id="ICP" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/></structure:Source>
+  <structure:Target><Ref id="05.05_01" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/></structure:Target></structure:Categorisation>
+<structure:Categorisation id="YC_0701" agencyID="ECB" version="1.0"><common:Name xml:lang="en">YC in Yield curves</common:Name>
+  <structure:Source><URN>urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB:YC(1.0)</URN></structure:Source>
+  <structure:Target><URN>urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).07.07_01</URN></structure:Target></structure:Categorisation>
+<structure:Categorisation id="EXR_07" agencyID="ECB" version="1.0"><common:Name xml:lang="en">EXR in Financial markets</common:Name>
+  <structure:Source><Ref id="EXR" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/></structure:Source>
+  <structure:Target><Ref id="07" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/></structure:Target></structure:Categorisation>
+<structure:Categorisation id="EXR_08" agencyID="ECB" version="1.0"><common:Name xml:lang="en">EXR in Exchange rates</common:Name>
+  <structure:Source><Ref id="EXR" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/></structure:Source>
+  <structure:Target><Ref id="08" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/></structure:Target></structure:Categorisation>
+<structure:Categorisation id="DSD_EXR_08" agencyID="ECB" version="1.0"><common:Name xml:lang="en">a data structure, not a dataflow</common:Name>
+  <structure:Source><Ref id="ECB_EXR1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/></structure:Source>
+  <structure:Target><Ref id="09" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/></structure:Target></structure:Categorisation>
+<structure:Categorisation id="GONE_09" agencyID="ECB" version="1.0"><common:Name xml:lang="en">a dataflow the ECB does not list</common:Name>
+  <structure:Source><Ref id="RETIRED" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/></structure:Source>
+  <structure:Target><Ref id="09" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/></structure:Target></structure:Categorisation>
+<structure:Categorisation id="FM_NOWHERE" agencyID="ECB" version="1.0"><common:Name xml:lang="en">a category that does not exist</common:Name>
+  <structure:Source><Ref id="FM" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/></structure:Source>
+  <structure:Target><Ref id="99.99_01" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/></structure:Target></structure:Categorisation>
+</structure:Categorisations>
+<structure:CategorySchemes>
+<structure:CategoryScheme id="MOBILE_NAVI" agencyID="ECB" version="1.0" isFinal="false">
+  <common:Name xml:lang="de">Wirtschaftliche Konzepte</common:Name>
+  <common:Name xml:lang="en">Economic concepts</common:Name>
+  <structure:Category id="01"><common:Name xml:lang="en">Monetary operations</common:Name></structure:Category>
+  <structure:Category id="05"><common:Name xml:lang="de">Preise, Produktion, Nachfrage und Arbeitsmarkt</common:Name><common:Name xml:lang="en">Prices, output, demand and labour market</common:Name>
+    <structure:Category id="05_01"><common:Name xml:lang="en">Prices</common:Name><common:Description xml:lang="en">consumer and producer prices</common:Description></structure:Category>
+  </structure:Category>
+  <structure:Category id="06"><common:Name xml:lang="en">Monetary and financial statistics</common:Name>
+    <structure:Category id="06_01"><common:Name xml:lang="en">Balance sheet items</common:Name></structure:Category>
+    <structure:Category id="06_02"><common:Name xml:lang="en">MFI interest rates</common:Name></structure:Category>
+  </structure:Category>
+  <structure:Category id="07"><common:Name xml:lang="en">Financial markets and interest rates</common:Name>
+    <structure:Category id="07_01"><common:Name xml:lang="en">Yield curves</common:Name></structure:Category>
+  </structure:Category>
+  <structure:Category id="08"><common:Name xml:lang="en">Exchange rates</common:Name></structure:Category>
+  <structure:Category id="09"><common:Name xml:lang="en">Banking supervision</common:Name></structure:Category>
+</structure:CategoryScheme>
+</structure:CategorySchemes>
+<structure:Dataflows>
+<structure:Dataflow id="EXR" agencyID="ECB" version="1.0" isFinal="false"><common:Name xml:lang="en">Exchange Rates</common:Name><structure:Structure><Ref id="ECB_EXR1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/></structure:Structure></structure:Dataflow>
+</structure:Dataflows>
+</message:Structures>
+</message:Structure>

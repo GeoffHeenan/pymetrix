@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.pytest_tmp/
+.venv/
+build/
+dist/
+.ipynb_checkpoints/
+hs_err_pid*.log

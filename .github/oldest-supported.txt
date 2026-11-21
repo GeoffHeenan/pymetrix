@@ -1,0 +1,22 @@
+# The oldest version of each dependency that pymetrix supports: the floors in pyproject.toml, pinned.
+# CI's "oldest supported" job installs these on Python 3.11; tests/test_packaging.py keeps them in step.
+numpy==1.26.0
+pandas==2.2.0
+scipy==1.11.0
+pyarrow==17.0.0
+packaging==23.0
+threadpoolctl==3.1.0
+statsmodels==0.14.0
+linearmodels==6.0
+arch==7.0.0
+scikit-learn==1.5.0
+mcp==2.3.0
+openpyxl==3.1.0
+matplotlib==3.9.0
+python-docx==1.1.0
+PySide6==6.6.0
+qtconsole==5.5.0
+qtpy==2.4.0
+pyflakes==3.0.0
+jedi==0.19.0
+ipywidgets==8.0.0

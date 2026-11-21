@@ -1,0 +1,105 @@
+library,function,used_by,internal_helpers
+arch,arch.bootstrap.MCS,model_confidence_set [adapter],
+arch,arch.bootstrap.SPA,spa [adapter],
+arch,arch.bootstrap.StepM,and 1 internal helper,stats.evaluation.stepm (internal) [adapter]
+arch,arch.unitroot.cointegration.phillips_ouliaris,PhillipsOuliaris (tests),
+arch,arch.unitroot.DFGLS,DFGLS (tests),
+arch,arch.unitroot.PhillipsPerron,PhillipsPerron (tests),
+arch,arch.unitroot.VarianceRatio,VarianceRatio (tests),
+arch,arch.unitroot.ZivotAndrews,ZivotAndrews (tests),
+arch,arch.univariate.APARCH,APARCH (variance models),
+arch,arch.univariate.EGARCH,EGARCH (variance models),
+arch,arch.univariate.FIGARCH,FIGARCH (variance models),
+arch,arch.univariate.GARCH,and 2 internal helpers,ext.arch.fit_volatility (internal) [adapter]; ext.arch.forecast (internal) [adapter]
+arch,arch.univariate.GARCH (power=1),TARCH (variance models),
+JDemetra+,"jdplus.tramoseats.base.r.TramoSeats.process (JDemetra+ 3.9, in Java through JPype)",TramoSeats (seasonal adjustment),
+linearmodels,linearmodels.iv.IVGMM,IVGMM (estimation methods),
+linearmodels,linearmodels.iv.IVLIML,LIML (estimation methods),
+linearmodels,linearmodels.panel.BetweenOLS,Between (estimation methods),
+linearmodels,linearmodels.panel.FamaMacBeth,FamaMacBeth (estimation methods),
+linearmodels,linearmodels.panel.FirstDifferenceOLS,FirstDifference (estimation methods),
+linearmodels,linearmodels.panel.RandomEffects,RandomEffects (estimation methods),
+scipy,scipy.integrate.quad,and 1 internal helper,growth_at_risk.skewt_shortfall
+scipy,scipy.interpolate.BSpline.design_matrix,and 1 internal helper,smooth_lp.spline_basis
+scipy,scipy.io.loadmat,DynareModel (mode_file); and 1 internal helper,models.dynare.read_mat_data
+scipy,scipy.optimize.brentq,and 1 internal helper,estimation.priors._inverse_gamma_specification
+scipy,scipy.optimize.least_squares,MIDAS (_fit); arfima; bilinear; minimum_distance; and 5 internal helpers,estimation.gmm._minimise; estimation.gmm._moment_gmm.minimise; estimation.methods._solve_nonlinear; estimation.timeseries._fit_arma_garch; models.growth.steady_state_with_growth
+scipy,scipy.optimize.linprog,and 1 internal helper,quantile_var.quantile_regression
+scipy,scipy.optimize.minimize,FactorModel.fit; SmoothTransitionAR.fit; StateSpace.fit; StochasticFrontier (estimation methods) (estimate); diffusion; garch_in_mean; osr; pooled_mean_group; varma; and 24 internal helpers,bvar._choose; bvar_hierarchical.glp_mode; bvar_hierarchical.independent_search; count_series._maximise; estimation.bayes_equation.estimate; estimation.gmm._cue; estimation.gmm._moment_gmm; estimation.limited.maximise; estimation.ml._ml_explicit; estimation.timeseries._fit_arma; estimation.timeseries._fit_arma_garch; estimation.timeseries._fit_garch; growth_at_risk.fit_skewt; identification_extra.heteroskedasticity_svar; models.estimation._optimise; models.plans._within; ms_var_em.polish; nonparametric._cv_bandwidths; nonparametric._semi_fit; simulation_estimators._minimise; structural.estimate_ab; synthdid.simplex_weights; systems._fiml; treatment._weights
+scipy,scipy.optimize.minimize_scalar,TemporalDisaggregation (_regression); kde; local_whittle; spatial_regression; and 1 internal helper,disaggregation._gls_soft
+scipy,scipy.optimize.newton,FittedLearner (_dynamic),
+scipy,scipy.optimize.root,and 2 internal helpers,models.calibrate.calibrate; models.linear.steady_state
+scipy,scipy.signal.lfilter,and 6 internal helpers,count_series._intensity; count_series._psi; estimation.timeseries.arma_innovations; estimation.timeseries.garch_variance; nonparametric._garch_variance; spectral._arfima_resid
+scipy,scipy.signal.lfiltic,and 1 internal helper,estimation.timeseries.garch_variance
+scipy,scipy.sparse.csr_matrix,and 3 internal helpers,models.perfect_foresight._compiled.jacobian; models.perfect_foresight._stacked.jacobian; models.perfect_foresight._stacked.scales
+scipy,scipy.sparse.diags,and 1 internal helper,filters.hp_trend
+scipy,scipy.sparse.eye,and 1 internal helper,filters.hp_trend
+scipy,scipy.sparse.linalg.splu,and 1 internal helper,models.perfect_foresight._factorise
+scipy,scipy.sparse.linalg.spsolve,and 1 internal helper,filters.hp_trend
+scipy,scipy.special.erf,and 1 internal helper,expr.functions.numeric
+scipy,scipy.special.erfc,and 1 internal helper,expr.functions.numeric
+scipy,scipy.special.expit,Logit (mean); and 4 internal helpers,clogit_effects._panel.change; clogit_effects._panel.effects; estimation.limited._zip.mean; estimation.ml._score_hessian
+scipy,scipy.special.gamma,acd (per),
+scipy,scipy.special.gammaln,and 11 internal helpers,bvar_hierarchical._log_hyperprior; bvar_hierarchical._log_hyperprior.lgamma; bvar_hierarchical.glp_log_ml; estimation.bayes_equation._prior_terms; estimation.limited._negbin.ll; estimation.limited._zip.ll; estimation.ml._loglike; estimation.priors.InvGamma1.logpdf; estimation.priors._inverse_gamma_specification.gap; estimation.timeseries._garch_loglike; growth_at_risk.skewt_pdf
+scipy,scipy.special.log_ndtr,and 6 internal helpers,estimation.limited._heckman; estimation.limited._heckman.ll; estimation.limited._tobit.ll; estimation.ml._loglike; estimation.ml._score_hessian; var_conditions.truncated_standard
+scipy,scipy.special.logsumexp,BMA.fit; and 2 internal helpers,count_series._inar_logpmf; estimation.limited._multinomial.probs
+scipy,scipy.special.multigammaln,and 2 internal helpers,bvar._niw; models.dsge_var.var_posterior
+scipy,scipy.special.ndtr,Probit (mean); and 2 internal helpers,estimation.limited._tobit.mean; expr.functions._normal
+scipy,scipy.special.ndtri,and 1 internal helper,expr.functions._normal
+scipy,scipy.special.ndtri_exp,and 1 internal helper,var_conditions.truncated_standard
+scipy,scipy.special.stdtr,and 1 internal helper,growth_at_risk.skewt_pdf
+scipy,scipy.stats.beta.logpdf,and 1 internal helper,estimation.priors.Beta.logpdf
+scipy,scipy.stats.binom.logpmf,and 1 internal helper,count_series._inar_logpmf
+scipy,scipy.stats.chi2.ppf,Posterior (marginal_likelihood),
+scipy,scipy.stats.chi2.sf,ARCH (tests) (run); BreuschGodfrey (tests) (run); BreuschPagan (tests) (run); FactorModel.fit; FisherADF (tests) (run); Granger (tests) (run); JarqueBera (tests) (run); LjungBox (tests) (run); ML (estimation methods) (estimate); MinimumDistance (summary); MultiplicativeHeteroskedasticity (estimation methods) (estimate); NeuralNetwork (tests) (run); PooledMeanGroup (hausman); Portmanteau (tests) (run); Sargan (tests) (run); SimulationEstimate (summary); StochasticFrontier (estimation methods) (estimate); StructuralEstimate (summary); VARNormality (tests) (run); Wald (tests) (run); White (tests) (run); anderson_rubin; c_test; compare; spatial_diagnostics; stock_wright; and 17 internal helpers,estimation.dynpanel._estimate; estimation.gmm._gmm; estimation.gmm._moment_gmm; estimation.limited.estimate; estimation.ml._ml_explicit; panelvar.FittedPanelVAR._wald; panelvar.FittedPanelVAR.stats; panelvar.FittedPanelVAR.summary; panelvar.select_order; stats.compare._hausman; stats.density.berkowitz; stats.evaluation.christoffersen; stats.evaluation.giacomini_white; stats.evaluation.mincer_zarnowitz; stats.timeseries.correlogram_table; systems._result; vecm_restrictions._result
+scipy,scipy.stats.f.sf,FirstStage (tests) (run); Granger (tests) (run); Wald (tests) (run); anderson_rubin; terasvirta; and 2 internal helpers,proxy.first_stage; stats.equation_tests._f_result
+scipy,scipy.stats.gamma.logpdf,and 1 internal helper,estimation.priors.Gamma.logpdf
+scipy,scipy.stats.gaussian_kde,Posterior (plot); and 1 internal helper,stats.density.log_score_sample
+scipy,scipy.stats.invgamma.logpdf,and 1 internal helper,estimation.priors.InvGamma.logpdf
+scipy,scipy.stats.invwishart,FittedBVAR (_updated_paths); FittedDSGEVAR (_draws); and 2 internal helpers,bvar.fit_bayes; bvar_hierarchical.fit_glp.draw
+scipy,scipy.stats.invwishart.logpdf,and 1 internal helper,bvar_hierarchical._gibbs_log_ml
+scipy,scipy.stats.invwishart.rvs,and 2 internal helpers,bvar._gibbs_step; tvpvar._iw
+scipy,scipy.stats.kurtosis,JarqueBera (tests) (run),
+scipy,scipy.stats.ncx2.logpdf,and 1 internal helper,diffusion._cir_logpdf
+scipy,scipy.stats.norm.cdf,Breitung (tests) (run); CUSUM (tests) (run); FisherADF (tests) (run); ImPesaranShin (tests) (run); Kao (tests) (run); LevinLinChu (tests) (run); Pedroni (tests) (run); Westerlund (tests) (run); and 5 internal helpers,models.stochastic._errors; stats.density._a; stats.density.crps_normal; stats.density.pit_mixture; stats.density.pit_normal
+scipy,scipy.stats.norm.logcdf,StochasticFrontier (estimation methods) (estimate),
+scipy,scipy.stats.norm.logpdf,StochasticFrontier (estimation methods) (estimate); diffusion; and 6 internal helpers,bvar_hierarchical._gibbs_log_ml; diffusion._vasicek_logpdf; estimation.limited._heckman; estimation.limited._heckman.ll; estimation.limited._tobit.ll; estimation.ml._score_hessian
+scipy,scipy.stats.norm.pdf,BVARSV.fit; KernelDensity (plot); TVPVAR.fit; and 5 internal helpers,estimation.limited._tobit.mean; figures._draw_panel; stats.density._a; stats.density.crps_normal; stats.density.log_score_mixture
+scipy,scipy.stats.norm.ppf,EventStudy (coefficients); FisherADF (tests) (run); FittedBMA.forecast; FittedDoubleML (interval); FittedDoubleML (splits_table); FittedEquation.forecast; FittedExponentialSmoothing.forecast; FittedLearner.forecast; FittedStateSpace.forecast; FittedTheta.forecast; FittedVAR.conditional_forecast; FittedVAR.forecast; PointEstimate (interval); SyntheticDiD (summary); clogit_effects; marginal_effects; shift_share; and 11 internal helpers,_micro.estimate_rows; arima._forecast_dataset; estimation.ml._null_loglike; estimation.quantile.QuantileProcess.plot; estimation.timeseries.forecast; figures.Fan.normal; figures.qq_points; projections._irf; smooth_lp.fit_smooth; stats.density.berkowitz; treatment._estimate_row
+scipy,scipy.stats.norm.sf,CointegratingRegression (summary); FittedARFIMA (summary); FittedEquation (summary); FittedGMM (summary); FittedSARIMA (params_table); FittedSystem (summary); FittedVARMA (summary); Hadri (tests) (run); PanelMeanGroup (summary); PartiallyLinear (summary); Pedroni (tests) (run); SeriesModel (summary); SimulationEstimate (summary); SpatialModel (summary); StaggeredDiD (overall); StructuralEstimate (summary); SyntheticDiD (summary); cox_test; gph; local_whittle; marginal_effects; spatial_diagnostics; and 10 internal helpers,_micro.estimate_rows; clogit_effects._panel; clogit_effects._rows; estimation.dynpanel._estimate.ar_test; projections._irf; stats.evaluation.clark_west; stats.evaluation.encompassing; stats.evaluation.mean_differential_test; stats.evaluation.pesaran_timmermann; treatment._estimate_row
+scipy,scipy.stats.poisson.logpmf,poisson_autoregression (per); and 1 internal helper,count_series._inar_logpmf
+scipy,scipy.stats.rankdata,and 1 internal helper,stats.evaluation.roc_auc
+scipy,scipy.stats.skew,JarqueBera (tests) (run),
+scipy,scipy.stats.t,and 1 internal helper,results.coefficients
+scipy,scipy.stats.t.cdf,FisherADF (tests) (run),
+scipy,scipy.stats.t.ppf,FittedEquation.forecast; and 2 internal helpers,estimation.timeseries.forecast; models.stochastic._errors
+scipy,scipy.stats.t.sf,FittedDisaggregation (summary); FittedEquation (summary); FittedMIDAS (summary); j_test; and 2 internal helpers,stats.evaluation.encompassing; stats.evaluation.mean_differential_test
+sklearn,sklearn.ensemble.GradientBoostingRegressor,GradientBoosting (estimation methods),
+sklearn,sklearn.ensemble.RandomForestRegressor,RandomForest (estimation methods),
+sklearn,sklearn.linear_model.ElasticNet,ElasticNet (estimation methods),
+sklearn,sklearn.linear_model.Lasso,Lasso (estimation methods),
+sklearn,sklearn.linear_model.Ridge,Ridge (estimation methods),
+sklearn,sklearn.neighbors.KNeighborsRegressor (standardized inputs),NearestNeighbours (estimation methods),
+sklearn,sklearn.neural_network.MLPRegressor (standardized inputs and target),NeuralNetwork (estimation methods),
+statsmodels,statsmodels.regression.quantile_regression.QuantReg,Quantile (estimation methods),
+statsmodels,statsmodels.tsa.ardl.ARDL (or ardl_select_order when select is set),ARDL [adapter],
+statsmodels,statsmodels.tsa.exponential_smoothing.ets.ETSModel,ExponentialSmoothing (model types),
+statsmodels,statsmodels.tsa.forecasting.stl.STLForecast,STLForecast (model types),
+statsmodels,statsmodels.tsa.forecasting.theta.ThetaModel,Theta (model types),
+statsmodels,"statsmodels.tsa.regime_switching (MarkovRegression, or MarkovAutoregression when ar > 0)",MarkovSwitching [adapter],
+statsmodels,statsmodels.tsa.seasonal.seasonal_decompose,Classical (seasonal adjustment); Classical (seasonal adjustment) (decompose) [adapter],
+statsmodels,statsmodels.tsa.seasonal.STL,STL (seasonal adjustment); STL (seasonal adjustment) (decompose) [adapter],
+statsmodels,statsmodels.tsa.statespace.dynamic_factor_mq.DynamicFactorMQ,DynamicFactor [adapter],
+statsmodels,statsmodels.tsa.statespace.initialization.Initialization,and 1 internal helper,statespace._sm_model
+statsmodels,statsmodels.tsa.statespace.mlemodel.MLEModel,and 1 internal helper,statespace._sm_model
+statsmodels,statsmodels.tsa.statespace.sarimax.SARIMAX,SARIMA (model types),
+statsmodels,statsmodels.tsa.stattools.adfuller,ADF (tests),
+statsmodels,statsmodels.tsa.stattools.adfuller (for each entity),FisherADF (tests),
+statsmodels,statsmodels.tsa.stattools.coint,EngleGranger (tests),
+statsmodels,statsmodels.tsa.stattools.kpss,KPSS (tests),
+statsmodels,statsmodels.tsa.vector_ar.vecm._endog_matrices,FittedVECM (_design); FittedVECM (_reduced_rank_data),
+statsmodels,statsmodels.tsa.vector_ar.vecm._linear_trend,FittedVECM (relations),
+statsmodels,statsmodels.tsa.vector_ar.vecm.coint_johansen,johansen [adapter],
+statsmodels,statsmodels.tsa.vector_ar.vecm.select_order,VECM.select_order [adapter],
+statsmodels,statsmodels.tsa.vector_ar.vecm.VECM,VECM (model types),
+x13as,"x13as (US Census Bureau X-13ARIMA-SEATS), run as a separate program on a generated .spc file",X13 (seasonal adjustment),

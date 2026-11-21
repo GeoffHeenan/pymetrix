@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymetrix-assistant"
+dynamic = ["version"]
+description = "An AI assistant in the pymetrix desktop app: ask Claude, or serve the open session to your own assistant over MCP"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Geoffrey Heenan" }]
+# extension API 1.8 (build_mcp_server); anthropic and keyring for Ask (the key is kept in the system keychain)
+dependencies = ["pymetrix>=0.1.0a14", "mcp>=2.3", "uvicorn>=0.30", "anthropic>=2.6", "keyring>=24"]
+
+[project.urls]
+Homepage = "https://github.com/GeoffHeenan/pymetrix"
+Source = "https://github.com/GeoffHeenan/pymetrix/tree/main/packages/pymetrix-assistant"
+Issues = "https://github.com/GeoffHeenan/pymetrix/issues"
+Changelog = "https://github.com/GeoffHeenan/pymetrix/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest>=9.0.3"]
+
+# the Assistant panel; it describes itself as a plugin too
+[project.entry-points."pymetrix.plugins"]
+assistant = "pymetrix_assistant:register"
+[project.entry-points."pymetrix.panels"]
+assistant = "pymetrix_assistant:register"
+
+[tool.hatch.version]
+path = "src/pymetrix_assistant/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymetrix_assistant"]

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The SDMX frequency code list as codelist/SDMX/CL_FREQ/2.1 answers it, written by hand from the SDMX 2.1 standard. -->
+<message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure" xmlns:common="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common" xmlns:xml="http://www.w3.org/XML/1998/namespace">
+<message:Header><message:ID>IREF000005</message:ID><message:Test>false</message:Test><message:Prepared>2026-11-08T09:00:00Z</message:Prepared><message:Sender id="IMF"/></message:Header>
+<message:Structures><structure:Codelists>
+<structure:Codelist id="CL_FREQ" agencyID="SDMX" version="2.1"><common:Name xml:lang="en">Frequency</common:Name><structure:Code id="A"><common:Name xml:lang="en">Annual</common:Name></structure:Code><structure:Code id="S"><common:Name xml:lang="en">Half-yearly</common:Name></structure:Code><structure:Code id="Q"><common:Name xml:lang="en">Quarterly</common:Name></structure:Code><structure:Code id="M"><common:Name xml:lang="en">Monthly</common:Name></structure:Code><structure:Code id="W"><common:Name xml:lang="en">Weekly</common:Name></structure:Code><structure:Code id="D"><common:Name xml:lang="en">Daily</common:Name></structure:Code></structure:Codelist>
+</structure:Codelists></message:Structures>
+</message:Structure>

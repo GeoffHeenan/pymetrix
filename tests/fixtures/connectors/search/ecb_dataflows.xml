@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure" xmlns:common="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common" xmlns:xml="http://www.w3.org/XML/1998/namespace">
+<message:Header><message:ID>IREF000001</message:ID><message:Test>false</message:Test><message:Prepared>2026-11-02T09:00:00Z</message:Prepared><message:Sender id="ECB"/></message:Header>
+<message:Structures>
+<structure:Dataflows>
+<structure:Dataflow id="BSI" agencyID="ECB" version="1.0" isFinal="false"><common:Name xml:lang="de">Balance Sheet Items (de)</common:Name><common:Name xml:lang="en">Balance Sheet Items</common:Name><structure:Structure><Ref id="ECB_BSI1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/></structure:Structure></structure:Dataflow>
+<structure:Dataflow id="EXR" agencyID="ECB" version="1.0" isFinal="false"><common:Name xml:lang="de">Exchange Rates (de)</common:Name><common:Name xml:lang="en">Exchange Rates</common:Name><structure:Structure><Ref id="ECB_EXR1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/></structure:Structure></structure:Dataflow>
+<structure:Dataflow id="FM" agencyID="ECB" version="1.0" isFinal="false"><common:Name xml:lang="de">Financial market data (de)</common:Name><common:Name xml:lang="en">Financial market data</common:Name><structure:Structure><Ref id="ECB_FMD2" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/></structure:Structure></structure:Dataflow>
+<structure:Dataflow id="ICP" agencyID="ECB" version="1.0" isFinal="false"><common:Name xml:lang="de">Indices of Consumer prices (de)</common:Name><common:Name xml:lang="en">Indices of Consumer prices</common:Name><structure:Structure><Ref id="ECB_ICP1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/></structure:Structure></structure:Dataflow>
+<structure:Dataflow id="MIR" agencyID="ECB" version="1.0" isFinal="false"><common:Name xml:lang="de">MFI Interest Rate Statistics (de)</common:Name><common:Name xml:lang="en">MFI Interest Rate Statistics</common:Name><structure:Structure><Ref id="ECB_MIR1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/></structure:Structure></structure:Dataflow>
+<structure:Dataflow id="YC" agencyID="ECB" version="1.0" isFinal="false"><common:Name xml:lang="de">Financial market data - yield curve (de)</common:Name><common:Name xml:lang="en">Financial market data - yield curve</common:Name><structure:Structure><Ref id="ECB_FMD2" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/></structure:Structure></structure:Dataflow>
+</structure:Dataflows>
+</message:Structures>
+</message:Structure>

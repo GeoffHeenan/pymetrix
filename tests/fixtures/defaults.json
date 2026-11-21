@@ -1,0 +1,2158 @@
+{
+ "command pymetrix:add_factors (schema 1)": {
+  "data": "data",
+  "end": "",
+  "equations": "<required>",
+  "name": "add_factors",
+  "params": "",
+  "start": ""
+ },
+ "command pymetrix:add_to_dataset (schema 2)": {
+  "data": "data",
+  "item": "<required>",
+  "replace": false,
+  "series_name": "",
+  "source": "<required>"
+ },
+ "command pymetrix:adjust_round (schema 1)": {
+  "changes": "<required>",
+  "how": "add",
+  "reason": "<required>",
+  "round": "<required>",
+  "variable": "<required>"
+ },
+ "command pymetrix:aggregate_entities (schema 1)": {
+  "by": "",
+  "data": "data",
+  "how": "",
+  "name": "aggregated",
+  "rules": ""
+ },
+ "command pymetrix:annotate_figure (schema 1)": {
+  "alpha": "",
+  "arrow": true,
+  "arrowstyle": "->",
+  "boxstyle": "round",
+  "color": "",
+  "connection": "straight",
+  "curvature": "0.3",
+  "edgecolor": "",
+  "facecolor": "",
+  "fontsize": "",
+  "from_x": "",
+  "from_y": "",
+  "ha": "left",
+  "head": "",
+  "linestyle": "",
+  "name": "",
+  "pad": "",
+  "panel": "0",
+  "source": "<required>",
+  "tab": "Graph",
+  "text": "",
+  "text_x": "",
+  "text_y": "",
+  "va": "bottom",
+  "what": "annotate",
+  "width": "",
+  "x": "",
+  "x2": "",
+  "y": "",
+  "y2": ""
+ },
+ "command pymetrix:arrange_styles (schema 1)": {
+  "keep": "",
+  "name": "",
+  "source": "<required>",
+  "steps": -1,
+  "tab": "Graph"
+ },
+ "command pymetrix:bacon_decompose (schema 1)": {
+  "data": "data",
+  "name": "bacon",
+  "outcome": "<required>",
+  "treatment": "<required>"
+ },
+ "command pymetrix:balance_panel (schema 1)": {
+  "data": "data",
+  "keep": "periods",
+  "name": "balanced",
+  "series": ""
+ },
+ "command pymetrix:binary_forecast_scores (schema 1)": {
+  "data": "data",
+  "name": "binary_scores_result",
+  "outcomes": "<required>",
+  "probabilities": "<required>",
+  "threshold": 0.5
+ },
+ "command pymetrix:calendar_regressors (schema 1)": {
+  "data": "data",
+  "easter": 8,
+  "leap_year": true,
+  "trading_days": "six"
+ },
+ "command pymetrix:calibrate (schema 1)": {
+  "equations": "<required>",
+  "free": "<required>",
+  "growth": false,
+  "name": "calibration",
+  "params": "",
+  "targets": "<required>"
+ },
+ "command pymetrix:call (schema 2)": {
+  "arguments": "{}",
+  "function": "<required>",
+  "output": "",
+  "receiver": null,
+  "source": "script",
+  "version": 1
+ },
+ "command pymetrix:call_axes_method (schema 1)": {
+  "arguments": "",
+  "keywords": "",
+  "method": "minorticks_on",
+  "name": "",
+  "panel": "0",
+  "side": "left",
+  "source": "<required>",
+  "tab": "Graph"
+ },
+ "command pymetrix:change_style (schema 1)": {
+  "name": "",
+  "properties": "",
+  "replace_all": false,
+  "source": "<required>",
+  "step": "",
+  "tab": "Graph"
+ },
+ "command pymetrix:check_data (schema 1)": {
+  "data": "data",
+  "name": "checks",
+  "outlier": 6.0,
+  "strict": false
+ },
+ "command pymetrix:check_identification (schema 1)": {
+  "at": "",
+  "elasticity": false,
+  "lags": 4,
+  "name": "identification",
+  "source": "<required>"
+ },
+ "command pymetrix:check_model (schema 1)": {
+  "data": "data",
+  "end": "",
+  "equations": "<required>",
+  "name": "model_check",
+  "params": "",
+  "shocks": "",
+  "start": "",
+  "steady": null
+ },
+ "command pymetrix:clogit_marginal_effects (schema 1)": {
+  "at": "average",
+  "changes": "",
+  "dummy": false,
+  "fit": "<required>",
+  "fixed_effect": "",
+  "name": "effects"
+ },
+ "command pymetrix:coefficient_plot (schema 1)": {
+  "level": "95",
+  "name": "coefficients",
+  "results": "<required>",
+  "terms": "",
+  "title": ""
+ },
+ "command pymetrix:combine_forecasts (schema 1)": {
+  "backtests": "<required>",
+  "method": "equal",
+  "min_history": 4,
+  "name": "combination"
+ },
+ "command pymetrix:combine_nowcasts (schema 1)": {
+  "high": "data",
+  "low": "",
+  "models": "<required>",
+  "name": "combined",
+  "through": "",
+  "variable": "",
+  "weights": ""
+ },
+ "command pymetrix:compare_backtests (schema 1)": {
+  "first": "<required>",
+  "horizon": 1,
+  "linex_a": 1.0,
+  "loss": "squared",
+  "name": "comparison",
+  "second": "<required>",
+  "tau": 0.5,
+  "test": "diebold-mariano",
+  "variable": "<required>"
+ },
+ "command pymetrix:compare_many_forecasts (schema 1)": {
+  "alpha": 0.1,
+  "backtests": "<required>",
+  "block": null,
+  "horizon": 1,
+  "linex_a": 1.0,
+  "loss": "squared",
+  "name": "confidence_set",
+  "reps": 1000,
+  "seed": 0,
+  "tau": 0.5,
+  "variable": "<required>"
+ },
+ "command pymetrix:compare_rounds (schema 1)": {
+  "folder": "forecasts",
+  "name": "revisions",
+  "new": "<required>",
+  "old": "<required>",
+  "variables": ""
+ },
+ "command pymetrix:compare_scenarios (schema 1)": {
+  "baseline": "",
+  "data": "",
+  "desired": "",
+  "discount": 1.0,
+  "end": "",
+  "loss": "",
+  "name": "comparison",
+  "scenarios": "",
+  "solutions": "",
+  "source": "",
+  "start": "",
+  "workers": 1
+ },
+ "command pymetrix:conditional_forecast (schema 1)": {
+  "conditions": "<required>",
+  "coverage": 0.95,
+  "data": "data",
+  "draws": null,
+  "end": "<required>",
+  "fit": "<required>",
+  "name": "conditional",
+  "seed": 0,
+  "shock_conditions": "",
+  "shocks": "",
+  "start": "<required>",
+  "update_posterior": false
+ },
+ "command pymetrix:convert_frequency (schema 1)": {
+  "data": "data",
+  "freq": "Q",
+  "how": "",
+  "name": "converted",
+  "rules": ""
+ },
+ "command pymetrix:copy_style (schema 1)": {
+  "from_tab": "Graph",
+  "name": "",
+  "notes": false,
+  "source": "<required>",
+  "style_from": "",
+  "tab": "Graph"
+ },
+ "command pymetrix:correlations (schema 1)": {
+  "data": "data",
+  "form": "matrix",
+  "given": "",
+  "market": "",
+  "method": "pearson",
+  "name": "correlations",
+  "series": "",
+  "show": "correlation",
+  "standardized": true
+ },
+ "command pymetrix:correlogram (schema 2)": {
+  "lags": 20,
+  "name": "correlogram",
+  "source": "<required>",
+  "squared": false,
+  "variable": ""
+ },
+ "command pymetrix:cross_correlogram (schema 1)": {
+  "data": "data",
+  "lags": 12,
+  "name": "crosscorrelogram",
+  "x": "",
+  "y": ""
+ },
+ "command pymetrix:data_as_of (schema 1)": {
+  "data": "data",
+  "name": "known",
+  "release_lags": "",
+  "when": "<required>"
+ },
+ "command pymetrix:data_contributions (schema 1)": {
+  "data": "",
+  "horizon": 0,
+  "name": "contributions",
+  "source": "<required>"
+ },
+ "command pymetrix:define_equation (schema 1)": {
+  "bounds": "",
+  "formula": "<required>",
+  "label": "",
+  "name": "eq",
+  "params": "",
+  "priors": "",
+  "starts": ""
+ },
+ "command pymetrix:define_matrix (schema 1)": {
+  "expression": "<required>",
+  "name": "M"
+ },
+ "command pymetrix:define_model (schema 1)": {
+  "name": "model",
+  "syntax": "pymetrix",
+  "text": "<required>"
+ },
+ "command pymetrix:derive_each (schema 2)": {
+  "data": "data",
+  "formula": "<required>",
+  "keep_updated": true,
+  "name": "<required>",
+  "replace": false,
+  "selection": "",
+  "series": ""
+ },
+ "command pymetrix:derive_series (schema 2)": {
+  "data": "data",
+  "formula": "<required>",
+  "replace": false,
+  "series": "<required>"
+ },
+ "command pymetrix:descriptive_statistics (schema 1)": {
+  "data": "data",
+  "name": "stats",
+  "percentiles": "25, 50, 75",
+  "series": ""
+ },
+ "command pymetrix:difference_in_differences (schema 1)": {
+  "controls": "",
+  "data": "data",
+  "name": "did_result",
+  "outcome": "<required>",
+  "treatment": "<required>"
+ },
+ "command pymetrix:disaggregate (schema 1)": {
+  "add_to_high": true,
+  "aggregation": "",
+  "aggregation_file": "",
+  "conversion": "sum",
+  "differences": "first",
+  "formula": "<required>",
+  "high": "data",
+  "level_penalty": null,
+  "low": "<required>",
+  "method": "chow-lin",
+  "name": "disaggregation",
+  "rho": null,
+  "rho_bounds": "0, 0.999",
+  "soft": null
+ },
+ "command pymetrix:double_machine_learning (schema 1)": {
+  "cluster": "",
+  "controls": "<required>",
+  "data": "data",
+  "folds": 5,
+  "instrument": "",
+  "learner": "ols",
+  "learner_treatment": "",
+  "model": "plr",
+  "name": "dml",
+  "outcome": "<required>",
+  "repeats": 1,
+  "score": "ATE",
+  "seed": 0,
+  "treatment": "<required>",
+  "trim": 0.01
+ },
+ "command pymetrix:drop_series (schema 1)": {
+  "data": "<required>",
+  "series": "<required>"
+ },
+ "command pymetrix:edit_data (schema 1)": {
+  "data": "<required>",
+  "edits": "<required>"
+ },
+ "command pymetrix:enter_matrix (schema 1)": {
+  "cols": "",
+  "name": "M",
+  "rows": "",
+  "values": "<required>"
+ },
+ "command pymetrix:equation_lag_search (schema 1)": {
+  "data": "data",
+  "formula": "<required>",
+  "max_lags": 8,
+  "name": "lag_search",
+  "of": ""
+ },
+ "command pymetrix:estimate_dsge_var (schema 1)": {
+  "bounds": "",
+  "data": "data",
+  "end": "",
+  "estimate": "",
+  "lags": 4,
+  "lambda_": "grid",
+  "lambdas": "",
+  "max_iter": 2000,
+  "name": "dsge_var",
+  "priors": "",
+  "source": "<required>",
+  "start": ""
+ },
+ "command pymetrix:estimate_model (schema 1)": {
+  "bounds": "",
+  "data": "data",
+  "diffuse_terms": "include",
+  "end": "",
+  "estimate": "",
+  "filter": "default",
+  "gradient": "auto",
+  "growth": false,
+  "initial": "default",
+  "max_iter": 2000,
+  "name": "estimated",
+  "occbin": false,
+  "order": 1,
+  "particles": 2000,
+  "presample": null,
+  "priors": "",
+  "regimes": "",
+  "seed": 1,
+  "smooth_paths": 100,
+  "source": "<required>",
+  "start": "",
+  "starts": 1,
+  "workers": null
+ },
+ "command pymetrix:export_model (schema 1)": {
+  "form": "program",
+  "name": "translation",
+  "origin": "",
+  "source": "<required>",
+  "syntax": "dynare"
+ },
+ "command pymetrix:export_report (schema 1)": {
+  "all_sections": false,
+  "author": "",
+  "date": "",
+  "end": "",
+  "figure_width": 6.0,
+  "objects": "<required>",
+  "outline": "",
+  "path": "report.xlsx",
+  "plugin_notes": false,
+  "provenance": true,
+  "start": "",
+  "template": "",
+  "theme": "",
+  "title": "Report",
+  "use_outline": false
+ },
+ "command pymetrix:figure_options (schema 1)": {
+  "bar_labels": false,
+  "columns": null,
+  "data": "data",
+  "end": "",
+  "events": "",
+  "footnote": "",
+  "highest": "",
+  "house": true,
+  "line_labels": false,
+  "log_scale": false,
+  "lowest": "",
+  "name": "",
+  "reference": "",
+  "shade": "",
+  "sharey": false,
+  "source": "<required>",
+  "split_dates": "",
+  "split_values": "",
+  "start": "",
+  "subtitle": "",
+  "tab": "Graph",
+  "theme": "",
+  "title": ""
+ },
+ "command pymetrix:fill_edge (schema 1)": {
+  "data": "data",
+  "lags": 2,
+  "name": "filled",
+  "series": "",
+  "through": ""
+ },
+ "command pymetrix:filter (schema 1)": {
+  "data": "data",
+  "keep_updated": true,
+  "method": "HP",
+  "name": "",
+  "settings": "",
+  "variables": "<required>"
+ },
+ "command pymetrix:find_breaks (schema 1)": {
+  "fit": "<required>",
+  "max_breaks": 5,
+  "name": "breaks",
+  "trim": 0.15
+ },
+ "command pymetrix:fit_ardl (schema 1)": {
+  "data": "data",
+  "end": "",
+  "formula": "<required>",
+  "lags": 1,
+  "max_lags": 4,
+  "name": "ardl",
+  "order": 1,
+  "select": "",
+  "start": "",
+  "trend": "c"
+ },
+ "command pymetrix:fit_bilinear (schema 1)": {
+  "data": "data",
+  "end": "",
+  "name": "bl",
+  "start": "",
+  "variable": "<required>"
+ },
+ "command pymetrix:fit_bma (schema 2)": {
+  "always": "",
+  "candidates": "<required>",
+  "data": "data",
+  "end": "",
+  "g": 0.0,
+  "name": "bma",
+  "outcome": "<required>",
+  "start": ""
+ },
+ "command pymetrix:fit_bridge (schema 1)": {
+  "fill_lags": 2,
+  "formula": "<required>",
+  "high": "data",
+  "how": "mean",
+  "low": "<required>",
+  "name": "bridge"
+ },
+ "command pymetrix:fit_bvarsv (schema 1)": {
+  "burn": 1000,
+  "data": "data",
+  "decay": 1.0,
+  "draws": 2000,
+  "end": "",
+  "kw": 0.1,
+  "lags": 4,
+  "name": "bvarsv",
+  "own_mean": 1.0,
+  "seed": 0,
+  "start": "",
+  "tightness": 0.2,
+  "variables": "<required>"
+ },
+ "command pymetrix:fit_choice_logit (schema 1)": {
+  "alternative": "",
+  "alternative_constants": false,
+  "base": "",
+  "case": "",
+  "case_variables": "",
+  "choice": "<required>",
+  "cov": "hessian",
+  "data": "data",
+  "name": "choice",
+  "regressors": "<required>"
+ },
+ "command pymetrix:fit_cointegrating_regression (schema 1)": {
+  "bandwidth": null,
+  "bandwidth_rule": "newey-west",
+  "data": "data",
+  "end": "",
+  "lags": null,
+  "leads": null,
+  "method": "fmols",
+  "name": "coint",
+  "start": "",
+  "trend": "c",
+  "where": "",
+  "x": "<required>",
+  "y": "<required>"
+ },
+ "command pymetrix:fit_conditional_logit (schema 1)": {
+  "cov": "hessian",
+  "data": "data",
+  "group": "",
+  "name": "clogit",
+  "outcome": "<required>",
+  "regressors": "<required>"
+ },
+ "command pymetrix:fit_dynamic_factor (schema 1)": {
+  "factor_order": 2,
+  "factors": 1,
+  "high": "data",
+  "low": "",
+  "monthly": "<required>",
+  "name": "dfm",
+  "quarterly": ""
+ },
+ "command pymetrix:fit_each (schema 1)": {
+  "cov": "classic",
+  "data": "data",
+  "end": "",
+  "formula": "<required>",
+  "keep_going": false,
+  "method": "OLS",
+  "method_settings": "",
+  "name": "fits",
+  "selection": "",
+  "series": "",
+  "start": ""
+ },
+ "command pymetrix:fit_equation (schema 1)": {
+  "ar": "",
+  "censor_left": "0",
+  "censor_right": "",
+  "cluster": "",
+  "cov": "classic",
+  "data": "data",
+  "dist": "normal",
+  "end": "",
+  "endog": "",
+  "family": "gaussian",
+  "formula": "<required>",
+  "hac_correction": true,
+  "hac_lags": 0,
+  "inflate": "",
+  "instruments": "",
+  "ma": "",
+  "method": "OLS",
+  "method_settings": "",
+  "missing": "drop",
+  "name": "fit",
+  "params": "",
+  "start": "",
+  "variance": "constant",
+  "variance_settings": "",
+  "weights": "",
+  "where": ""
+ },
+ "command pymetrix:fit_event_study (schema 1)": {
+  "controls": "",
+  "data": "data",
+  "first": -5,
+  "last": 5,
+  "name": "event",
+  "outcome": "<required>",
+  "reference": -1,
+  "treatment": "<required>"
+ },
+ "command pymetrix:fit_exponential_smoothing (schema 1)": {
+  "damped": false,
+  "data": "data",
+  "end": "",
+  "error": "add",
+  "name": "ets",
+  "seasonal": "none",
+  "series": "<required>",
+  "start": "",
+  "trend": "none"
+ },
+ "command pymetrix:fit_factor_model (schema 1)": {
+  "data": "data",
+  "end": "",
+  "factors": 1,
+  "name": "fa",
+  "rotation": "none",
+  "start": "",
+  "variables": "<required>"
+ },
+ "command pymetrix:fit_favar (schema 1)": {
+  "data": "data",
+  "factors": "3",
+  "lags": "2",
+  "max_factors": 8,
+  "max_lags": 8,
+  "name": "fv",
+  "observed": "<required>",
+  "panel": "<required>",
+  "slow": ""
+ },
+ "command pymetrix:fit_growth_at_risk (schema 1)": {
+  "data": "data",
+  "end": "",
+  "growth": "<required>",
+  "horizons": "1, 4",
+  "name": "gar",
+  "predictors": "<required>",
+  "quantiles": "0.05, 0.25, 0.5, 0.75, 0.95",
+  "start": ""
+ },
+ "command pymetrix:fit_interactive_fe (schema 1)": {
+  "bias_correction": false,
+  "choose": false,
+  "cov": "robust",
+  "criterion": "icp1",
+  "data": "data",
+  "effects": "none",
+  "factors": 1,
+  "max_factors": 8,
+  "name": "ife",
+  "outcome": "<required>",
+  "regressors": "<required>"
+ },
+ "command pymetrix:fit_kernel_density (schema 1)": {
+  "bandwidth": "silverman",
+  "cut": 3.0,
+  "data": "data",
+  "kernel": "gaussian",
+  "name": "density",
+  "points": 256,
+  "variable": "<required>"
+ },
+ "command pymetrix:fit_kernel_regression (schema 1)": {
+  "bandwidth": "cv",
+  "data": "data",
+  "kind": "ll",
+  "name": "kreg",
+  "x": "<required>",
+  "y": "<required>"
+ },
+ "command pymetrix:fit_local_projection (schema 1)": {
+  "alpha": 0.1,
+  "contemporaneous": "",
+  "controls": "",
+  "cov": "hac",
+  "data": "data",
+  "end": "",
+  "folds": 5,
+  "horizons": 12,
+  "instruments": "",
+  "lags": 4,
+  "long_difference": false,
+  "name": "lp",
+  "order": 2,
+  "penalty": null,
+  "response": "<required>",
+  "scale": 1.0,
+  "shock": "<required>",
+  "smooth": false,
+  "start": "",
+  "state": ""
+ },
+ "command pymetrix:fit_markov_switching (schema 1)": {
+  "ar": 0,
+  "data": "data",
+  "end": "",
+  "formula": "<required>",
+  "name": "ms",
+  "regimes": 2,
+  "search": 20,
+  "seed": 0,
+  "start": "",
+  "switching_variance": false
+ },
+ "command pymetrix:fit_midas (schema 1)": {
+  "ar": 0,
+  "formula": "<required>",
+  "high": "data",
+  "high_lag": 0,
+  "lags": 12,
+  "low": "<required>",
+  "name": "midas",
+  "weights": "exp_almon"
+ },
+ "command pymetrix:fit_msvar (schema 1)": {
+  "data": "data",
+  "end": "",
+  "lags": 1,
+  "max_iter": 5000,
+  "name": "msvar",
+  "regimes": 2,
+  "seed": 0,
+  "start": "",
+  "starts": 10,
+  "switching": "intercept_variance",
+  "variables": "<required>"
+ },
+ "command pymetrix:fit_panel_mean_group (schema 1)": {
+  "data": "data",
+  "lags": 1,
+  "method": "mean group",
+  "name": "panel_mg",
+  "trend": false,
+  "x": "<required>",
+  "y": "<required>"
+ },
+ "command pymetrix:fit_panel_var (schema 1)": {
+  "by": "<required>",
+  "choose_lags": "",
+  "data": "data",
+  "end": "",
+  "instrument_lags": 0,
+  "lags": 1,
+  "max_lags": 4,
+  "name": "pvar",
+  "start": "",
+  "transform": "fod",
+  "variables": "<required>"
+ },
+ "command pymetrix:fit_pca (schema 1)": {
+  "data": "data",
+  "end": "",
+  "n": 0,
+  "name": "pca",
+  "standardize": true,
+  "start": "",
+  "variables": "<required>"
+ },
+ "command pymetrix:fit_quantile_var (schema 1)": {
+  "data": "data",
+  "end": "",
+  "lags": 1,
+  "name": "qvar",
+  "quantile": 0.5,
+  "start": "",
+  "variables": "<required>"
+ },
+ "command pymetrix:fit_rolling (schema 1)": {
+  "cov": "classic",
+  "data": "data",
+  "end": "",
+  "formula": "<required>",
+  "hac_lags": 0,
+  "min_obs": 0,
+  "name": "rolling",
+  "params": "",
+  "start": "",
+  "step": 1,
+  "window": 0
+ },
+ "command pymetrix:fit_sarima (schema 1)": {
+  "backend_options": "",
+  "data": "data",
+  "end": "",
+  "exog": "",
+  "name": "sarima",
+  "order": "1, 0, 0",
+  "period": 0,
+  "seasonal_order": "0, 0, 0",
+  "series": "<required>",
+  "start": "",
+  "trend": "auto"
+ },
+ "command pymetrix:fit_smooth_transition_ar (schema 1)": {
+  "data": "data",
+  "delay": 1,
+  "end": "",
+  "lags": 1,
+  "name": "star",
+  "series": "<required>",
+  "start": "",
+  "transition": "logistic"
+ },
+ "command pymetrix:fit_staggered_did (schema 1)": {
+  "control": "never",
+  "covariates": "",
+  "data": "data",
+  "draws": 499,
+  "estimator": "dr",
+  "first": null,
+  "last": null,
+  "method": "callaway_santanna",
+  "name": "staggered",
+  "outcome": "<required>",
+  "seed": 0,
+  "treatment": "<required>"
+ },
+ "command pymetrix:fit_state_space (schema 1)": {
+  "cov": "classic",
+  "data": "data",
+  "diffuse_terms": "include",
+  "end": "",
+  "fixed": "",
+  "max_iter": 2000,
+  "measurement": "<required>",
+  "name": "ssm",
+  "params": "",
+  "shocks": "<required>",
+  "start": "",
+  "states": "<required>",
+  "stationary": "",
+  "transition": "<required>"
+ },
+ "command pymetrix:fit_stl_forecast (schema 1)": {
+  "backend_options": "",
+  "damped": true,
+  "data": "data",
+  "end": "",
+  "model": "arima",
+  "name": "stl",
+  "order": "1, 1, 0",
+  "period": 0,
+  "series": "<required>",
+  "start": "",
+  "trend": "add"
+ },
+ "command pymetrix:fit_synthetic_control (schema 1)": {
+  "data": "data",
+  "donors": "",
+  "name": "synth",
+  "outcome": "<required>",
+  "start": "<required>",
+  "treated": "<required>"
+ },
+ "command pymetrix:fit_synthetic_did (schema 1)": {
+  "data": "data",
+  "name": "sdid",
+  "outcome": "<required>",
+  "placebos": 200,
+  "se": "auto",
+  "seed": 0,
+  "treatment": "<required>"
+ },
+ "command pymetrix:fit_system (schema 1)": {
+  "data": "data",
+  "end": "",
+  "endogenous": "",
+  "equations": "<required>",
+  "instruments": "",
+  "method": "sur",
+  "method_settings": "",
+  "name": "sys",
+  "restrictions": "",
+  "start": ""
+ },
+ "command pymetrix:fit_theta (schema 1)": {
+  "backend_options": "",
+  "data": "data",
+  "deseasonalize": "auto",
+  "end": "",
+  "method": "auto",
+  "name": "theta",
+  "period": 0,
+  "series": "<required>",
+  "start": ""
+ },
+ "command pymetrix:fit_threshold_ar (schema 1)": {
+  "data": "data",
+  "delay": 0,
+  "end": "",
+  "lags": 1,
+  "name": "tar",
+  "series": "<required>",
+  "start": "",
+  "trim": 0.15
+ },
+ "command pymetrix:fit_threshold_var (schema 1)": {
+  "data": "data",
+  "delay": 1,
+  "end": "",
+  "lags": 1,
+  "name": "tvar",
+  "start": "",
+  "threshold": "",
+  "trim": 0.15,
+  "variables": "<required>"
+ },
+ "command pymetrix:fit_tvp_var (schema 1)": {
+  "burn": 1000,
+  "data": "data",
+  "draws": 2000,
+  "kq": 0.01,
+  "ks": 0.1,
+  "kw": 0.01,
+  "lags": 2,
+  "name": "tvp",
+  "seed": 0,
+  "thin": 1,
+  "training": 40,
+  "variables": "<required>"
+ },
+ "command pymetrix:fit_unobserved_components (schema 1)": {
+  "cycle": 2,
+  "data": "data",
+  "diffuse_terms": "include",
+  "end": "",
+  "irregular": true,
+  "name": "uc",
+  "series": "<required>",
+  "start": "",
+  "trend": "local linear trend"
+ },
+ "command pymetrix:fit_var (schema 1)": {
+  "bayesian": false,
+  "block_exogenous": "",
+  "cross_tightness": 0.5,
+  "data": "data",
+  "draws": 5000,
+  "end": "",
+  "exog": "",
+  "hierarchical": false,
+  "hyper_mcmc": false,
+  "independent": false,
+  "initial_observation": "",
+  "iterate": false,
+  "lags": "2",
+  "max_lags": 8,
+  "name": "var",
+  "optimize": false,
+  "own_mean": 1.0,
+  "seed": 0,
+  "start": "",
+  "sum_of_coefficients": "",
+  "tightness": 0.2,
+  "trend": "c",
+  "variables": "<required>",
+  "zeros": ""
+ },
+ "command pymetrix:fit_varma (schema 1)": {
+  "data": "data",
+  "end": "",
+  "name": "varma_fit",
+  "p": 1,
+  "q": 1,
+  "start": "",
+  "variables": "<required>"
+ },
+ "command pymetrix:fit_vecm (schema 1)": {
+  "data": "data",
+  "deterministic": "unrestricted constant (case 3)",
+  "end": "",
+  "exog": "",
+  "exog_coint": "",
+  "first_season": 0,
+  "lags": 1,
+  "name": "vecm",
+  "rank": "trace",
+  "seasons": 0,
+  "signif": 0.05,
+  "start": "",
+  "variables": "<required>"
+ },
+ "command pymetrix:forecast (schema 1)": {
+  "coverage": 0.95,
+  "data": "data",
+  "draws": null,
+  "dynamic": false,
+  "end": "<required>",
+  "fit": "<required>",
+  "name": "forecast",
+  "seed": 0,
+  "start": "<required>"
+ },
+ "command pymetrix:forecast_model (schema 2)": {
+  "data": "",
+  "draws": 0,
+  "end": "<required>",
+  "free": "",
+  "free_sd": "",
+  "hold": "",
+  "hold_lower": "",
+  "hold_sd": "",
+  "hold_upper": "",
+  "name": "model_forecast",
+  "occbin": null,
+  "regimes": "",
+  "seed": 0,
+  "set_to": "",
+  "shift": "",
+  "shocks": true,
+  "source": "<required>",
+  "start": "<required>",
+  "unanticipated": ""
+ },
+ "command pymetrix:freeze_series (schema 1)": {
+  "data": "<required>",
+  "series": "<required>"
+ },
+ "command pymetrix:generate_series (schema 2)": {
+  "data": "data",
+  "for_each": "",
+  "formula": "<required>",
+  "keep_updated": false,
+  "replace": false,
+  "series": "<required>"
+ },
+ "command pymetrix:gregory_hansen_test (schema 1)": {
+  "data": "data",
+  "end": "",
+  "lags": 1,
+  "model": "level",
+  "name": "gregory_hansen_test",
+  "reps": 500,
+  "seed": 0,
+  "start": "",
+  "trim": 0.15,
+  "x": "<required>",
+  "y": "<required>"
+ },
+ "command pymetrix:hausman (schema 1)": {
+  "consistent": "<required>",
+  "efficient": "<required>",
+  "name": "hausman",
+  "sigma": "efficient"
+ },
+ "command pymetrix:historical_decomposition (schema 1)": {
+  "coverage": 0.95,
+  "draws": 0,
+  "entity": "",
+  "long_run_zeros": "",
+  "max_tries": 200000,
+  "name": "hd",
+  "narrative_major": "",
+  "narrative_signs": "",
+  "ordering": "",
+  "rotations": 1000,
+  "scheme": "Cholesky",
+  "seed": 0,
+  "share_horizon": 40,
+  "share_start": 0,
+  "share_variable": "",
+  "sign_horizon": 0,
+  "sign_seed": 0,
+  "signs": "",
+  "var": "<required>",
+  "zeros": ""
+ },
+ "command pymetrix:identify_ab (schema 1)": {
+  "A": "",
+  "B": "",
+  "long_run": "",
+  "name": "svar",
+  "seed": 0,
+  "starts": 10,
+  "var": "var"
+ },
+ "command pymetrix:import_dynare (schema 1)": {
+  "name": "dynare",
+  "path": "<required>"
+ },
+ "command pymetrix:import_eviews_sspace (schema 1)": {
+  "name": "sspace",
+  "params": "",
+  "path": "<required>"
+ },
+ "command pymetrix:import_frbus (schema 1)": {
+  "mce": "",
+  "name": "frbus",
+  "path": "<required>"
+ },
+ "command pymetrix:import_iris (schema 1)": {
+  "name": "iris",
+  "params": "",
+  "path": "<required>",
+  "trend_base": ""
+ },
+ "command pymetrix:impulse_response (schema 1)": {
+  "breaks": "",
+  "coverage": 0.95,
+  "cumulative": false,
+  "draws": 500,
+  "long_run_zeros": "",
+  "max_tries": 200000,
+  "name": "irf",
+  "narrative_major": "",
+  "narrative_signs": "",
+  "ordering": "",
+  "orthogonal": true,
+  "period": "",
+  "periods": 20,
+  "regime": 0,
+  "rotations": 1000,
+  "scheme": "Cholesky",
+  "seed": 0,
+  "share_horizon": 40,
+  "share_start": 0,
+  "share_variable": "",
+  "sign_horizon": 0,
+  "sign_seed": 0,
+  "signs": "",
+  "var": "<required>",
+  "zeros": ""
+ },
+ "command pymetrix:instrument_tests (schema 1)": {
+  "alpha": 0.05,
+  "cov": "classic",
+  "data": "data",
+  "end": "",
+  "endog": "",
+  "fit": "<required>",
+  "grid": "-1, 1, 81",
+  "instruments": "",
+  "name": "iv_test",
+  "start": "",
+  "suspect": "",
+  "test": "anderson_rubin",
+  "value": 0.0,
+  "values": ""
+ },
+ "command pymetrix:johansen (schema 1)": {
+  "data": "data",
+  "end": "",
+  "lags": 1,
+  "name": "johansen_result",
+  "signif": 0.05,
+  "start": "",
+  "trend": "constant",
+  "variables": "<required>"
+ },
+ "command pymetrix:kalman_filter (schema 1)": {
+  "data": "data",
+  "end": "",
+  "name": "filtered",
+  "start": "",
+  "system": "<required>"
+ },
+ "command pymetrix:load_data (schema 1)": {
+  "entity": "",
+  "freq": "",
+  "name": "data",
+  "path": "<required>",
+  "time": ""
+ },
+ "command pymetrix:load_example (schema 1)": {
+  "dataset": "sample_macro",
+  "name": "data"
+ },
+ "command pymetrix:load_from_connector (schema 1)": {
+  "codes": "",
+  "end": "",
+  "name": "data",
+  "options": "",
+  "provider": "fred",
+  "start": "",
+  "vintage": ""
+ },
+ "command pymetrix:load_template (schema 1)": {
+  "name": "template",
+  "params": "",
+  "shock_sd": "",
+  "template": "new_keynesian"
+ },
+ "command pymetrix:long_memory (schema 1)": {
+  "data": "data",
+  "end": "",
+  "gph_power": 0.5,
+  "method": "local Whittle",
+  "name": "memory",
+  "p": 0,
+  "q": 0,
+  "start": "",
+  "variable": "<required>",
+  "whittle_power": 0.65
+ },
+ "command pymetrix:make_round (schema 1)": {
+  "as_name": "",
+  "data": "data",
+  "forecast": "<required>",
+  "name": "forecast_round",
+  "notes": "",
+  "round_name": "<required>",
+  "variables": ""
+ },
+ "command pymetrix:mark_change (schema 1)": {
+  "annualise": false,
+  "color": "",
+  "end": "",
+  "name": "",
+  "panel": "",
+  "series": "",
+  "show": "both",
+  "source": "<required>",
+  "start": "",
+  "style": "arrow",
+  "tab": "Graph",
+  "units": "auto"
+ },
+ "command pymetrix:matrix_from (schema 1)": {
+  "data": "data",
+  "dependent": "y",
+  "end": "",
+  "formula": "",
+  "lag": 1,
+  "name": "M",
+  "result": "",
+  "series": "",
+  "source": "coefficients",
+  "start": "",
+  "var": ""
+ },
+ "command pymetrix:model_impulse_responses (schema 1)": {
+  "name": "irf",
+  "periods": 20,
+  "shock": "<required>",
+  "size": 1.0,
+  "solution": "<required>"
+ },
+ "command pymetrix:new_sample (schema 1)": {
+  "data": "data",
+  "end": "",
+  "entities": "",
+  "name": "sample",
+  "start": "",
+  "where": "",
+  "windows": ""
+ },
+ "command pymetrix:non_nested_test (schema 1)": {
+  "data": "data",
+  "end": "",
+  "first": "<required>",
+  "name": "nonnested",
+  "second": "<required>",
+  "start": "",
+  "test": "j"
+ },
+ "command pymetrix:occasionally_binding (schema 1)": {
+  "anticipated": false,
+  "horizon": null,
+  "max_iter": 100,
+  "name": "constrained",
+  "periods": 40,
+  "shocks": "<required>",
+  "source": "<required>"
+ },
+ "command pymetrix:occbin_filter (schema 1)": {
+  "data": "data",
+  "end": "",
+  "horizon": 40,
+  "iterated": false,
+  "name": "occbin_filtered",
+  "presample": 0,
+  "source": "<required>",
+  "start": ""
+ },
+ "command pymetrix:open_result (schema 1)": {
+  "name": "result",
+  "path": "<required>"
+ },
+ "command pymetrix:optimal_control (schema 1)": {
+  "adjust": "",
+  "control_end": "",
+  "control_start": "",
+  "data": "data",
+  "desired": "",
+  "discount": 1.0,
+  "end": "<required>",
+  "equations": "<required>",
+  "instruments": "<required>",
+  "loss": "<required>",
+  "max_iter": 20,
+  "name": "control",
+  "params": "",
+  "solver": "Newton",
+  "start": "<required>",
+  "tol": 1e-06
+ },
+ "command pymetrix:optimal_simple_rule (schema 1)": {
+  "loss": "<required>",
+  "lower": "",
+  "name": "best_rule",
+  "params": "<required>",
+  "source": "<required>",
+  "upper": ""
+ },
+ "command pymetrix:panel_statistics (schema 1)": {
+  "by": "",
+  "data": "data",
+  "name": "panel_stats",
+  "series": "",
+  "show": "coverage"
+ },
+ "command pymetrix:parameter_sweep (schema 1)": {
+  "grid": "product",
+  "name": "runs",
+  "parameter": "<required>",
+  "parameter2": "",
+  "periods": 20,
+  "response": "",
+  "shock": "",
+  "source": "<required>",
+  "values": "<required>",
+  "values2": "",
+  "what": "irf",
+  "workers": 1
+ },
+ "command pymetrix:pivot_table (schema 1)": {
+  "agg": "mean",
+  "columns": "",
+  "data": "data",
+  "end": "",
+  "fill": "",
+  "margins": false,
+  "name": "pivot",
+  "rows": "",
+  "start": "",
+  "values": ""
+ },
+ "command pymetrix:plot_series (schema 1)": {
+  "bar_labels": false,
+  "bins": "",
+  "coverages": "",
+  "data": "data",
+  "end": "",
+  "entity": "",
+  "events": "",
+  "footnote": "",
+  "highest": "",
+  "kind": "line",
+  "layout": "one",
+  "line_labels": false,
+  "log_scale": false,
+  "lowest": "",
+  "name": "figure",
+  "reference": "",
+  "right": "",
+  "same_scale": false,
+  "series": "<required>",
+  "shade": "",
+  "split_dates": "",
+  "split_values": "",
+  "stacked": false,
+  "start": "",
+  "subtitle": "",
+  "title": "",
+  "total": "",
+  "transform": "none"
+ },
+ "command pymetrix:propensity_weighting (schema 1)": {
+  "covariates": "<required>",
+  "data": "data",
+  "estimand": "ATE",
+  "method": "ipw",
+  "name": "effect",
+  "outcome": "<required>",
+  "reps": 200,
+  "seed": 0,
+  "treatment": "<required>"
+ },
+ "command pymetrix:proxy_svar (schema 2)": {
+  "alpha": 0.05,
+  "block": null,
+  "data": "data",
+  "draws": 500,
+  "instrument": "<required>",
+  "name": "proxy",
+  "normalise_on": "",
+  "periods": 20,
+  "scale": "sd",
+  "seed": 0,
+  "var": "var"
+ },
+ "command pymetrix:quantile_process_plot (schema 1)": {
+  "alpha": 0.1,
+  "data": "data",
+  "end": "",
+  "fit": "<required>",
+  "name": "quantile_process_result",
+  "quantiles": "0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9",
+  "start": "",
+  "vcov": "robust"
+ },
+ "command pymetrix:ragged_edge (schema 1)": {
+  "data": "data",
+  "name": "edge",
+  "release_lags": "",
+  "when": ""
+ },
+ "command pymetrix:realign_edge (schema 1)": {
+  "data": "data",
+  "name": "realigned"
+ },
+ "command pymetrix:reconcile (schema 1)": {
+  "components": "<required>",
+  "conversion": "sum",
+  "data": "data",
+  "fixed": "",
+  "low": "",
+  "method": "denton",
+  "name": "reconciliation",
+  "replace": true,
+  "total": "<required>",
+  "weights": ""
+ },
+ "command pymetrix:regression_discontinuity (schema 1)": {
+  "bandwidth": 0.0,
+  "cutoff": 0.0,
+  "data": "data",
+  "name": "rd",
+  "outcome": "<required>",
+  "running": "<required>"
+ },
+ "command pymetrix:rename_series (schema 1)": {
+  "data": "<required>",
+  "new": "<required>",
+  "old": "<required>"
+ },
+ "command pymetrix:run_backtest (schema 1)": {
+  "data": "data",
+  "end": "<required>",
+  "fit": "<required>",
+  "horizon": 8,
+  "name": "backtest_result",
+  "start": "<required>",
+  "vintages": "",
+  "window": 0
+ },
+ "command pymetrix:run_code (schema 1)": {
+  "code": "<required>",
+  "source": "immediate"
+ },
+ "command pymetrix:run_mcmc (schema 1)": {
+  "adapt": true,
+  "burn": 0,
+  "chains": 2,
+  "draws": 5000,
+  "gradient": "auto",
+  "jump": 0.05,
+  "metric": "dense",
+  "name": "posterior",
+  "sampler": "rwmh",
+  "scale": null,
+  "seed": 1,
+  "source": "<required>",
+  "target_accept": 0.8,
+  "workers": 0
+ },
+ "command pymetrix:run_smc (schema 2)": {
+  "ess_fraction": 0.5,
+  "name": "posterior",
+  "particles": 2000,
+  "seed": 1,
+  "source": "<required>",
+  "steps": 2,
+  "workers": 0
+ },
+ "command pymetrix:run_test (schema 2)": {
+  "name": "test",
+  "options": "",
+  "source": "<required>",
+  "test": "<required>"
+ },
+ "command pymetrix:save_figure (schema 1)": {
+  "dpi": 300,
+  "editable_text": false,
+  "height": "",
+  "path": "",
+  "size": "as drawn",
+  "source": "<required>",
+  "tab": "Graph",
+  "transparent": false,
+  "width": ""
+ },
+ "command pymetrix:save_round (schema 1)": {
+  "folder": "forecasts",
+  "overwrite": false,
+  "round": "<required>"
+ },
+ "command pymetrix:seasonal_adjust (schema 1)": {
+  "data": "data",
+  "keep_updated": true,
+  "method": "STL",
+  "name": "",
+  "settings": "",
+  "variables": "<required>"
+ },
+ "command pymetrix:select_order (schema 1)": {
+  "data": "data",
+  "exog": "",
+  "intercept": true,
+  "max_ar": 4,
+  "max_ma": 2,
+  "name": "orders",
+  "variable": "<required>"
+ },
+ "command pymetrix:select_series (schema 1)": {
+  "data": "data",
+  "name": "selection",
+  "patterns": "",
+  "series": ""
+ },
+ "command pymetrix:series_info (schema 1)": {
+  "data": "<required>",
+  "info": "<required>",
+  "series": "<required>"
+ },
+ "command pymetrix:set_properties (schema 1)": {
+  "name": "",
+  "part": "",
+  "properties": "",
+  "source": "<required>",
+  "tab": "Graph"
+ },
+ "command pymetrix:set_sample (schema 1)": {
+  "data": "data",
+  "end": "",
+  "sample": "",
+  "start": ""
+ },
+ "command pymetrix:shift_share_iv (schema 1)": {
+  "controls": "",
+  "data": "data",
+  "name": "bartik",
+  "outcome": "<required>",
+  "se": "akm",
+  "shares": "<required>",
+  "shock_clusters": "",
+  "shocks": "<required>",
+  "treatment": "<required>",
+  "weights": ""
+ },
+ "command pymetrix:shock_decomposition (schema 1)": {
+  "name": "shock_decomposition",
+  "occbin": null,
+  "source": "<required>",
+  "start": "first"
+ },
+ "command pymetrix:slice (schema 1)": {
+  "data": "data",
+  "entity": "",
+  "name": "panel_slice",
+  "period": ""
+ },
+ "command pymetrix:solve_model (schema 2)": {
+  "adjust": "",
+  "coefficients": false,
+  "data": "data",
+  "draws": 0,
+  "end": "<required>",
+  "equations": "<required>",
+  "error_scale": "",
+  "errors": "normal",
+  "fallback": false,
+  "free": "",
+  "free_sd": "",
+  "hold": "",
+  "hold_lower": "",
+  "hold_sd": "",
+  "hold_upper": "",
+  "links": "",
+  "name": "solution",
+  "ordering": "joint",
+  "over": "",
+  "params": "",
+  "partial": false,
+  "regimes": "",
+  "residual_end": "",
+  "residual_series": "",
+  "residual_start": "",
+  "residuals": "",
+  "seed": 0,
+  "set_to": "",
+  "shift": "",
+  "shock_sd": "",
+  "solver": "Newton",
+  "solver_settings": "",
+  "start": "<required>",
+  "unanticipated": "",
+  "workers": 0
+ },
+ "command pymetrix:solve_optimal_policy (schema 1)": {
+  "beta": 0.99,
+  "instrument": "<required>",
+  "kind": "commitment",
+  "loss": "<required>",
+  "name": "optimal",
+  "rule": "",
+  "source": "<required>"
+ },
+ "command pymetrix:solve_rational_expectations (schema 1)": {
+  "equations": "<required>",
+  "guess": "",
+  "name": "re",
+  "params": "",
+  "shocks": "",
+  "steady_state": ""
+ },
+ "command pymetrix:solve_second_order (schema 1)": {
+  "name": "second",
+  "source": "<required>"
+ },
+ "command pymetrix:spectral_analysis (schema 1)": {
+  "bandwidth": 5,
+  "data": "data",
+  "end": "",
+  "kind": "smoothed spectrum",
+  "name": "spec",
+  "other": "",
+  "start": "",
+  "variable": "<required>"
+ },
+ "command pymetrix:state_space_form (schema 1)": {
+  "errors": "",
+  "measurement": "",
+  "measurement_params": "",
+  "name": "system",
+  "reported": "",
+  "shock_sd": "",
+  "source": "<required>",
+  "transforms": ""
+ },
+ "command pymetrix:style_figure (schema 1)": {
+  "alpha": "",
+  "color": "",
+  "grid": "",
+  "height": "",
+  "hide_spines": "",
+  "legend_columns": "",
+  "legend_frame": "",
+  "legend_loc": "",
+  "legend_size": "",
+  "linestyle": "",
+  "linewidth": "",
+  "marker": "",
+  "markersize": "",
+  "name": "",
+  "panel": "0",
+  "series": "",
+  "side": "left",
+  "source": "<required>",
+  "tab": "Graph",
+  "tick_format": "",
+  "tick_size": "",
+  "width": "",
+  "xlabel": "",
+  "xmax": "",
+  "xmin": "",
+  "ylabel": "",
+  "ymax": "",
+  "ymin": "",
+  "yscale": ""
+ },
+ "command pymetrix:superior_predictive_ability (schema 1)": {
+  "benchmark": "<required>",
+  "block": null,
+  "horizon": 1,
+  "linex_a": 1.0,
+  "loss": "squared",
+  "models": "<required>",
+  "name": "spa_test",
+  "reps": 1000,
+  "seed": 0,
+  "tau": 0.5,
+  "variable": "<required>"
+ },
+ "command pymetrix:table_heatmap (schema 1)": {
+  "label": "",
+  "name": "",
+  "scale": "auto",
+  "source": "<required>",
+  "table": "Results"
+ },
+ "command pymetrix:test_each (schema 1)": {
+  "data": "data",
+  "name": "tests",
+  "options": "",
+  "selection": "",
+  "series": "",
+  "test": "<required>"
+ },
+ "command pymetrix:threshold_linearity_test (schema 1)": {
+  "draws": 200,
+  "name": "tsay",
+  "seed": 0,
+  "tvar": "<required>"
+ },
+ "command pymetrix:to_long (schema 1)": {
+  "data": "data",
+  "entity": "country",
+  "layout": "series_entity",
+  "name": "panel",
+  "sep": "_",
+  "series_name": "",
+  "stubs": ""
+ },
+ "command pymetrix:to_wide (schema 1)": {
+  "data": "data",
+  "name": "wide",
+  "sep": "_",
+  "series": ""
+ },
+ "command pymetrix:use_house_style (schema 1)": {
+  "notes": false,
+  "source": "",
+  "stop": false,
+  "tab": "Graph"
+ },
+ "command pymetrix:var_lag_order (schema 1)": {
+  "by": "",
+  "data": "data",
+  "exog": "",
+  "max_lags": 8,
+  "name": "lag_order",
+  "trend": "c",
+  "variables": "<required>"
+ },
+ "command pymetrix:variance_decomposition (schema 1)": {
+  "breaks": "",
+  "coverage": 0.68,
+  "draws": 0,
+  "long_run_zeros": "",
+  "max_tries": 200000,
+  "name": "fevd",
+  "narrative_major": "",
+  "narrative_signs": "",
+  "ordering": "",
+  "period": "",
+  "periods": 20,
+  "regime": 0,
+  "rotations": 1000,
+  "scheme": "Cholesky",
+  "seed": 0,
+  "share_horizon": 40,
+  "share_start": 0,
+  "share_variable": "",
+  "sign_horizon": 0,
+  "sign_seed": 0,
+  "signs": "",
+  "var": "<required>",
+  "zeros": ""
+ },
+ "command pymetrix:vecm_lag_order (schema 1)": {
+  "data": "data",
+  "deterministic": "unrestricted constant (case 3)",
+  "exog": "",
+  "exog_coint": "",
+  "max_lags": 8,
+  "name": "vecm_lags",
+  "seasons": 0,
+  "variables": "<required>"
+ },
+ "command pymetrix:vecm_restriction_test (schema 1)": {
+  "draws": 199,
+  "h_matrix": "",
+  "name": "vecm_test",
+  "seed": 0,
+  "start": "",
+  "test": "cointegrating vectors",
+  "variables": "",
+  "vecm": "<required>"
+ },
+ "filters baxterking": {
+  "high": null,
+  "k": null,
+  "low": null
+ },
+ "filters christianofitzgerald": {
+  "drift": true,
+  "high": null,
+  "low": null
+ },
+ "filters hamilton": {
+  "h": null,
+  "p": null
+ },
+ "filters hp": {
+  "lamb": null,
+  "one_sided": false,
+  "power": 2
+ },
+ "filters hp_one_sided": {
+  "lamb": null,
+  "one_sided": false,
+  "power": 2
+ },
+ "filters movingaverage": {
+  "centered": true,
+  "window": 4
+ },
+ "methods arellano_bond": {
+  "collapse": false,
+  "gmm": "",
+  "lags": "2:",
+  "system": false,
+  "time_effects": true,
+  "two_step": true
+ },
+ "methods bagging": {
+  "block": 0,
+  "critical": 1.96,
+  "reps": 200,
+  "seed": 0
+ },
+ "methods bayes": {
+  "burn": 1000,
+  "chains": 2,
+  "draws": 5000,
+  "metric": "diag",
+  "prior": null,
+  "sampler": "auto",
+  "seed": 0
+ },
+ "methods blundell_bond": {
+  "collapse": false,
+  "gmm": "",
+  "lags": "2:",
+  "system": false,
+  "time_effects": true,
+  "two_step": true
+ },
+ "methods cochraneorcutt": {
+  "iterate": true,
+  "max_iter": 200,
+  "tol": 1e-10
+ },
+ "methods gmm": {
+  "constant": true,
+  "cov": "white",
+  "endog": "()",
+  "hac_lags": 0,
+  "instruments": "()",
+  "max_iter": 100,
+  "start": null,
+  "steps": "two",
+  "tol": 1e-08,
+  "weights": "optimal"
+ },
+ "methods heckman": {
+  "cov": "classic",
+  "estimator": "twostep",
+  "max_iter": 100,
+  "selection": "",
+  "tol": 1e-10
+ },
+ "methods iv": {
+  "cov": "classic",
+  "endog": "<required>",
+  "hac_correction": true,
+  "hac_lags": null,
+  "instruments": "<required>",
+  "restrictions": null,
+  "start": null
+ },
+ "methods ml": {
+  "cov": "classic",
+  "max_iter": 100,
+  "optimizer": "newton",
+  "start": null,
+  "tol": 1e-10
+ },
+ "methods multiplicativeheteroskedasticity": {
+  "max_iter": 500,
+  "tol": 1e-10,
+  "variance": "()"
+ },
+ "methods ols": {
+  "cov": "classic",
+  "hac_correction": true,
+  "hac_lags": null,
+  "restrictions": null,
+  "start": null
+ },
+ "methods praiswinsten": {
+  "iterate": true,
+  "max_iter": 200,
+  "tol": 1e-10
+ },
+ "methods quantile": {
+  "backend_options": "{}",
+  "bandwidth": "hsheather",
+  "kernel": "epa",
+  "q": 0.5,
+  "vcov": "robust"
+ },
+ "methods robust": {
+  "max_iter": 200,
+  "norm": "huber",
+  "scale": null,
+  "tol": 1e-10,
+  "tuning": null
+ },
+ "methods stochasticfrontier": {
+  "cost": false
+ },
+ "seasonal classical": {
+  "extrapolate_trend": 0,
+  "log": null,
+  "two_sided": true
+ },
+ "seasonal stl": {
+  "inner_iter": null,
+  "log": null,
+  "low_pass": null,
+  "low_pass_deg": 1,
+  "low_pass_jump": 1,
+  "outer_iter": null,
+  "robust": true,
+  "seasonal": 7,
+  "seasonal_deg": 1,
+  "seasonal_jump": 1,
+  "trend": null,
+  "trend_deg": 1,
+  "trend_jump": 1
+ },
+ "tests adf": {
+  "backend_options": "{}",
+  "critical_values": "mackinnon",
+  "draws": 2000,
+  "lags": "aic",
+  "max_lags": "",
+  "seed": 0,
+  "trend": "c",
+  "variable": "<required>"
+ },
+ "tests arch": {
+  "lags": 4
+ },
+ "tests breitung": {
+  "lags": 0,
+  "robust": false,
+  "trend": "c",
+  "variable": "<required>"
+ },
+ "tests breusch_godfrey": {
+  "auxiliary_constant": false,
+  "lags": 4
+ },
+ "tests breusch_pagan": {},
+ "tests chow": {
+  "at": "<required>"
+ },
+ "tests cips": {
+  "lags": 0,
+  "replications": 10000,
+  "seed": 0,
+  "trend": "c",
+  "truncated": false,
+  "variable": "<required>"
+ },
+ "tests cusum": {},
+ "tests cusumsq": {},
+ "tests endogeneity": {},
+ "tests engle_granger": {
+  "autolag": "aic",
+  "backend_options": "{}",
+  "critical_values": "mackinnon",
+  "draws": 2000,
+  "exog": "",
+  "max_lags": "",
+  "seed": 0,
+  "trend": "c",
+  "variables": "<required>"
+ },
+ "tests ers_point_optimal": {
+  "lags": "maic",
+  "max_lags": "",
+  "trend": "c",
+  "variable": "<required>"
+ },
+ "tests first_stage": {},
+ "tests fisher_adf": {
+  "backend_options": "{}",
+  "lags": "aic",
+  "trend": "c",
+  "variable": "<required>"
+ },
+ "tests granger": {
+  "cause": "<required>",
+  "effect": "<required>"
+ },
+ "tests hadri": {
+  "heteroskedastic": true,
+  "lags": 0,
+  "trend": "c",
+  "variable": "<required>"
+ },
+ "tests hansen_j": {},
+ "tests im_pesaran_shin": {
+  "lags": "aic",
+  "replications": 100000,
+  "seed": 0,
+  "trend": "c",
+  "variable": "<required>"
+ },
+ "tests jarque_bera": {},
+ "tests kao": {
+  "bandwidth": "auto",
+  "lags": 1,
+  "variables": "<required>"
+ },
+ "tests kpss": {
+  "backend_options": "{}",
+  "lags": "auto",
+  "trend": "c",
+  "variable": "<required>"
+ },
+ "tests levin_lin_chu": {
+  "lags": "aic",
+  "trend": "c",
+  "variable": "<required>"
+ },
+ "tests ljung_box": {
+  "lags": 10,
+  "squared": false
+ },
+ "tests neural_network": {
+  "components": 2,
+  "seed": 0,
+  "units": 10
+ },
+ "tests ng_perron": {
+  "lags": "maic",
+  "max_lags": "",
+  "trend": "c",
+  "variable": "<required>"
+ },
+ "tests normality": {},
+ "tests pedroni": {
+  "bandwidth": "auto",
+  "lags": "aic",
+  "replications": 20000,
+  "seed": 0,
+  "trend": "c",
+  "variables": "<required>"
+ },
+ "tests perron_break": {
+  "date": "",
+  "lags": 0,
+  "model": "C",
+  "reps": 2000,
+  "seed": 0,
+  "variable": "<required>"
+ },
+ "tests phillips_ouliaris": {
+  "backend_options": "{}",
+  "bandwidth": "",
+  "kernel": "bartlett",
+  "test_type": "Zt",
+  "trend": "c",
+  "variables": "<required>"
+ },
+ "tests portmanteau": {
+  "adjusted": false,
+  "lags": 10
+ },
+ "tests quandt_andrews": {
+  "trim": 0.15
+ },
+ "tests reset": {
+  "power": 3
+ },
+ "tests sargan": {},
+ "tests wald": {
+  "restriction": "<required>"
+ },
+ "tests westerlund": {
+  "bandwidth": "auto",
+  "lags": 1,
+  "leads": 0,
+  "replications": 20000,
+  "seed": 0,
+  "trend": "c",
+  "variables": "<required>"
+ },
+ "tests white": {},
+ "variances garch": {
+  "arch": 1,
+  "asym": 0,
+  "backend": "native",
+  "dist": "normal",
+  "garch": 1
+ },
+ "variances gjr_garch": {
+  "arch": 1,
+  "asym": 0,
+  "backend": "native",
+  "dist": "normal",
+  "garch": 1
+ }
+}

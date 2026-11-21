@@ -1,0 +1,9 @@
+# An AR(1) gap with one shock, in pymetrix's model syntax: for tests/test_exercises.py
+parameters
+    rho = 0.8    "persistence"
+shocks
+    e = 0.5      "the shock"
+variables
+    y = 0        "the gap"
+equations
+    y = rho*y[-1] + e

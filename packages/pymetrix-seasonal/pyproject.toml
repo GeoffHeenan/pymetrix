@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymetrix-seasonal"
+dynamic = ["version"]
+description = "Seasonal adjustment for pymetrix by X-13ARIMA-SEATS (x13as) and TRAMO-SEATS (JDemetra+, in Java)"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE", "THIRD-PARTY-NOTICES.md"]  # in the sdist and the wheel (*.dist-info/licenses/)
+requires-python = ">=3.11"
+authors = [{ name = "Geoffrey Heenan" }]
+dependencies = ["pymetrix>=0.1.0a14"]  # methods given the series' periods (needs_periods)
+
+[project.urls]
+Homepage = "https://github.com/GeoffHeenan/pymetrix"
+Source = "https://github.com/GeoffHeenan/pymetrix/tree/main/packages/pymetrix-seasonal"
+Issues = "https://github.com/GeoffHeenan/pymetrix/issues"
+Changelog = "https://github.com/GeoffHeenan/pymetrix/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+jdemetra = ["JPype1>=1.5"]  # TRAMO-SEATS: Java 21 and JDemetra+'s libraries (pymetrix_seasonal.jdemetra.install())
+test = ["pytest>=9.0.3"]
+
+# importing the package registers both methods; the seasonal group's entry point loads it when the methods are listed
+[project.entry-points."pymetrix.plugins"]
+seasonal = "pymetrix_seasonal:register"
+[project.entry-points."pymetrix.seasonal"]
+seasonal = "pymetrix_seasonal:register"
+
+[tool.hatch.version]
+path = "src/pymetrix_seasonal/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymetrix_seasonal"]

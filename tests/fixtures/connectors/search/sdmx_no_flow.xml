@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<message:Error xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:common="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common"><message:ErrorMessage code="100"><common:Text>No Results Found</common:Text></message:ErrorMessage></message:Error>

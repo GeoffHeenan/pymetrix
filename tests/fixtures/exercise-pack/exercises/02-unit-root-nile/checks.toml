@@ -1,0 +1,25 @@
+[[check]]
+id = "statistic"
+step = 1
+object = "adf"
+value = "statistic"
+expected = -4.0487
+abs_tol = 0.001
+message = "Test the series volume of nile, around a constant (trend c)."
+
+[[check]]
+id = "lags"
+step = 1
+object = "adf"
+value = "details.lags used"
+expected = 1
+message = "Let AIC choose the lags: it takes 1."
+
+[[check]]
+id = "trend"
+step = 2
+object = "adf_trend"
+value = "statistic"
+expected = -4.7908
+abs_tol = 0.001
+message = "Set Trend to ct: a constant and a linear trend."

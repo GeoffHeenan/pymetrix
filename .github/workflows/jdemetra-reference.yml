@@ -1,0 +1,70 @@
+name: JDemetra+ reference
+
+# TRAMO-SEATS in pymetrix against Eurostat's own R interface to JDemetra+ (rjd3tramoseats): R's results are made
+# afresh (packages/pymetrix-seasonal/tests/fixtures/reference/make_rjd3tramoseats.R), then pymetrix runs the same cases. It takes about three
+# minutes. A pull request runs it only when it changes the seasonal plugin, the core modules it compares against or
+# this file; every push to main runs it, so a change elsewhere that breaks it shows on main, and so do the weekly and
+# on-demand runs. R's results are uploaded too.
+on:
+  # no push trigger: main only moves to a commit already checked here (docs/releasing.md)
+  pull_request:
+    paths:
+      - "packages/pymetrix-seasonal/**"
+      - "src/pymetrix/seasonal.py"
+      - "src/pymetrix/jdemetra.py"
+      - "src/pymetrix/extension.py"
+      - ".github/workflows/jdemetra-reference.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * 1"  # Mondays, 07:00 UTC
+
+# The token reads the repository and nothing more: no step pushes, comments or publishes (artifacts and caches
+# need no repository write access).
+permissions:
+  contents: read
+
+concurrency:
+  group: jdemetra-reference-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rjd3:
+    name: against rjd3tramoseats
+    # the system and R named, not "latest", so a new runner image or R release changes nothing here unannounced
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.6.2"
+          use-public-rspm: true
+      - name: rJava and rjd3tramoseats
+        # libcurl's headers: when CRAN has a newer pak than Posit's binaries for this Ubuntu (pak 0.11.2 on 8 November
+        # 2026), pak is built from source, and its bundled curl package needs them; the runner image has none
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev
+          sudo JAVA_HOME="$JAVA_HOME" "$(which R)" CMD javareconf
+          Rscript -e 'install.packages("pak"); pak::pkg_install(c("rJava?source", "rjd3tramoseats", "jsonlite"))'
+      - name: R's results
+        run: Rscript packages/pymetrix-seasonal/tests/fixtures/reference/make_rjd3tramoseats.R "$RUNNER_TEMP/rjd3tramoseats.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rjd3tramoseats
+          path: ${{ runner.temp }}/rjd3tramoseats.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install pymetrix and the seasonal plugin, with JPype
+        run: python -m pip install -e . -e "packages/pymetrix-seasonal[jdemetra]" pytest
+      - name: JDemetra+ libraries
+        run: python -c "import pymetrix_seasonal.jdemetra as j; j.install(r'${{ runner.temp }}/jdemetra')"
+      - name: pymetrix on the same cases
+        env:
+          JDPLUS_PATH: ${{ runner.temp }}/jdemetra
+          RJD3_REFERENCE: ${{ runner.temp }}/rjd3tramoseats.json
+        run: python -m pytest -q -p no:cacheprovider packages/pymetrix-seasonal/tests/test_tramo_seats.py -k rjd3 -rs

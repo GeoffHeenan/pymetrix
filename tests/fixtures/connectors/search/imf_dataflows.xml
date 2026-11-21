@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<message:Structure xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:structure="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure" xmlns:common="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common" xmlns:xml="http://www.w3.org/XML/1998/namespace">
+<message:Header><message:ID>IREF000001</message:ID><message:Test>false</message:Test><message:Prepared>2026-11-02T09:00:00Z</message:Prepared><message:Sender id="IMF"/></message:Header>
+<message:Structures>
+<structure:Dataflows>
+<structure:Dataflow id="CPI" agencyID="IMF.STA" version="1.0" isFinal="false"><common:Name xml:lang="de">Consumer Price Index (CPI) (de)</common:Name><common:Name xml:lang="en">Consumer Price Index (CPI)</common:Name><common:Description xml:lang="en">Consumer price indices by country and COICOP group</common:Description><structure:Structure><Ref id="DSD_CPI" version="1.0" agencyID="IMF.STA" package="datastructure" class="DataStructure"/></structure:Structure></structure:Dataflow>
+<structure:Dataflow id="WEO" agencyID="IMF.RES" version="1.0" isFinal="false"><common:Name xml:lang="de">World Economic Outlook (WEO) (de)</common:Name><common:Name xml:lang="en">World Economic Outlook (WEO)</common:Name><structure:Structure><Ref id="DSD_WEO" version="1.0" agencyID="IMF.RES" package="datastructure" class="DataStructure"/></structure:Structure></structure:Dataflow>
+</structure:Dataflows>
+</message:Structures>
+</message:Structure>

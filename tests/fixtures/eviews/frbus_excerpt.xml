@@ -1,0 +1,488 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- An excerpt of mods/model.xml from the Federal Reserve Board's public FRB/US model package (stdver), trimmed to six
+     variables and the tags pymetrix reads (descriptions and estimation statistics dropped), for pymetrix's tests.
+     Source: Board of Governors of the Federal Reserve System, https://www.federalreserve.gov/econres/us-models-package.htm
+     (public domain under the Board's website terms, https://www.federalreserve.gov/disclaimer.htm). Trimmed by
+     pymetrix; not official government material. -->
+<model>
+  <name>stdver</name>
+  <variable>
+
+    <name>dmptmax</name>
+
+    <equation_type>Behavioral</equation_type>
+
+    <sector>Financial Sector</sector>
+
+    <definition>Monetary policy indicator for both thresholds</definition>
+    <standard_equation>
+      <eviews_equation>dmptmax - dmptmax_aerr = (@recode((dmptlur)&gt;(dmptpi),dmptlur,dmptpi)) </eviews_equation>
+      <python_equation>dmptmax - dmptmax_aerr = (max((dmptlur),(dmptpi))) </python_equation>
+    </standard_equation>
+  </variable>
+  <variable>
+
+    <name>delrff</name>
+
+    <equation_type>Identity</equation_type>
+
+    <sector>Financial Sector</sector>
+
+    <definition>Federal funds rate, first diff</definition>
+    <standard_equation>
+      <eviews_equation>delrff - delrff_aerr = rff - rff(-1) </eviews_equation>
+      <python_equation>delrff - delrff_aerr = rff - rff(-1) </python_equation>
+    </standard_equation>
+  </variable>
+  <variable>
+
+    <name>egfe</name>
+
+    <equation_type>Behavioral</equation_type>
+
+    <sector>Government</sector>
+
+    <definition>Federal Government expenditures, CW 2012$</definition>
+    <standard_equation>
+      <eviews_equation>d( log(egfe), 0, 1 )  - egfe_aerr =
+           y_egfe(1)
+          + y_egfe(2) * log(egfe(-1)/egfet(-1))
+          + y_egfe(3) *  d( log(egfe(-1)), 0, 1 )
+          + y_egfe(4) *  d( log(egfe(-2)), 0, 1 )
+          + y_egfe(5) * d( log(egfet), 0, 1 )
+          + y_egfe(6) *  xgap2
+          + y_egfe(7) *  xgap2(-1)</eviews_equation>
+      <python_equation>( log(egfe) - ( log(egfe(-1))))  - egfe_aerr =
+           y_egfe_1
+          + y_egfe_2 * log(egfe(-1)/egfet(-1))
+          + y_egfe_3 *  ( log(egfe(-1)) - ( log(egfe(-2))))
+          + y_egfe_4 *  ( log(egfe(-2)) - ( log(egfe(-3))))
+          + y_egfe_5 * ( log(egfet) - ( log(egfet(-1))))
+          + y_egfe_6 *  xgap2
+          + y_egfe_7 *  xgap2(-1)</python_equation>
+      <coeff>
+        <cf_name>y_egfe(1)</cf_name>
+        <cf_value>-0.0008045327442607825</cf_value>
+        <t_stat>-0.4943819857950891</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_egfe(2)</cf_name>
+        <cf_value>-0.1204156945139518</cf_value>
+        <t_stat>-3.000598283182305</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_egfe(3)</cf_name>
+        <cf_value>-0.153308131863314</cf_value>
+        <t_stat>-2.126972083749647</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_egfe(4)</cf_name>
+        <cf_value>-0.1035937599294917</cf_value>
+        <t_stat>-1.486591329749078</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_egfe(5)</cf_name>
+        <cf_value>1.50381543495264</cf_value>
+        <t_stat>6.261724581077439</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_egfe(6)</cf_name>
+        <cf_value>-0.0009835524480447814</cf_value>
+        <t_stat>-0.4481415573034953</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_egfe(7)</cf_name>
+        <cf_value>0.0007256812123007961</cf_value>
+        <t_stat>0.3302663605113349</t_stat>
+      </coeff>
+    </standard_equation>
+    <stochastic_type>GV</stochastic_type>
+  </variable>
+  <variable>
+
+    <name>wpsn</name>
+
+    <equation_type>Identity</equation_type>
+
+    <sector>Financial Sector</sector>
+
+    <definition>Household stock market wealth, current $</definition>
+    <standard_equation>
+      <eviews_equation>log(wpsn) - wpsn_aerr = log((ynicpn-tcin)*.5)
+                      - .25 * (req-zdivgr)
+                      + log(25) + 1
+	 </eviews_equation>
+      <python_equation>log(wpsn) - wpsn_aerr = log((ynicpn-tcin)*.5)
+                      - .25 * (req-zdivgr)
+                      + log(25) + 1
+	 </python_equation>
+    </standard_equation>
+  </variable>
+  <variable>
+
+    <name>zdivgr</name>
+
+    <equation_type>Identity</equation_type>
+
+    <sector>Expectations</sector>
+
+    <definition>Expected growth rate of real dividends, for WPSN eq. (VAR exp.)</definition>
+    <standard_equation>
+      <eviews_equation>zdivgr  - zdivgr_aerr =
+           y_zdivgr(1)
+          + y_zdivgr(2)*picnia
+          + y_zdivgr(3)*picnia(-1)
+          + y_zdivgr(4)*picnia(-2)
+          + y_zdivgr(5)*picnia(-3)
+          + y_zdivgr(6)*rff
+          + y_zdivgr(7)*rff(-1)
+          + y_zdivgr(8)*rff(-2)
+          + y_zdivgr(9)*rff(-3)
+          + y_zdivgr(10)*rtr
+          + y_zdivgr(11)*ptr
+          + y_zdivgr(12)*xgap
+          + y_zdivgr(13)*xgap(-1)
+          + y_zdivgr(14)*xgap(-2)
+          + y_zdivgr(15)*xgap(-3)
+          + y_zdivgr(16)*hgynid
+          + y_zdivgr(17)*hgynid(-1)
+          + y_zdivgr(18)*hgynid(-2)
+          + y_zdivgr(19)*hgynid(-3)
+          + y_zdivgr(20)*hxbt</eviews_equation>
+      <python_equation>zdivgr  - zdivgr_aerr =
+           y_zdivgr_1
+          + y_zdivgr_2*picnia
+          + y_zdivgr_3*picnia(-1)
+          + y_zdivgr_4*picnia(-2)
+          + y_zdivgr_5*picnia(-3)
+          + y_zdivgr_6*rff
+          + y_zdivgr_7*rff(-1)
+          + y_zdivgr_8*rff(-2)
+          + y_zdivgr_9*rff(-3)
+          + y_zdivgr_10*rtr
+          + y_zdivgr_11*ptr
+          + y_zdivgr_12*xgap
+          + y_zdivgr_13*xgap(-1)
+          + y_zdivgr_14*xgap(-2)
+          + y_zdivgr_15*xgap(-3)
+          + y_zdivgr_16*hgynid
+          + y_zdivgr_17*hgynid(-1)
+          + y_zdivgr_18*hgynid(-2)
+          + y_zdivgr_19*hgynid(-3)
+          + y_zdivgr_20*hxbt</python_equation>
+      <coeff>
+        <cf_name>y_zdivgr(1)</cf_name>
+        <cf_value>1.453758371220758e-14</cf_value>
+        <t_stat>1.660474870568601</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(2)</cf_name>
+        <cf_value>-0.03432097699759745</cf_value>
+        <t_stat>-48724985328778.53</t_stat>
+        <distributed_lag_group>1</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(3)</cf_name>
+        <cf_value>0.01503760188801399</cf_value>
+        <t_stat>19407913877046.83</t_stat>
+        <distributed_lag_group>1</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(4)</cf_name>
+        <cf_value>0.008139233986467266</cf_value>
+        <t_stat>10530569232428.41</t_stat>
+        <distributed_lag_group>1</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(5)</cf_name>
+        <cf_value>0.02806260424571279</cf_value>
+        <t_stat>39277370309054.5</t_stat>
+        <distributed_lag_group>1</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(6)</cf_name>
+        <cf_value>-0.1147631155931414</cf_value>
+        <t_stat>-93729833655062.26</t_stat>
+        <distributed_lag_group>2</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(7)</cf_name>
+        <cf_value>0.02378759550862853</cf_value>
+        <t_stat>14094280489317.41</t_stat>
+        <distributed_lag_group>2</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(8)</cf_name>
+        <cf_value>-0.08000091281298219</cf_value>
+        <t_stat>-47711759787397.93</t_stat>
+        <distributed_lag_group>2</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(9)</cf_name>
+        <cf_value>0.05291584088244318</cf_value>
+        <t_stat>42478727222167.15</t_stat>
+        <distributed_lag_group>2</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(10)</cf_name>
+        <cf_value>0.1180605920154127</cf_value>
+        <t_stat>44174069683861.81</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(11)</cf_name>
+        <cf_value>-0.0169184631226911</cf_value>
+        <t_stat>-7073915781260.909</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(12)</cf_name>
+        <cf_value>-0.3193168668820861</cf_value>
+        <t_stat>-190994496428330</t_stat>
+        <distributed_lag_group>3</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(13)</cf_name>
+        <cf_value>0.1900611332314869</cf_value>
+        <t_stat>65928707749384.32</t_stat>
+        <distributed_lag_group>3</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(14)</cf_name>
+        <cf_value>0.05865254915210798</cf_value>
+        <t_stat>20436466465038.53</t_stat>
+        <distributed_lag_group>3</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(15)</cf_name>
+        <cf_value>0.05204047323627287</cf_value>
+        <t_stat>29132806255196.96</t_stat>
+        <distributed_lag_group>3</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(16)</cf_name>
+        <cf_value>0.01513617207696648</cf_value>
+        <t_stat>297104460008889</t_stat>
+        <distributed_lag_group>4</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(17)</cf_name>
+        <cf_value>0.002907781394121129</cf_value>
+        <t_stat>57072723370390.99</t_stat>
+        <distributed_lag_group>4</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(18)</cf_name>
+        <cf_value>0.001820586788429011</cf_value>
+        <t_stat>36160120274873.61</t_stat>
+        <distributed_lag_group>4</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(19)</cf_name>
+        <cf_value>-0.000832768187365904</cf_value>
+        <t_stat>-17736610879362.07</t_stat>
+        <distributed_lag_group>4</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(20)</cf_name>
+        <cf_value>0.9809682279278705</cf_value>
+        <t_stat>481143671129519.6</t_stat>
+      </coeff>
+    </standard_equation>
+    <mce_equation>
+      <mce_group>mcap</mce_group>
+      <eviews_equation>zdivgr - zdivgr_aerr = y_zdivgr(1) * hgynid(1)
+                     + y_zdivgr(2) * zdivgr(1)
+</eviews_equation>
+      <python_equation>zdivgr - zdivgr_aerr = y_zdivgr_1 * hgynid(1)
+                     + y_zdivgr_2 * zdivgr(1)
+</python_equation>
+      <coeff>
+        <cf_name>y_zdivgr(1)</cf_name>
+        <cf_value>0.009757264257434617</cf_value>
+      </coeff>
+      <coeff>
+        <cf_name>y_zdivgr(2)</cf_name>
+        <cf_value>0.9902427357425654</cf_value>
+      </coeff>
+    </mce_equation>
+  </variable>
+  <variable>
+
+    <name>zyh</name>
+
+    <equation_type>Identity</equation_type>
+
+    <sector>Expectations</sector>
+
+    <definition>Expected level of real after-tax household income, for QEC eq. (VAR exp.)</definition>
+    <standard_equation>
+      <eviews_equation>log(zyh)  - zyh_aerr =
+           y_zyh(1)*picnia
+          + y_zyh(2)*picnia(-1)
+          + y_zyh(3)*picnia(-2)
+          + y_zyh(4)*picnia(-3)
+          + y_zyh(5)*rff
+          + y_zyh(6)*rff(-1)
+          + y_zyh(7)*rff(-2)
+          + y_zyh(8)*rff(-3)
+          + y_zyh(9)*xgap2
+          + y_zyh(10)*xgap2(-1)
+          + y_zyh(11)*xgap2(-2)
+          + y_zyh(12)*xgap2(-3)
+          + y_zyh(13)*ptr
+          + y_zyh(14)*rtr
+          + y_zyh(15)*yhgap
+          + y_zyh(16)*yhgap(-1)
+          + y_zyh(17)*yhgap(-2)
+          + y_zyh(18)*yhgap(-3)
+          + y_zyh(19)*log(zyhst*xgdpt)</eviews_equation>
+      <python_equation>log(zyh)  - zyh_aerr =
+           y_zyh_1*picnia
+          + y_zyh_2*picnia(-1)
+          + y_zyh_3*picnia(-2)
+          + y_zyh_4*picnia(-3)
+          + y_zyh_5*rff
+          + y_zyh_6*rff(-1)
+          + y_zyh_7*rff(-2)
+          + y_zyh_8*rff(-3)
+          + y_zyh_9*xgap2
+          + y_zyh_10*xgap2(-1)
+          + y_zyh_11*xgap2(-2)
+          + y_zyh_12*xgap2(-3)
+          + y_zyh_13*ptr
+          + y_zyh_14*rtr
+          + y_zyh_15*yhgap
+          + y_zyh_16*yhgap(-1)
+          + y_zyh_17*yhgap(-2)
+          + y_zyh_18*yhgap(-3)
+          + y_zyh_19*log(zyhst*xgdpt)</python_equation>
+      <coeff>
+        <cf_name>y_zyh(1)</cf_name>
+        <cf_value>8.403034216398836e-05</cf_value>
+        <t_stat>22228592995.87179</t_stat>
+        <distributed_lag_group>1</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(2)</cf_name>
+        <cf_value>0.0007023129900742578</cf_value>
+        <t_stat>171749146427.1288</t_stat>
+        <distributed_lag_group>1</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(3)</cf_name>
+        <cf_value>0.0005988312485600414</cf_value>
+        <t_stat>147650023247.4493</t_stat>
+        <distributed_lag_group>1</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(4)</cf_name>
+        <cf_value>0.00046906873529373</cf_value>
+        <t_stat>128696297011.0143</t_stat>
+        <distributed_lag_group>1</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(5)</cf_name>
+        <cf_value>-0.002112400975583133</cf_value>
+        <t_stat>-338096800649.436</t_stat>
+        <distributed_lag_group>2</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(6)</cf_name>
+        <cf_value>0.0001656602252725924</cf_value>
+        <t_stat>19689351286.89098</t_stat>
+        <distributed_lag_group>2</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(7)</cf_name>
+        <cf_value>-0.0007780393043584456</cf_value>
+        <t_stat>-92192707618.087</t_stat>
+        <distributed_lag_group>2</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(8)</cf_name>
+        <cf_value>0.0002906813774138189</cf_value>
+        <t_stat>46524377073.11857</t_stat>
+        <distributed_lag_group>2</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(9)</cf_name>
+        <cf_value>0.0009057626374626405</cf_value>
+        <t_stat>87516652223.01416</t_stat>
+        <distributed_lag_group>3</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(10)</cf_name>
+        <cf_value>0.002687425542518095</cf_value>
+        <t_stat>145806158800.7431</t_stat>
+        <distributed_lag_group>3</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(11)</cf_name>
+        <cf_value>0.0006823597205465298</cf_value>
+        <t_stat>36890460397.93328</t_stat>
+        <distributed_lag_group>3</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(12)</cf_name>
+        <cf_value>-0.001256388702977828</cf_value>
+        <t_stat>-108457723401.9895</t_stat>
+        <distributed_lag_group>3</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(13)</cf_name>
+        <cf_value>-0.001854243316194259</cf_value>
+        <t_stat>-150057050145.0096</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(14)</cf_name>
+        <cf_value>0.002434098677388386</cf_value>
+        <t_stat>176351782948.9832</t_stat>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(15)</cf_name>
+        <cf_value>0.004161665385029935</cf_value>
+        <t_stat>741576935763.8336</t_stat>
+        <distributed_lag_group>4</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(16)</cf_name>
+        <cf_value>0.0007501557850814375</cf_value>
+        <t_stat>103332138761.8787</t_stat>
+        <distributed_lag_group>4</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(17)</cf_name>
+        <cf_value>-0.0001921235465779609</cf_value>
+        <t_stat>-26129922025.6898</t_stat>
+        <distributed_lag_group>4</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(18)</cf_name>
+        <cf_value>-0.0003602829076187046</cf_value>
+        <t_stat>-62678401277.76989</t_stat>
+        <distributed_lag_group>4</distributed_lag_group>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(19)</cf_name>
+        <cf_value>0.9999999999999565</cf_value>
+        <t_stat>280285385735409.3</t_stat>
+      </coeff>
+    </standard_equation>
+    <mce_equation>
+      <mce_group>mcother</mce_group>
+      <eviews_equation>zyh - zyh_aerr = (1 - (y_zyh(1)^.25)*exp(y_zyh(2))) * yh
+               + (y_zyh(1)^.25) * zyh(1)
+</eviews_equation>
+      <python_equation>zyh - zyh_aerr = (1 - (y_zyh_1**.25)*exp(y_zyh_2)) * yh
+               + (y_zyh_1**.25) * zyh(1)
+</python_equation>
+      <coeff>
+        <cf_name>y_zyh(1)</cf_name>
+        <cf_value>0.750</cf_value>
+      </coeff>
+      <coeff>
+        <cf_name>y_zyh(2)</cf_name>
+        <cf_value>0.0075</cf_value>
+      </coeff>
+    </mce_equation>
+  </variable>
+</model>

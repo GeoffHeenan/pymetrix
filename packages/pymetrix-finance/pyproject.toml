@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymetrix-finance"
+dynamic = ["version"]
+description = "Financial econometrics for pymetrix: risk and backtests, multivariate GARCH, copulas, portfolios and strategies, options and volatility surfaces, yield curves, credit"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE", "THIRD-PARTY-NOTICES.md"]  # in the sdist and the wheel (*.dist-info/licenses/)
+requires-python = ">=3.11"
+authors = [{ name = "Geoffrey Heenan" }]
+dependencies = ["pymetrix>=0.1.0a8"]  # with the extension API 1.4 (migrations and renamed arguments)
+
+[project.urls]
+Homepage = "https://github.com/GeoffHeenan/pymetrix"
+Source = "https://github.com/GeoffHeenan/pymetrix/tree/main/packages/pymetrix-finance"
+Issues = "https://github.com/GeoffHeenan/pymetrix/issues"
+Changelog = "https://github.com/GeoffHeenan/pymetrix/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest>=9.0.3", "arch", "QuantLib", "statsmodels", "linearmodels"]  # arch and QuantLib are test oracles only
+
+# importing the package registers everything; one entry point per group it extends, so each loads it when needed
+[project.entry-points."pymetrix.plugins"]
+finance = "pymetrix_finance:register"
+[project.entry-points."pymetrix.commands"]
+finance = "pymetrix_finance:register"
+[project.entry-points."pymetrix.views"]
+finance = "pymetrix_finance:register"
+[project.entry-points."pymetrix.workspaces"]
+finance = "pymetrix_finance:register"
+[project.entry-points."pymetrix.menus"]
+finance = "pymetrix_finance:register"
+[project.entry-points."pymetrix.report_templates"]
+finance = "pymetrix_finance:register"
+[project.entry-points."pymetrix.datasets"]
+finance = "pymetrix_finance:register"
+
+[tool.hatch.version]
+path = "src/pymetrix_finance/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymetrix_finance"]

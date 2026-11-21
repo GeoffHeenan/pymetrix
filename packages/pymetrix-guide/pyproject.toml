@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymetrix-guide"
+dynamic = ["version"]
+description = "Guided case studies for pymetrix: follow a workflow step by step in the desktop app, with each step checked"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Geoffrey Heenan" }]
+dependencies = ["pymetrix>=0.1.0a10"]  # with the extension API 1.5 (panels, courses); 1.7 opens demos from the panel
+
+[project.urls]
+Homepage = "https://github.com/GeoffHeenan/pymetrix"
+Source = "https://github.com/GeoffHeenan/pymetrix/tree/main/packages/pymetrix-guide"
+Issues = "https://github.com/GeoffHeenan/pymetrix/issues"
+Changelog = "https://github.com/GeoffHeenan/pymetrix/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest>=9.0.3"]
+
+# the Guide panel, and the case studies it ships as a course; it describes itself as a plugin too
+[project.entry-points."pymetrix.plugins"]
+guide = "pymetrix_guide:register"
+[project.entry-points."pymetrix.panels"]
+guide = "pymetrix_guide:register"
+[project.entry-points."pymetrix.courses"]
+guide = "pymetrix_guide:load_courses"
+
+[tool.hatch.version]
+path = "src/pymetrix_guide/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymetrix_guide"]

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymetrix-psets"
+dynamic = ["version"]
+description = "Read PSETS series into pymetrix, with their metadata, vintages, provenance and known publisher issues"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Geoffrey Heenan" }]
+# PSETS itself is not a dependency: it is not on PyPI, and its base install brings the Excel add-in's packages. It
+# is installed from its repository (see the README); until it is, the plugin is listed as unavailable, with how to
+# install it.
+dependencies = ["pymetrix>=0.1.0a8"]
+
+[project.urls]
+Homepage = "https://github.com/GeoffHeenan/pymetrix"
+Source = "https://github.com/GeoffHeenan/pymetrix/tree/main/packages/pymetrix-psets"
+Issues = "https://github.com/GeoffHeenan/pymetrix/issues"
+Changelog = "https://github.com/GeoffHeenan/pymetrix/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest>=9.0.3"]
+
+[project.entry-points."pymetrix.io"]
+psets = "pymetrix_psets:register"
+
+[tool.hatch.version]
+path = "src/pymetrix_psets/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymetrix_psets"]

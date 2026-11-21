@@ -1,0 +1,137 @@
+name: release
+
+# Publishes pymetrix, or one of its plugins (packages/pymetrix-*), to PyPI. It runs only when started by hand (Actions >
+# release > Run workflow), on a version tag chosen under "Use workflow from", with the package to release chosen below
+# it, so pushing a tag on its own publishes nothing. It builds once, checks the files, publishes them to
+# TestPyPI, installs from there in a fresh environment and tries the package (pymetrix: a demo; a plugin: its entry
+# points load), then publishes the same files to PyPI. The `pypi` environment requires a reviewer, so nothing reaches
+# PyPI without a click. Uploads use trusted publishing (OpenID Connect): no API tokens. Set up once for each package
+# on PyPI and TestPyPI: Your account > Publishing > Add a pending publisher (project pymetrix or pymetrix-seasonal and
+# so on, owner GeoffHeenan, repository pymetrix, workflow release.yml, environment pypi or testpypi).
+# To release pymetrix: set the version in src/pymetrix/_version.py (the one place it is written; pyproject.toml reads
+# it), retitle CHANGELOG.md's "Unreleased" as "<version>: <date>", commit, tag the commit v<version> and push the tag,
+# then run this workflow on the tag with package pymetrix.
+# To release a plugin: set the version in packages/<plugin>/src/<module>/_version.py, commit, tag the commit
+# <plugin>-v<version> (pymetrix-seasonal-v0.1.0, say) and push the tag, then run this workflow on that tag with the
+# plugin chosen. A plugin that needs a pymetrix not yet on PyPI waits for that pymetrix release.
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "what to release"
+        type: choice
+        options: ["pymetrix", "pymetrix-assistant", "pymetrix-finance", "pymetrix-guide", "pymetrix-labbook", "pymetrix-psets", "pymetrix-seasonal"]
+        default: "pymetrix"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build and check ${{ inputs.package }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.which.outputs.version }}
+      module: ${{ steps.which.outputs.module }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Started on a tag, and the tag is the package's version
+        id: which
+        env:
+          PACKAGE: ${{ inputs.package }}
+        run: |
+          test "${GITHUB_REF_TYPE}" = "tag" || { echo "run this workflow on a version tag, not ${GITHUB_REF_NAME}"; exit 1; }
+          module="${PACKAGE//-/_}"
+          if [ "$PACKAGE" = pymetrix ]; then dir=.; file=src/pymetrix/_version.py; tag_prefix=v
+          else dir="packages/$PACKAGE"; file="$dir/src/$module/_version.py"; tag_prefix="$PACKAGE-v"; fi
+          test -f "$file" || { echo "no $file"; exit 1; }
+          version=$(python -c "import re, sys; print(re.search(r'__version__ = \"(.+)\"', open(sys.argv[1]).read()).group(1))" "$file")
+          test "$tag_prefix$version" = "${GITHUB_REF_NAME}" || { echo "tag ${GITHUB_REF_NAME} but $file says $version: tag it $tag_prefix$version"; exit 1; }
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "module=$module" >> "$GITHUB_OUTPUT"
+      - name: Build the sdist and wheel
+        run: |
+          python -m pip install build twine
+          python -m build -o dist "${{ steps.which.outputs.dir }}"
+          python -m twine check --strict dist/*
+          ls dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  testpypi:
+    name: publish to TestPyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  smoke:
+    name: install from TestPyPI and try it
+    needs: [build, testpypi]
+    runs-on: ubuntu-latest
+    env:
+      PACKAGE: ${{ inputs.package }}
+      VERSION: ${{ needs.build.outputs.version }}
+      MODULE: ${{ needs.build.outputs.module }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install from TestPyPI (dependencies from PyPI)
+        run: |
+          for attempt in 1 2 3 4 5 6; do  # TestPyPI's index can take a minute to show a new upload
+            python -m pip install --pre -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ \
+              "$PACKAGE==$VERSION" && break
+            sleep 30
+          done
+          python -c "import $MODULE; assert $MODULE.__version__ == '$VERSION', $MODULE.__version__"
+      - name: Run a demo
+        if: inputs.package == 'pymetrix'
+        run: |
+          python -c "
+          from pymetrix import Dataset, Equation
+          data = Dataset.example('sample_macro').with_series(gc='400*dlog(c)', gy='400*dlog(y)')
+          fit = Equation('gc ~ 1 + gy + gc[-1]').fit(data)
+          print(fit.summary())
+          "
+      - name: The plugin's entry points load
+        if: inputs.package != 'pymetrix'
+        run: |
+          python -c "
+          import importlib.metadata as md, os
+          dist = md.distribution(os.environ['PACKAGE'])
+          points = [e for e in dist.entry_points if e.group.startswith('pymetrix.')]
+          assert points, 'no pymetrix entry points'
+          for e in points:
+              e.load()
+              print('loaded', e.group, e.name, '=', e.value)
+          "
+
+  pypi:
+    name: publish to PyPI
+    needs: smoke
+    runs-on: ubuntu-latest
+    environment: pypi  # requires a reviewer (set in Settings > Environments > pypi)
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3

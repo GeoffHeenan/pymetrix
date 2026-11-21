@@ -1,0 +1,48 @@
+{
+  // PyMetrix in GitHub Codespaces: the desktop app in a browser tab, plus VS Code and notebooks.
+  // Open the "PyMetrix desktop" port (6080) to see the app; the VNC password is "vscode".
+  "name": "pymetrix",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "webPort": "6080",
+      "vncPort": "5901"
+    },
+    // Java 21, for TRAMO-SEATS (JDemetra+ runs in Java); Debian's own Java is 17, too old for JDemetra+ 3.9
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "jdkDistro": "tem"
+    }
+  },
+  "hostRequirements": {
+    "cpus": 4
+  },
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": {
+      "label": "PyMetrix desktop",
+      "onAutoForward": "openBrowser"
+    },
+    "5901": {
+      "label": "VNC (for a VNC client)",
+      "onAutoForward": "ignore"
+    }
+  },
+  "containerEnv": {
+    "DISPLAY": ":1",
+    "QT_QPA_PLATFORM": "xcb"
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "bash .devcontainer/start-app.sh",
+  "customizations": {
+    "codespaces": {
+      "openFiles": [".devcontainer/README.md"]
+    },
+    "vscode": {
+      "extensions": ["ms-python.python", "ms-toolsai.jupyter"],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+[[check]]
+id = "sample"
+step = 1
+object = "fit"
+value = "nobs"
+expected = 428
+message = "Fit on the women with a wage: 428 of the 753."
+
+[[check]]
+id = "educ"
+step = 1
+object = "fit"
+value = "params.educ"
+expected = 0.1075
+abs_tol = 0.0005
+message = "The formula is lwage ~ educ + exper + expersq."
+
+[[check]]
+id = "r2"
+step = 1
+object = "fit"
+value = "stats.r2"
+expected = 0.1568
+abs_tol = 0.0005
+message = "The formula is lwage ~ educ + exper + expersq, with a constant."
+
+[[check]]
+id = "robust"
+step = 2
+object = "fit_white"
+value = "method.cov"
+expected = "white"
+message = "Choose Standard errors: White (HC1)."
+
+[[check]]
+id = "robust-se"
+step = 2
+object = "fit_white"
+value = "bse.educ"
+expected = 0.013219
+rel_tol = 0.001
+message = "The robust standard error on educ is about 0.0132."
+
+[[check]]
+id = "robust-p"
+step = 2
+object = "fit_white"
+value = "pvalues.educ"
+expected = 0.0
+abs_tol = 1e-10
+message = "Education is significant whichever standard errors are used."

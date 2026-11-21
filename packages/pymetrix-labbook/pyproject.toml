@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymetrix-labbook"
+dynamic = ["version"]
+description = "A research lab book for pymetrix: an append-only, hash-chained record of the work, kept in the project and verified by replay"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Geoffrey Heenan" }]
+dependencies = ["pymetrix>=0.1.0a10"]  # with the extension API 1.5 (who acted); report notes need 1.6
+
+[project.urls]
+Homepage = "https://github.com/GeoffHeenan/pymetrix"
+Source = "https://github.com/GeoffHeenan/pymetrix/tree/main/packages/pymetrix-labbook"
+Issues = "https://github.com/GeoffHeenan/pymetrix/issues"
+Changelog = "https://github.com/GeoffHeenan/pymetrix/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+audit = ["mcp>=2.3"]  # pymetrix-labbook audit: the read-only MCP server for an auditor's assistant
+test = ["pytest>=9.0.3"]
+
+[project.scripts]
+pymetrix-labbook = "pymetrix_labbook.cli:main"
+
+# importing the package registers its observer; it describes itself as a plugin too
+[project.entry-points."pymetrix.plugins"]
+labbook = "pymetrix_labbook:register"
+[project.entry-points."pymetrix.observers"]
+labbook = "pymetrix_labbook:register"
+
+[tool.hatch.version]
+path = "src/pymetrix_labbook/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymetrix_labbook"]

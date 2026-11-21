@@ -1,0 +1,777 @@
+[
+{
+"page": 1,
+"pages": 1,
+"per_page": "20000",
+"total": 45,
+"sourceid": null,
+"lastupdated": "2026-10-08"
+},
+[
+{
+"id": "AG.LND.AGRI.ZS",
+"name": "Agricultural land (% of land area)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agricultural land (% of land area).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.AGRI.K2",
+"name": "Agricultural land (sq. km)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agricultural land (sq. km).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.ARBL.ZS",
+"name": "Arable land (% of land area)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Arable land (% of land area).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.ARBL.HA",
+"name": "Arable land (hectares)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Arable land (hectares).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.ARBL.HA.PC",
+"name": "Arable land (hectares per person)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Arable land (hectares per person).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.CREL.HA",
+"name": "Land under cereal production (hectares)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Land under cereal production (hectares).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.CROP.ZS",
+"name": "Permanent cropland (% of land area)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Permanent cropland (% of land area).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.FRST.ZS",
+"name": "Forest area (% of land area)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Forest area (% of land area).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.FRST.K2",
+"name": "Forest area (sq. km)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Forest area (sq. km).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.IRIG.AG.ZS",
+"name": "Agricultural irrigated land (% of total agricultural land)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agricultural irrigated land (% of total agricultural land).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.PRCP.MM",
+"name": "Average precipitation in depth (mm per year)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Average precipitation in depth (mm per year).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.LND.TOTL.K2",
+"name": "Land area (sq. km)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Land area (sq. km).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.PRD.CREL.MT",
+"name": "Cereal production (metric tons)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Cereal production (metric tons).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.PRD.CROP.XD",
+"name": "Crop production index (2014-2016 = 100)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Crop production index (2014-2016 = 100).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.PRD.FOOD.XD",
+"name": "Food production index (2014-2016 = 100)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Food production index (2014-2016 = 100).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.PRD.LVSK.XD",
+"name": "Livestock production index (2014-2016 = 100)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Livestock production index (2014-2016 = 100).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.YLD.CREL.KG",
+"name": "Cereal yield (kg per hectare)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Cereal yield (kg per hectare).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.CON.FERT.ZS",
+"name": "Fertilizer consumption (kilograms per hectare of arable land)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Fertilizer consumption (kilograms per hectare of arable land).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.CON.FERT.PT.ZS",
+"name": "Fertilizer consumption (% of fertilizer production)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Fertilizer consumption (% of fertilizer production).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AG.AGR.TRAC.NO",
+"name": "Agricultural machinery, tractors",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agricultural machinery, tractors.",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "EN.ATM.CO2E.PC",
+"name": "CO2 emissions (metric tons per capita)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "CO2 emissions (metric tons per capita).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "EN.ATM.METH.AG.KT.CE",
+"name": "Agricultural methane emissions (thousand metric tons of CO2 equivalent)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agricultural methane emissions (thousand metric tons of CO2 equivalent).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "EN.ATM.NOXE.AG.KT.CE",
+"name": "Agricultural nitrous oxide emissions (thousand metric tons of CO2 equivalent)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agricultural nitrous oxide emissions (thousand metric tons of CO2 equivalent).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "EN.POP.DNST",
+"name": "Population density (people per sq. km of land area)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Population density (people per sq. km of land area).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "ER.H2O.FWAG.ZS",
+"name": "Annual freshwater withdrawals, agriculture (% of total freshwater withdrawal)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Annual freshwater withdrawals, agriculture (% of total freshwater withdrawal).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "ER.H2O.FWTL.K3",
+"name": "Annual freshwater withdrawals, total (billion cubic meters)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Annual freshwater withdrawals, total (billion cubic meters).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "NV.AGR.TOTL.ZS",
+"name": "Agriculture, forestry, and fishing, value added (% of GDP)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agriculture, forestry, and fishing, value added (% of GDP).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "NV.AGR.TOTL.CD",
+"name": "Agriculture, forestry, and fishing, value added (current US$)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agriculture, forestry, and fishing, value added (current US$).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "NV.AGR.TOTL.KD.ZG",
+"name": "Agriculture, forestry, and fishing, value added (annual % growth)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agriculture, forestry, and fishing, value added (annual % growth).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "NV.AGR.EMPL.KD",
+"name": "Agriculture, forestry, and fishing, value added per worker (constant 2015 US$)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agriculture, forestry, and fishing, value added per worker (constant 2015 US$).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "SL.AGR.EMPL.ZS",
+"name": "Employment in agriculture (% of total employment) (modeled ILO estimate)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Employment in agriculture (% of total employment) (modeled ILO estimate).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "SL.AGR.EMPL.FE.ZS",
+"name": "Employment in agriculture, female (% of female employment) (modeled ILO estimate)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Employment in agriculture, female (% of female employment) (modeled ILO estimate).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "SL.AGR.EMPL.MA.ZS",
+"name": "Employment in agriculture, male (% of male employment) (modeled ILO estimate)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Employment in agriculture, male (% of male employment) (modeled ILO estimate).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "SP.RUR.TOTL",
+"name": "Rural population",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Rural population.",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "SP.RUR.TOTL.ZS",
+"name": "Rural population (% of total population)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Rural population (% of total population).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "SP.RUR.TOTL.ZG",
+"name": "Rural population growth (annual %)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Rural population growth (annual %).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "SI.POV.RUHC",
+"name": "Rural poverty headcount ratio at national poverty lines (% of rural population)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Rural poverty headcount ratio at national poverty lines (% of rural population).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "EG.ELC.ACCS.RU.ZS",
+"name": "Access to electricity, rural (% of rural population)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Access to electricity, rural (% of rural population).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "SH.H2O.BASW.RU.ZS",
+"name": "People using at least basic drinking water services, rural (% of rural population)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "People using at least basic drinking water services, rural (% of rural population).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "TX.VAL.AGRI.ZS.UN",
+"name": "Agricultural raw materials exports (% of merchandise exports)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agricultural raw materials exports (% of merchandise exports).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "TM.VAL.AGRI.ZS.UN",
+"name": "Agricultural raw materials imports (% of merchandise imports)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Agricultural raw materials imports (% of merchandise imports).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "TX.VAL.FOOD.ZS.UN",
+"name": "Food exports (% of merchandise exports)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Food exports (% of merchandise exports).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "TM.VAL.FOOD.ZS.UN",
+"name": "Food imports (% of merchandise imports)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Food imports (% of merchandise imports).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "DC.ODA.AGRI.CD",
+"name": "Net official development assistance to agriculture (current US$)",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Net official development assistance to agriculture (current US$).",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+},
+{
+"id": "AGRIC.INV.SHR",
+"name": "Share of investment in agriculture",
+"unit": "",
+"source": {
+"id": "2",
+"value": "World Development Indicators"
+},
+"sourceNote": "Share of investment in agriculture.",
+"sourceOrganization": "Food and Agriculture Organization, and World Bank estimates.",
+"topics": [
+{
+"id": "1",
+"value": "Agriculture & Rural Development  "
+}
+]
+}
+]
+]

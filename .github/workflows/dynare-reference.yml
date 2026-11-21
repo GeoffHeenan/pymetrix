@@ -1,0 +1,545 @@
+# Reference output from Dynare itself, for pymetrix's validation: case fs2000 (Bayesian estimation), rbc_order2
+# (second-order perturbation of tests/fixtures/dynare/rbc_order2.mod, pymetrix's own model file), occbin_zlb (OccBin and
+# perfect foresight with a zero lower bound: tests/fixtures/dynare/nk_zlb.mod and nk_zlb_pf.mod, pymetrix's own) or sw2007 (Smets and
+# Wouters 2007, from Johannes Pfeifer's DSGE_mod at a pinned commit: the log posterior and first-order solution at the
+# published mode, Dynare's own mode, and Metropolis-Hastings when mh_replic is not 0; GPL files, numbers only kept).
+# sw2007_points: Dynare's log posterior for Smets and Wouters at each point of tests/fixtures/sw2007-points.json (draws
+# from pymetrix's own chains, the tail of crhopinf among them), uploaded as dynare-sw2007-points.json.
+#
+# Run by hand (Actions > dynare-reference > Run workflow). It installs Octave and Dynare from Ubuntu's packages,
+# takes Dynare's fs2000 example and its data from Dynare's repository (git.dynare.org) at the tag of the installed version, runs
+# the estimation (chain length and count adjustable), and uploads the results (numbers only) as dynare-fs2000.json. Copy that file
+# to tests/fixtures/ to update the reference. No Dynare code or data is kept in this repository (Dynare is GPL).
+name: dynare-reference
+
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        description: "which reference to produce"
+        type: choice
+        options: ["fs2000", "rbc_order2", "occbin_zlb", "sw2007", "sw2007_points"]
+        default: "fs2000"
+      mh_replic:
+        description: "Metropolis-Hastings draws per chain"
+        default: "20000"
+      mh_nblocks:
+        description: "chains"
+        default: "2"
+
+permissions:
+  contents: read
+
+jobs:
+  fs2000:
+    if: inputs.case == 'fs2000'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Install Octave and Dynare
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends octave octave-statistics dynare
+          dpkg-query -W -f='dynare ${Version}\n' dynare
+          octave --version | head -1
+
+      - name: Fetch the fs2000 example at the installed version
+        run: |
+          version=$(dpkg-query -W -f='${Version}' dynare | sed -E 's/^[0-9]+://; s/[-+~].*$//')
+          echo "DYNARE_TAG=$version" >> "$GITHUB_ENV"
+          mkdir run && cd run
+          base="https://git.dynare.org/Dynare/dynare/-/raw/${version}/examples"
+          curl -fsSL "$base/fs2000.mod" -o fs2000.mod
+          data=$(grep -oE "datafile *= *[A-Za-z0-9_]+" fs2000.mod | sed -E 's/.*= *//')
+          echo "data file: $data"
+          curl -fsSL "$base/${data}.m" -o "${data}.m"
+          grep -n "estimation" fs2000.mod
+          # chain length and count from the inputs (the example itself uses 20000 draws in 2 chains); mode_check
+          # dropped: it only draws plots, which need a graphics toolkit the runner lacks
+          sed -i -E "s/mh_replic *= *[0-9]+/mh_replic=${{ inputs.mh_replic }}/; s/mh_nblocks *= *[0-9]+/mh_nblocks=${{ inputs.mh_nblocks }}/; s/, *mode_check//" fs2000.mod
+          grep -n "estimation" fs2000.mod
+          sha256sum fs2000.mod *.m
+
+      - name: Run Dynare
+        working-directory: run
+        run: |
+          cat > export_results.m <<'EOF'
+          function export_results(M_, options_, oo_, file)
+            % whatever the run produced: the mode pass has no posterior moments
+            out = struct();
+            out.dynare_version = dynare_version();
+            opts = {'mh_replic', 'mh_replic'; 'mh_nblocks', 'mh_nblck'; 'mh_drop', 'mh_drop'; 'mh_jscale', 'mh_jscale'; ...
+                    'nobs', 'nobs'; 'mode_compute', 'mode_compute'; 'loglinear', 'loglinear'};
+            for i = 1:rows(opts)
+              if isfield(options_, opts{i, 2})
+                out.(opts{i, 1}) = options_.(opts{i, 2});
+              end
+            end
+            if isfield(oo_, 'posterior') && isfield(oo_.posterior, 'metropolis') && isfield(oo_.posterior.metropolis, 'AcceptanceRatio')
+              out.acceptance = oo_.posterior.metropolis.AcceptanceRatio(:)';
+            end
+            groups = {'parameters', 'shocks_std'};
+            fields = {'posterior_mode', 'posterior_std_at_mode', 'posterior_mean', 'posterior_median', 'posterior_std', 'posterior_hpdinf', 'posterior_hpdsup'};
+            for f = 1:numel(fields)
+              if ~isfield(oo_, fields{f})
+                continue
+              end
+              src = oo_.(fields{f});
+              block = struct();
+              for g = 1:numel(groups)
+                if isfield(src, groups{g})
+                  names_g = fieldnames(src.(groups{g}));
+                  for k = 1:numel(names_g)
+                    key = names_g{k};
+                    if strcmp(groups{g}, 'shocks_std')
+                      key = ['sd_' key];
+                    end
+                    block.(key) = src.(groups{g}).(names_g{k});
+                  end
+                end
+              end
+              out.(fields{f}) = block;
+            end
+            if isfield(oo_, 'MarginalDensity')
+              md = struct();
+              if isfield(oo_.MarginalDensity, 'LaplaceApproximation')
+                md.laplace = oo_.MarginalDensity.LaplaceApproximation;
+              end
+              if isfield(oo_.MarginalDensity, 'ModifiedHarmonicMean')
+                md.modified_harmonic_mean = oo_.MarginalDensity.ModifiedHarmonicMean;
+              end
+              out.marginal_density = md;
+            end
+            if isfield(oo_, 'posterior') && isfield(oo_.posterior, 'optimization')
+              out.log_posterior_at_mode = oo_.posterior.optimization.log_density;
+            end
+            fid = fopen(file, 'w');
+            fputs(fid, jsonencode(out, 'PrettyPrint', true));
+            fclose(fid);
+          end
+          EOF
+          cat > run_one.m <<'EOF'
+          function run_one(name, file)
+            more off
+            try
+              eval(['dynare ' name ' noclearall nolog nograph console']);
+              M_ = evalin('base', 'M_'); options_ = evalin('base', 'options_'); oo_ = evalin('base', 'oo_');
+              export_results(M_, options_, oo_, file);
+              disp(['exported ' file]);
+            catch err
+              disp(['ERROR: ' err.message]);
+              for i = 1:numel(err.stack)
+                disp(sprintf('  %s line %d', err.stack(i).name, err.stack(i).line));
+              end
+              fflush(stdout);
+              exit(1);
+            end
+            fflush(stdout);
+          end
+          EOF
+          dirname "$(find /usr -name dynare.m -path '*matlab*' | head -1)" > dynare_path.txt
+          # pass 1: the mode only (mh_replic=0); pass 2: the Metropolis-Hastings run
+          sed -E "s/mh_replic *= *[0-9]+/mh_replic=0/" fs2000.mod > fs2000_mode.mod
+          for pass in "fs2000_mode dynare-fs2000-mode.json" "fs2000 dynare-fs2000-mcmc.json"; do
+            set -- $pass
+            printf "addpath(strtrim(fileread('dynare_path.txt')));\nrun_one('%s', '%s');\n" "$1" "$2" > "driver_$1.m"
+            set +e
+            octave-cli --quiet "driver_$1.m" 2>&1 | tee "log_$1.txt"
+            code=${PIPESTATUS[0]}
+            set -e
+            echo "octave exit code for $1: $code"
+            ls -la "$1/metropolis" 2>/dev/null || true
+          done
+          python3 - <<'EOF'
+          import json, os
+          out = {}
+          for name in ("dynare-fs2000-mode.json", "dynare-fs2000-mcmc.json"):
+              if os.path.exists(name):
+                  out.update({k: v for k, v in json.load(open(name)).items() if v not in ({}, None)})
+          out["source"] = {"model": "Dynare examples/fs2000.mod and the data file it names", "tag": os.environ["DYNARE_TAG"],
+                           "changed": "mh_replic and mh_nblocks only (and mode_check dropped)"}
+          json.dump(out, open("dynare-fs2000.json", "w"), indent=2)
+          print(json.dumps(out, indent=2))
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dynare-fs2000
+          path: |
+            run/dynare-fs2000*.json
+            run/log_*.txt
+            run/fs2000/metropolis/*.mat
+          if-no-files-found: warn
+
+  rbc_order2:
+    if: inputs.case == 'rbc_order2'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Octave and Dynare
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends octave octave-statistics dynare
+      - name: Run Dynare
+        run: |
+          mkdir run && cp tests/fixtures/dynare/rbc_order2.mod run/ && cd run
+          cat > export_dr.m <<'EOF'
+          function export_dr(M_, options_, oo_, file)
+            dr = oo_.dr;
+            out = struct();
+            out.dynare_version = dynare_version();
+            out.endo_names = cellstr(M_.endo_names)';
+            out.exo_names = cellstr(M_.exo_names)';
+            out.order_var = dr.order_var(:)';
+            out.state_var = dr.state_var(:)';
+            out.steady_state = oo_.steady_state(:)';
+            out.Sigma_e = M_.Sigma_e;
+            names = {'ghx', 'ghu', 'ghxx', 'ghxu', 'ghuu', 'ghs2'};
+            for i = 1:numel(names)
+              out.(names{i}) = dr.(names{i});
+            end
+            fid = fopen(file, 'w');
+            fputs(fid, jsonencode(out, 'PrettyPrint', true));
+            fclose(fid);
+          end
+          EOF
+          dirname "$(find /usr -name dynare.m -path '*matlab*' | head -1)" > dynare_path.txt
+          cat > driver.m <<'EOF'
+          addpath(strtrim(fileread('dynare_path.txt')));
+          try
+            dynare rbc_order2 noclearall nolog nograph console
+            export_dr(M_, options_, oo_, 'dynare-rbc-order2.json');
+          catch err
+            disp(['ERROR: ' err.message]);
+            exit(1);
+          end
+          EOF
+          octave-cli --quiet driver.m
+          python3 -c "import json; d = json.load(open('dynare-rbc-order2.json')); print(json.dumps({k: d[k] for k in ('dynare_version', 'order_var', 'state_var', 'ghs2')}, indent=1))"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dynare-rbc-order2
+          path: run/dynare-rbc-order2.json
+          if-no-files-found: warn
+
+  occbin_zlb:
+    if: inputs.case == 'occbin_zlb'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Octave and Dynare
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends octave octave-statistics dynare
+      - name: Run Dynare
+        run: |
+          mkdir run && cp tests/fixtures/dynare/nk_zlb.mod tests/fixtures/dynare/nk_zlb_pf.mod run/ && cd run
+          dirname "$(find /usr -name dynare.m -path '*matlab*' | head -1)" > dynare_path.txt
+          # not driver.m: Dynare 6 writes +<model>/driver.m, and a script of that name calls itself
+          cat > export_occbin.m <<'EOF'
+          addpath(strtrim(fileread('dynare_path.txt')));
+          try
+            out = struct();
+            out.dynare_version = dynare_version();
+            out.variables = {'y', 'pi', 'i'};
+            out.shocks = 'ey = -2.5 in periods 1-4';
+            dynare nk_zlb noclearall nolog nograph console
+            out.occbin_surprise = oo_.occbin.simul.piecewise(:, 1:3);
+            out.linear_surprise = oo_.occbin.simul.linear(:, 1:3);
+            dynare nk_zlb_pf -Dwithbound=true noclearall nolog nograph console
+            out.perfect_foresight_floor = oo_.endo_simul(1:3, 2:21)';
+            dynare nk_zlb_pf -Dwithbound=false noclearall nolog nograph console
+            out.perfect_foresight_linear = oo_.endo_simul(1:3, 2:21)';
+            fid = fopen('dynare-occbin-zlb.json', 'w');
+            fputs(fid, jsonencode(out));
+            fclose(fid);
+          catch err
+            disp(['ERROR: ' err.message]);
+            exit(1);
+          end
+          EOF
+          octave-cli --quiet export_occbin.m
+          python3 -c "import json; d = json.load(open('dynare-occbin-zlb.json')); open('dynare-occbin-zlb.json', 'w').write(json.dumps(d, indent=1) + '\\n')"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dynare-occbin-zlb
+          path: run/dynare-occbin-zlb.json
+          if-no-files-found: warn
+
+  sw2007:
+    if: inputs.case == 'sw2007'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      DSGE_MOD_COMMIT: 26c21f79e4c6a6b19b18e6330edc5b23489907a4
+    steps:
+      - name: Install Octave and Dynare
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends octave octave-statistics dynare
+          dpkg-query -W -f='dynare ${Version}\n' dynare
+
+      - name: Fetch Smets and Wouters (2007) at a pinned commit of Johannes Pfeifer's DSGE_mod
+        run: |
+          mkdir run && cd run
+          base="https://raw.githubusercontent.com/JohannesPfeifer/DSGE_mod/${DSGE_MOD_COMMIT}/Smets_Wouters_2007"
+          for f in Smets_Wouters_2007.mod usmodel_data.mat usmodel_mode.mat; do curl -fsSL "$base/$f" -o "$f"; done
+          sha256sum *
+          python3 - <<'EOF'
+          import re
+          text = open("Smets_Wouters_2007.mod").read()
+          text = re.sub(r"(?m)^shock_decomposition.*$", "", text)  # not needed for the reference
+          est = re.search(r"estimation\((.*?)\);", text, re.S)
+          opts = est.group(1)
+          def with_options(o):
+              return text[:est.start(1)] + o + text[est.end(1):]
+          # 1: at the published mode (the mode file's values): log posterior, decision rules
+          open("sw_at.mod", "w").write(with_options(opts))
+          # 2: Dynare's own mode from the file's initial values (csminwel, Dynare's default optimiser)
+          o = re.sub(r"optim=\('MaxIter',\s*\d+\),\s*", "", opts)
+          o = re.sub(r"mode_file=\w+,\s*", "", o)
+          o = re.sub(r"mode_compute=\d+", "mode_compute=4", o)
+          open("sw_mode.mod", "w").write(with_options(o))
+          # 3: Metropolis-Hastings from Dynare's mode
+          o3 = re.sub(r"mode_compute=\d+", "mode_compute=0, mode_file=sw_dynare_mode", o)  # copied after pass 2
+          o3 = re.sub(r"mh_replic=\d+", "mh_replic=${{ inputs.mh_replic }}", o3)
+          o3 = re.sub(r"mh_nblocks=\d+", "mh_nblocks=${{ inputs.mh_nblocks }}", o3)
+          open("sw_mcmc.mod", "w").write(with_options(o3))
+          for f in ("sw_at.mod", "sw_mode.mod", "sw_mcmc.mod"):
+              print(f, re.search(r"estimation\(.*?\);", open(f).read(), re.S).group(0))
+          EOF
+
+      - name: Run Dynare
+        working-directory: run
+        run: |
+          cat > export_results.m <<'EOF'
+          function export_results(M_, options_, oo_, file)
+            out = struct();
+            out.dynare_version = dynare_version();
+            opts = {'mh_replic', 'mh_replic'; 'mh_nblocks', 'mh_nblck'; 'mh_drop', 'mh_drop'; 'mh_jscale', 'mh_jscale'; ...
+                    'nobs', 'nobs'; 'first_obs', 'first_obs'; 'presample', 'presample'; 'lik_init', 'lik_init'; 'mode_compute', 'mode_compute'};
+            for i = 1:rows(opts)
+              if isfield(options_, opts{i, 2})
+                out.(opts{i, 1}) = options_.(opts{i, 2});
+              end
+            end
+            if isfield(oo_, 'posterior') && isfield(oo_.posterior, 'metropolis') && isfield(oo_.posterior.metropolis, 'AcceptanceRatio')
+              out.acceptance = oo_.posterior.metropolis.AcceptanceRatio(:)';
+            end
+            groups = {'parameters', 'shocks_std'};
+            fields = {'posterior_mode', 'posterior_std_at_mode', 'posterior_mean', 'posterior_median', 'posterior_std', 'posterior_hpdinf', 'posterior_hpdsup'};
+            for f = 1:numel(fields)
+              if ~isfield(oo_, fields{f})
+                continue
+              end
+              src = oo_.(fields{f});
+              block = struct();
+              for g = 1:numel(groups)
+                if isfield(src, groups{g})
+                  names_g = fieldnames(src.(groups{g}));
+                  for k = 1:numel(names_g)
+                    key = names_g{k};
+                    if strcmp(groups{g}, 'shocks_std')
+                      key = ['sd_' key];
+                    end
+                    block.(key) = src.(groups{g}).(names_g{k});
+                  end
+                end
+              end
+              out.(fields{f}) = block;
+            end
+            if isfield(oo_, 'MarginalDensity')
+              md = struct();
+              if isfield(oo_.MarginalDensity, 'LaplaceApproximation')
+                md.laplace = oo_.MarginalDensity.LaplaceApproximation;
+              end
+              if isfield(oo_.MarginalDensity, 'ModifiedHarmonicMean')
+                md.modified_harmonic_mean = oo_.MarginalDensity.ModifiedHarmonicMean;
+              end
+              out.marginal_density = md;
+            end
+            if isfield(oo_, 'posterior') && isfield(oo_.posterior, 'optimization')
+              out.log_posterior_at_mode = oo_.posterior.optimization.log_density;
+            end
+            % the parameter values used and the first-order solution there
+            out.param_names = cellstr(M_.param_names)';
+            out.params = M_.params(:)';
+            out.shock_sd = sqrt(diag(M_.Sigma_e))';
+            out.endo_names = cellstr(M_.endo_names)';
+            out.exo_names = cellstr(M_.exo_names)';
+            out.steady_state = oo_.steady_state(:)';
+            if isfield(oo_, 'dr') && isfield(oo_.dr, 'ghx')
+              out.order_var = oo_.dr.order_var(:)';
+              out.state_var = oo_.dr.state_var(:)';
+              out.ghx = oo_.dr.ghx;
+              out.ghu = oo_.dr.ghu;
+            end
+            fid = fopen(file, 'w');
+            fputs(fid, jsonencode(out, 'PrettyPrint', true));
+            fclose(fid);
+          end
+          EOF
+          cat > run_one.m <<'EOF'
+          function run_one(name, file)
+            more off
+            try
+              eval(['dynare ' name ' noclearall nolog nograph console']);
+              M_ = evalin('base', 'M_'); options_ = evalin('base', 'options_'); oo_ = evalin('base', 'oo_');
+              export_results(M_, options_, oo_, file);
+              disp(['exported ' file]);
+            catch err
+              disp(['ERROR: ' err.message]);
+              for i = 1:numel(err.stack)
+                disp(sprintf('  %s line %d', err.stack(i).name, err.stack(i).line));
+              end
+              fflush(stdout);
+              exit(1);
+            end
+            fflush(stdout);
+          end
+          EOF
+          dirname "$(find /usr -name dynare.m -path '*matlab*' | head -1)" > dynare_path.txt
+          passes="sw_at:dynare-sw2007-at.json sw_mode:dynare-sw2007-mode.json"
+          if [ "${{ inputs.mh_replic }}" != "0" ]; then passes="$passes sw_mcmc:dynare-sw2007-mcmc.json"; fi
+          for pass in $passes; do
+            name=${pass%%:*}; file=${pass#*:}
+            if [ "$name" = "sw_mcmc" ]; then cp sw_mode/Output/sw_mode_mode.mat sw_dynare_mode.mat; fi
+            printf "addpath(strtrim(fileread('dynare_path.txt')));\nrun_one('%s', '%s');\n" "$name" "$file" > "driver_$name.m"
+            set +e
+            octave-cli --quiet "driver_$name.m" 2>&1 | tee "log_$name.txt"
+            echo "octave exit code for $name: ${PIPESTATUS[0]}"
+            set -e
+          done
+          python3 - <<'EOF'
+          import json, os
+          out = {}
+          for key, name in (("at_published_mode", "dynare-sw2007-at.json"), ("mode", "dynare-sw2007-mode.json"),
+                            ("mcmc", "dynare-sw2007-mcmc.json")):
+              if os.path.exists(name):
+                  out[key] = {k: v for k, v in json.load(open(name)).items() if v not in ({}, None, [])}
+          if "at_published_mode" in out and "log_posterior_at_mode" not in out["at_published_mode"]:
+              import re  # mode_compute=0 leaves it out of oo_: Dynare's log has it, to three decimals
+              found = re.search(r"Initial value of the log posterior \(or likelihood\):\s*(-?[\d.]+)", open("log_sw_at.txt").read())
+              if found:
+                  out["at_published_mode"]["log_posterior_at_mode"] = float(found.group(1))
+                  out["at_published_mode"]["log_posterior_note"] = "from Dynare's log, printed to three decimals"
+          out["source"] = {"model": "Smets_Wouters_2007/Smets_Wouters_2007.mod, usmodel_data.mat and usmodel_mode.mat from "
+                                    "github.com/JohannesPfeifer/DSGE_mod", "commit": os.environ["DSGE_MOD_COMMIT"],
+                           "changed": "shock_decomposition dropped; mode: optim and mode_file dropped, mode_compute=4; "
+                                      "mcmc: from that mode, with the chain length and count given"}
+          json.dump(out, open("dynare-sw2007.json", "w"), indent=1)
+          print(json.dumps({k: {kk: vv for kk, vv in v.items() if kk in ("log_posterior_at_mode", "marginal_density", "dynare_version")}
+                            for k, v in out.items() if k != "source"}, indent=1))
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dynare-sw2007
+          path: |
+            run/dynare-sw2007*.json
+            run/log_*.txt
+          if-no-files-found: warn
+
+  sw2007_points:
+    if: inputs.case == 'sw2007_points'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      DSGE_MOD_COMMIT: 26c21f79e4c6a6b19b18e6330edc5b23489907a4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tests/fixtures/sw2007-points.json
+          sparse-checkout-cone-mode: false
+          path: repo
+
+      - name: Install Octave and Dynare
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends octave octave-statistics dynare
+          dpkg-query -W -f='dynare ${Version}\n' dynare
+
+      - name: Fetch Smets and Wouters (2007) and the points
+        run: |
+          mkdir run && cd run
+          base="https://raw.githubusercontent.com/JohannesPfeifer/DSGE_mod/${DSGE_MOD_COMMIT}/Smets_Wouters_2007"
+          for f in Smets_Wouters_2007.mod usmodel_data.mat usmodel_mode.mat; do curl -fsSL "$base/$f" -o "$f"; done
+          cp ../repo/tests/fixtures/sw2007-points.json points.json
+          python3 - <<'EOF'
+          import re
+          text = open("Smets_Wouters_2007.mod").read()
+          text = re.sub(r"(?m)^shock_decomposition.*$", "", text)
+          est = re.search(r"estimation\((.*?)\);", text, re.S)
+          o = re.sub(r"mh_replic=\d+", "mh_replic=0", est.group(1))  # set up the estimation only: no draws
+          open("sw_points.mod", "w").write(text[:est.start(1)] + o + text[est.end(1):])
+          print(re.search(r"estimation\(.*?\);", open("sw_points.mod").read(), re.S).group(0))
+          EOF
+
+      - name: Dynare's log posterior at each point
+        working-directory: run
+        run: |
+          cat > points.m <<'EOF'
+          more off
+          addpath(strtrim(fileread('dynare_path.txt')));
+          try
+            dynare sw_points noclearall nolog nograph console
+            disp(which('evaluate_posterior_kernel'));
+            P = jsondecode(fileread('points.json'));
+            pts = P.points;
+            names = bayestopt_.name;
+            out = struct();
+            out.dynare_version = dynare_version();
+            out.names = names(:)';
+            out.labels = {};
+            out.log_posterior = [];
+            for i = 1:numel(pts)
+              if iscell(pts)
+                pt = pts{i};
+              else
+                pt = pts(i);
+              end
+              x = zeros(numel(names), 1);
+              for k = 1:numel(names)
+                n = regexprep(names{k}, '^SE_', '');
+                if isfield(pt.values, n)
+                  x(k) = pt.values.(n);
+                elseif isfield(pt.values, ['sd_' n])
+                  x(k) = pt.values.(['sd_' n]);
+                else
+                  error('no value for %s in point %d', names{k}, i);
+                end
+              end
+              lp = evaluate_posterior_kernel(x, M_, estim_params_, oo_, options_, bayestopt_);
+              out.labels{end+1} = pt.label;
+              out.log_posterior(end+1) = lp;
+              printf('%2d %-40s %.10f\n', i, pt.label, lp);
+            end
+            fid = fopen('dynare-sw2007-points.json', 'w');
+            fputs(fid, jsonencode(out, 'PrettyPrint', true));
+            fclose(fid);
+          catch err
+            disp(['ERROR: ' err.message]);
+            for i = 1:numel(err.stack)
+              disp(sprintf('  %s line %d', err.stack(i).name, err.stack(i).line));
+            end
+            exit(1);
+          end
+          EOF
+          dirname "$(find /usr -name dynare.m -path '*matlab*' | head -1)" > dynare_path.txt
+          octave-cli --quiet points.m 2>&1 | tee log_sw_points.txt
+          test -f dynare-sw2007-points.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dynare-sw2007-points
+          path: |
+            run/dynare-sw2007-points.json
+            run/log_sw_points.txt
+          if-no-files-found: warn

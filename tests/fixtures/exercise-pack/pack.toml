@@ -1,0 +1,12 @@
+# A tiny exercise pack for pymetrix's own tests (tests/test_exercises.py): not shipped to users.
+[pack]
+name = "test-pack"
+title = "Test pack: two short exercises"
+version = "1.0"
+description = "A wage equation with robust standard errors, and a unit-root test, on pymetrix's example datasets."
+requires_pymetrix = ">=0.1.0a16"
+audience = "the test suite"
+classification = "public"
+
+[models.ar1]                           # models/ar1.pymodel is imported as gap (without this table: as ar1)
+name = "gap"

@@ -1,0 +1,14 @@
+%{
+  A three-equation New Keynesian model, in IRIS's syntax: for tests/test_exercises.py
+%}
+!transition_variables
+    "Output gap" y, "Inflation" pi, i
+!transition_shocks
+    ey, epi, ei
+!parameters
+    sig = 1, bet = 0.99, kap = 0.1, rho = 0.8, phi = 1.5
+    std_ey = 1, std_epi = 0.3, std_ei = 0.2
+!transition_equations
+    y = y{+1} - sig*(i - pi{+1}) + ey;
+    pi = bet*pi{+1} + kap*y + epi;
+    i = rho*i{-1} + (1-rho)*(phi*pi + 0.5*y) + ei;

@@ -1,0 +1,91 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymetrix"
+dynamic = ["version"]  # from src/pymetrix/_version.py, the one place it is written
+description = "Applied macroeconometrics in Python, from data to forecast report: estimation, testing, model solving, forecasting and reproducible projects, with guided forms."
+readme = "PYPI.md"  # the PyPI page; README.md's relative links work only in the repository
+license = "BSD-3-Clause"
+license-files = ["LICENSE", "THIRD-PARTY-NOTICES.md"]
+requires-python = ">=3.11"
+authors = [{ name = "Geoffrey Heenan" }]
+keywords = ["econometrics", "macroeconomics", "forecasting", "time series", "DSGE", "VAR", "state space"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]  # no License classifier: the SPDX license field replaces it
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "scipy>=1.11",
+    "pyarrow>=17",  # 17.0.0 has the fix for PYSEC-2024-161 (and 14.0.0 warned with pandas 2.2 on every Parquet read)
+    "packaging>=23",
+    "threadpoolctl>=3.1",  # one BLAS thread during estimation and sampling (pymetrix.threads)
+    "statsmodels>=0.14",  # tests, diagnostics, seasonal adjustment and the compiled Kalman filter
+    "matplotlib>=3.9",  # figures: Graph tabs, .plot(), figures in reports (3.9: the first to work with IPython 9)
+]
+
+[project.urls]
+Homepage = "https://github.com/GeoffHeenan/pymetrix"
+Source = "https://github.com/GeoffHeenan/pymetrix"
+Issues = "https://github.com/GeoffHeenan/pymetrix/issues"
+Changelog = "https://github.com/GeoffHeenan/pymetrix/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+finance = ["pymetrix-finance"]  # the finance plugin (packages/pymetrix-finance)
+labbook = ["pymetrix-labbook"]  # the research lab book (packages/pymetrix-labbook)
+guide = ["pymetrix-guide"]  # guided case studies in the desktop app (packages/pymetrix-guide)
+assistant = ["pymetrix-assistant"]  # an outside AI assistant working in the open app (packages/pymetrix-assistant)
+seasonal = ["pymetrix-seasonal"]  # X-13ARIMA-SEATS and TRAMO-SEATS (packages/pymetrix-seasonal); TRAMO-SEATS also needs [jdemetra]
+psets = ["pymetrix-psets"]  # psets:// addresses for PSETS databases (packages/pymetrix-psets); PSETS itself installs from its repository
+stats = []  # statsmodels is a core dependency since 0.1.0a6; kept so that older install commands still work
+panel = ["linearmodels>=6"]
+arch = ["arch>=7"]
+excel = ["openpyxl>=3.1"]
+plot = []  # matplotlib is a core dependency since 0.1.0a6; kept so that older install commands still work
+# PySide6 6.12.0 drops a reference to None on every Qt call that returns nothing; with None mortal (Python 3.11), a
+# process ends in "Fatal Python error: none_dealloc" once enough calls have run, so it is skipped there
+qt = ["PySide6>=6.6,!=6.12.0; python_version < '3.12'", "PySide6>=6.6; python_version >= '3.12'",
+      "qtconsole>=5.5", "qtpy>=2.4", "pyflakes>=3", "jedi>=0.19"]
+jupyter = ["ipywidgets>=8"]
+report = ["python-docx>=1.1", "openpyxl>=3.1"]
+jax = ["jax>=0.4"]
+fast = ["numba>=0.60"]  # the Kalman filter's loops compiled (pymetrix.models._kalman_compiled); never required, not in all
+ml = ["scikit-learn>=1.5"]  # 1.5.0 fixes PYSEC-2024-110 (TfidfVectorizer)
+mcp = ["mcp>=2.3"]  # the MCP server for AI assistants (pymetrix-mcp)
+jdemetra = ["pymetrix-seasonal[jdemetra]"]  # TRAMO-SEATS through JDemetra+, in the seasonal plugin (Java 21; pymetrix_seasonal.jdemetra.install() fetches its jars)
+all = ["linearmodels>=6", "arch>=7", "scikit-learn>=1.5", "mcp>=2.3", "openpyxl>=3.1", "python-docx>=1.1",
+       "PySide6>=6.6,!=6.12.0; python_version < '3.12'", "PySide6>=6.6; python_version >= '3.12'",
+       "qtconsole>=5.5", "qtpy>=2.4", "pyflakes>=3", "jedi>=0.19", "ipywidgets>=8"]
+dev = ["pytest>=9.0.3", "pytest-xdist>=3.5", "openpyxl>=3.1", "linearmodels>=6", "arch>=7", "scikit-learn>=1.5", "mcp>=2.3", "python-docx>=1.1"]
+
+[project.scripts]
+pymetrix-gui = "pymetrix_app:main"  # the launcher: its opening screen shows before pymetrix loads
+pymetrix-mcp = "pymetrix.mcp_server:main"
+pymetrix-new-plugin = "pymetrix.plugin_template:main"
+pymetrix-exercises = "pymetrix.exercises.cli:main"  # check or start an exercise pack (pymetrix.exercises)
+
+[tool.hatch.version]
+path = "src/pymetrix/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymetrix", "src/pymetrix_app"]
+
+[tool.hatch.build.targets.sdist]
+# the package and its licence only: the repository's tests read its docs and examples
+only-include = ["src/pymetrix", "src/pymetrix_app", "PYPI.md", "CHANGELOG.md", "LICENSE", "THIRD-PARTY-NOTICES.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "packages/pymetrix-finance/tests", "packages/pymetrix-labbook/tests", "packages/pymetrix-guide/tests", "packages/pymetrix-assistant/tests", "packages/pymetrix-psets/tests", "packages/pymetrix-seasonal/tests"]
+pythonpath = ["src"]
+filterwarnings = ["ignore:.*returns a plain tuple:FutureWarning", "ignore:For consistency across implementations:PendingDeprecationWarning"]
+markers = ["timing: a wall-clock check, with generous slack (best of three runs) so a loaded machine does not fail it"]

@@ -1,0 +1,11 @@
+{
+  "_note": "Built-in dialogs not yet built on API calls (pymetrix.calls). Convert them one by one; this list may only shrink (tests/test_calls.py).",
+  "commands": [
+    "pymetrix:add_to_dataset",
+    "pymetrix:compare_many_forecasts",
+    "pymetrix:disaggregate",
+    "pymetrix:export_report",
+    "pymetrix:open_result",
+    "pymetrix:use_house_style"
+  ]
+}

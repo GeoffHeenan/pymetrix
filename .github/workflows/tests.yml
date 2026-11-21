@@ -1,0 +1,269 @@
+name: tests
+
+# GitHub Actions minutes are billed while the repository is private (Windows at twice Linux, macOS at ten times), so:
+# - pull requests, and a dispatch with scope "linux" (the default), run a lean Linux set: the oldest and newest Python,
+#   no extras, the installed wheel on Linux and the oldest dependencies. This is what a batch on the WIP branch gets.
+# - a dispatch with scope "release" adds Windows (Python 3.11, the riskiest combination with the newest PySide6), every
+#   Python on Linux, no extras on both Pythons and the Windows wheel. It runs once per release, on the commit to be
+#   tagged (docs/releasing.md).
+# - macOS is paused (it costs ten times Linux); to bring it back, add it to the release set below.
+# - pushes to main run nothing: main only ever moves to a commit that has already passed here.
+# - the weekly run (Mondays) is the Linux set, to catch a new release of a dependency.
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "linux: the lean Linux set (a batch). release: adds Windows and every Python (once per release)."
+        type: choice
+        options: ["linux", "release"]
+        default: "linux"
+  schedule:
+    - cron: "0 6 * * 1"  # Mondays, 06:00 UTC
+
+# The token reads the repository and nothing more: no step pushes, comments or publishes (artifacts and caches
+# need no repository write access).
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full:
+    name: full (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.scope == 'release') && '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.12"},{"os":"ubuntu-latest","python":"3.13"},{"os":"windows-latest","python":"3.11"}]' || '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.13"}]') }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Qt system libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
+      - uses: actions/setup-java@v4  # for TRAMO-SEATS, which runs JDemetra+ in Java
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install with every optional library
+        run: python -m pip install -e ".[dev,qt,jupyter,excel]" -e packages/pymetrix-finance -e packages/pymetrix-labbook -e packages/pymetrix-guide -e packages/pymetrix-assistant -e packages/pymetrix-psets -e "packages/pymetrix-seasonal[jdemetra]"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/jdemetra
+          key: jdemetra-${{ hashFiles('packages/pymetrix-seasonal/src/pymetrix_seasonal/jdemetra.py') }}
+      - name: JDemetra+ libraries
+        run: python -c "import pymetrix_seasonal.jdemetra as j; j.install(r'${{ runner.temp }}/jdemetra')"
+      - name: Crash dumps on (Windows)
+        # Windows Error Reporting writes a minidump of a python.exe that dies of a native fault (an access violation in
+        # Qt, say) to the runner's temp folder; "Native stacks" below prints its C/C++ stack and the dump is kept.
+        # The runner starts every process with SEM_NOGPFAULTERRORBOX set, which keeps such a crash from Windows Error
+        # Reporting, so a .pth file clears that one flag as each Python starts (the test workers and anything they run
+        # inherit it); WER's own DontShowUI stays on, so no dialog can appear.
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $k = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\python.exe'
+          New-Item -Path $k -Force | Out-Null
+          New-ItemProperty -Path $k -Name DumpFolder -Value "$env:RUNNER_TEMP\crash-dumps" -PropertyType ExpandString -Force | Out-Null
+          # a custom minidump (DumpType 0): what a minidump holds plus the memory its registers and stack point to
+          # (0x40, MiniDumpWithIndirectlyReferencedMemory: the object a crashing call was given), data segments (0x1),
+          # handles (0x4), unloaded modules (0x20), process and thread data (0x100, 0x1000)
+          New-ItemProperty -Path $k -Name DumpType -Value 0 -PropertyType DWord -Force | Out-Null
+          New-ItemProperty -Path $k -Name CustomDumpFlags -Value 0x1165 -PropertyType DWord -Force | Out-Null
+          New-ItemProperty -Path $k -Name DumpCount -Value 5 -PropertyType DWord -Force | Out-Null
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\crash-dumps" | Out-Null
+          $pythons = @('python'); if (Test-Path ..\fresh\Scripts\python.exe) { $pythons += '..\fresh\Scripts\python.exe' }
+          foreach ($py in $pythons) {
+            $site = & $py -c "import sysconfig; print(sysconfig.get_path('purelib'))"
+            Set-Content -Path "$site\zz-ci-crash-dumps.pth" -Encoding ascii -Value 'import ctypes; ctypes.windll.kernel32.SetErrorMode(ctypes.windll.kernel32.GetErrorMode() & ~2)'
+            & $py -c "import ctypes, sys; print(sys.executable, 'starts with error mode', hex(ctypes.windll.kernel32.GetErrorMode()))"
+          }
+      - name: Tests
+        env:
+          JDPLUS_PATH: ${{ runner.temp }}/jdemetra
+          JAVA_TOOL_OPTIONS: -XX:ErrorFile=${{ runner.temp }}/hs_err_pid%p.log  # Java's crash report where the step below looks, whatever folder a test is in
+        # one test process per core (pytest-xdist); --dist loadfile keeps each file's tests, and the fits its
+        # module fixtures share, in one process; a process that dies fails the run, naming the test it was running,
+        # rather than being replaced
+        run: python -m pytest -q -p no:cacheprovider -n auto --dist loadfile --max-worker-restart=0
+      - name: Crash reports
+        # a test process that went down: its last steps and exit status, and every thread's Python stack on a fatal
+        # signal (tests/conftest.py, one file per worker; a worker that finished cleanly leaves none), Java's own report
+        # if Java caught it, and the kernel's line naming the faulting library or an out-of-memory kill
+        if: failure()
+        shell: bash
+        run: |
+          for f in "$RUNNER_TEMP"/pymetrix-faults-*.txt "$RUNNER_TEMP"/hs_err_pid*.log hs_err_pid*.log; do
+            if [ -s "$f" ]; then echo "===== $f (its end)"; tail -n 300 "$f"; fi
+          done
+          if [ "$RUNNER_OS" = Linux ]; then sudo dmesg | grep -iE "segfault|general protection|killed process|out of memory" || true; fi
+      - name: Native stacks (Windows)
+        # each crash dump's exception and faulting thread's C/C++ stack in full, then every thread summarised (counts
+        # by module, each distinct stack once), then !analyze -v: separate cdb runs, so that a worker's hundreds of
+        # threads cannot push the faulting one out of the log. The dumps themselves are kept as an artifact.
+        if: failure() && runner.os == 'Windows'
+        timeout-minutes: 20
+        run: python .github/scripts/native_stacks.py
+      - name: Keep the crash dumps (Windows)
+        if: failure() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-dumps-full-${{ matrix.os }}-py${{ matrix.python }}
+          path: ${{ runner.temp }}/crash-dumps
+          if-no-files-found: ignore
+          retention-days: 5
+
+  core:
+    # without the optional extras (no Qt, linearmodels, arch, Excel or Word writers): the package must import and its
+    # own tests must pass. statsmodels and matplotlib are core dependencies, so they are here.
+    name: no extras (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.scope == 'release') && '["3.11", "3.13"]' || '["3.13"]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install the core package, pytest and pytest-xdist
+        run: python -m pip install -e . pytest pytest-xdist
+      - name: Tests
+        run: python -m pytest -q -p no:cacheprovider -n auto --dist loadfile --max-worker-restart=0
+      - name: Crash reports
+        # a test process that went down: its last steps and exit status, and every thread's Python stack on a fatal
+        # signal (tests/conftest.py, one file per worker; a worker that finished cleanly leaves none), Java's own report
+        # if Java caught it, and the kernel's line naming the faulting library or an out-of-memory kill
+        if: failure()
+        shell: bash
+        run: |
+          for f in "$RUNNER_TEMP"/pymetrix-faults-*.txt "$RUNNER_TEMP"/hs_err_pid*.log hs_err_pid*.log; do
+            if [ -s "$f" ]; then echo "===== $f (its end)"; tail -n 300 "$f"; fi
+          done
+          if [ "$RUNNER_OS" = Linux ]; then sudo dmesg | grep -iE "segfault|general protection|killed process|out of memory" || true; fi
+
+  wheel:
+    # what a user installs: build the wheel, install it with [all] in a fresh environment, and run the
+    # tests against the installed copy (not the source tree)
+    name: installed wheel (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.scope == 'release') && '["ubuntu-latest", "windows-latest"]' || '["ubuntu-latest"]') }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Qt system libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
+      - name: Build the wheel
+        run: python -m pip wheel . --no-deps -w dist
+      - name: Install it in a fresh environment
+        shell: bash
+        run: |
+          python -m venv ../fresh
+          PY=../fresh/bin/python; [ -x "$PY" ] || PY=../fresh/Scripts/python
+          $PY -m pip install "$(ls dist/*.whl)[all]" pytest pytest-xdist
+      - name: Crash dumps on (Windows)
+        # Windows Error Reporting writes a minidump of a python.exe that dies of a native fault (an access violation in
+        # Qt, say) to the runner's temp folder; "Native stacks" below prints its C/C++ stack and the dump is kept.
+        # The runner starts every process with SEM_NOGPFAULTERRORBOX set, which keeps such a crash from Windows Error
+        # Reporting, so a .pth file clears that one flag as each Python starts (the test workers and anything they run
+        # inherit it); WER's own DontShowUI stays on, so no dialog can appear.
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $k = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\python.exe'
+          New-Item -Path $k -Force | Out-Null
+          New-ItemProperty -Path $k -Name DumpFolder -Value "$env:RUNNER_TEMP\crash-dumps" -PropertyType ExpandString -Force | Out-Null
+          # a custom minidump (DumpType 0): what a minidump holds plus the memory its registers and stack point to
+          # (0x40, MiniDumpWithIndirectlyReferencedMemory: the object a crashing call was given), data segments (0x1),
+          # handles (0x4), unloaded modules (0x20), process and thread data (0x100, 0x1000)
+          New-ItemProperty -Path $k -Name DumpType -Value 0 -PropertyType DWord -Force | Out-Null
+          New-ItemProperty -Path $k -Name CustomDumpFlags -Value 0x1165 -PropertyType DWord -Force | Out-Null
+          New-ItemProperty -Path $k -Name DumpCount -Value 5 -PropertyType DWord -Force | Out-Null
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\crash-dumps" | Out-Null
+          $pythons = @('python'); if (Test-Path ..\fresh\Scripts\python.exe) { $pythons += '..\fresh\Scripts\python.exe' }
+          foreach ($py in $pythons) {
+            $site = & $py -c "import sysconfig; print(sysconfig.get_path('purelib'))"
+            Set-Content -Path "$site\zz-ci-crash-dumps.pth" -Encoding ascii -Value 'import ctypes; ctypes.windll.kernel32.SetErrorMode(ctypes.windll.kernel32.GetErrorMode() & ~2)'
+            & $py -c "import ctypes, sys; print(sys.executable, 'starts with error mode', hex(ctypes.windll.kernel32.GetErrorMode()))"
+          }
+      - name: Tests against the installed copy
+        shell: bash
+        run: |
+          PY=../fresh/bin/python; [ -x "$PY" ] || PY=../fresh/Scripts/python
+          $PY -c "import pymetrix, sys; assert 'site-packages' in pymetrix.__file__, pymetrix.__file__; print(pymetrix.__file__)"
+          $PY -m pytest -q -p no:cacheprovider -o pythonpath= -n auto --dist loadfile --max-worker-restart=0
+      - name: Crash reports
+        # a test process that went down: its last steps and exit status, and every thread's Python stack on a fatal
+        # signal (tests/conftest.py, one file per worker; a worker that finished cleanly leaves none), Java's own report
+        # if Java caught it, and the kernel's line naming the faulting library or an out-of-memory kill
+        if: failure()
+        shell: bash
+        run: |
+          for f in "$RUNNER_TEMP"/pymetrix-faults-*.txt "$RUNNER_TEMP"/hs_err_pid*.log hs_err_pid*.log; do
+            if [ -s "$f" ]; then echo "===== $f (its end)"; tail -n 300 "$f"; fi
+          done
+          if [ "$RUNNER_OS" = Linux ]; then sudo dmesg | grep -iE "segfault|general protection|killed process|out of memory" || true; fi
+      - name: Native stacks (Windows)
+        # each crash dump's exception and faulting thread's C/C++ stack in full, then every thread summarised (counts
+        # by module, each distinct stack once), then !analyze -v: separate cdb runs, so that a worker's hundreds of
+        # threads cannot push the faulting one out of the log. The dumps themselves are kept as an artifact.
+        if: failure() && runner.os == 'Windows'
+        timeout-minutes: 20
+        run: python .github/scripts/native_stacks.py
+      - name: Keep the crash dumps (Windows)
+        if: failure() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-dumps-wheel-${{ matrix.os }}
+          path: ${{ runner.temp }}/crash-dumps
+          if-no-files-found: ignore
+          retention-days: 5
+
+  oldest:
+    # the floors in pyproject.toml are real: every dependency at the oldest version pymetrix supports
+    name: oldest supported versions (Python 3.11)
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Qt system libraries
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
+      - name: Install with every dependency at its floor
+        run: python -m pip install -e ".[all]" -e packages/pymetrix-finance -e packages/pymetrix-labbook -e packages/pymetrix-guide -e packages/pymetrix-assistant -e packages/pymetrix-psets -e packages/pymetrix-seasonal "pytest>=9.0.3" "pytest-xdist>=3.5" -c .github/oldest-supported.txt
+      - name: Show what was installed
+        run: python -m pip list
+      - name: Tests
+        run: python -m pytest -q -p no:cacheprovider -n auto --dist loadfile --max-worker-restart=0
+      - name: Crash reports
+        # a test process that went down: its last steps and exit status, and every thread's Python stack on a fatal
+        # signal (tests/conftest.py, one file per worker; a worker that finished cleanly leaves none), Java's own report
+        # if Java caught it, and the kernel's line naming the faulting library or an out-of-memory kill
+        if: failure()
+        shell: bash
+        run: |
+          for f in "$RUNNER_TEMP"/pymetrix-faults-*.txt "$RUNNER_TEMP"/hs_err_pid*.log hs_err_pid*.log; do
+            if [ -s "$f" ]; then echo "===== $f (its end)"; tail -n 300 "$f"; fi
+          done
+          if [ "$RUNNER_OS" = Linux ]; then sudo dmesg | grep -iE "segfault|general protection|killed process|out of memory" || true; fi

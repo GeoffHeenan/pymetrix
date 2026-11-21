@@ -1,0 +1,57 @@
+name: Review feedback
+description: A point from a review of a pymetrix build (one issue per point)
+title: "[review] "
+labels: ["review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reviewing pymetrix. One point per issue, please; short is fine. Use example or public
+        data only, and please do not paste another tool's source code or non-public material.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How much does it matter?
+      options:
+        - must fix before a public release
+        - should fix soon after
+        - useful later
+        - out of scope
+        - needs a decision (a design question)
+    validations:
+      required: true
+  - type: dropdown
+    id: track
+    attributes:
+      label: Area
+      options:
+        - A. Econometrics and validation
+        - B. Python design and code
+        - C. Policy modelling and forecasting
+        - D. DSGE and semi-structural models
+        - Installing, the app, or documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: point
+    attributes:
+      label: What you found, or what you suggest
+      description: What happened, what you expected, and why it matters to you.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to see it (if it is a problem)
+      description: Steps, or the generated script (File → Export script…), an error message or a screenshot.
+  - type: input
+    id: version
+    attributes:
+      label: Version and system
+      description: e.g. 0.1.0a8, Windows 11, Python 3.13 (python -c "import pymetrix; print(pymetrix.__version__)")
+  - type: textarea
+    id: compare
+    attributes:
+      label: Compared with (optional)
+      description: If you checked a result against another package, which one, which version and what it gave.
