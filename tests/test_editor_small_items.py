@@ -93,6 +93,28 @@ def test_irf_preview_with_regimes_is_the_base_regimes(qapp):
         assert np.allclose(a, b)
 
 
+def test_irf_panel_text_in_the_apps_text_size(qapp):
+    """Each panel's title is 8 points and its tick labels 7, times the app's text scale, and the figure's title 9 times
+    it (the loop over panels once reused the scale's name, giving sizes 0, 8, 16... by panel)."""
+    from pathlib import Path
+
+    from pymetrix.ui.chart_look import look
+    from pymetrix.ui.model_editor_qt import ModelEditorWindow
+
+    text = (Path(__file__).parent / "fixtures" / "dynare" / "rbc_order2.mod").read_text()
+    window = ModelEditorWindow(text=text, syntax="dynare")
+    assert window.check_solution().ok
+    window.draw_irf()
+    scale = look(window)[1].text_scale
+    figure = window.irf_canvas.figure
+    assert len(figure.axes) > 1
+    assert [ax.title.get_fontsize() for ax in figure.axes] == [pytest.approx(8 * scale)] * len(figure.axes)
+    for ax in figure.axes:
+        assert all(label.get_fontsize() == pytest.approx(7 * scale) for label in ax.get_xticklabels() + ax.get_yticklabels())
+    assert figure._suptitle.get_fontsize() == pytest.approx(9 * scale)
+    window.close()
+
+
 def test_matrix_expression_checked_as_typed(qapp):
     from pymetrix.commands import DefineMatrix, EnterMatrix, Session
     from pymetrix.commands.matrices import live_check

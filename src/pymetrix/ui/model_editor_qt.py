@@ -459,8 +459,8 @@ class ModelEditorWindow(QtWidgets.QWidget):
                 n = len(shown)
                 cols = 1 if n == 1 else 2
                 rows = -(-n // cols)
-                for k, (name, values) in enumerate(shown.items()):
-                    ax = fig.add_subplot(rows, cols, k + 1)
+                for i, (name, values) in enumerate(shown.items()):
+                    ax = fig.add_subplot(rows, cols, i + 1)
                     ax.plot(range(len(values)), values, color=house.palette[0], linewidth=1.4)
                     ax.axhline(0, color=theme.CHART["zero line"], linewidth=0.6)
                     ax.set_title(name, fontsize=8 * k)

@@ -35,6 +35,13 @@ stays is attributed.
 - **Public wording.** The README, GOVERNANCE.md, the objectives page and the release notes for maintainers no longer
   speak of the project as private or invitation-only.
 
+### Fixes
+
+- **The model editor's impulse-response panels (Solution tab, after Check solution) have their titles and tick labels
+  in the app's text size again.** The loop over panels reused the name of the text scale, so each panel's title and
+  tick labels were sized by its position (0, 8, 16... points; the first drawn at matplotlib's 1-point minimum) and the
+  figure's title by the last panel's; they are now 8 and 7 points, and the figure's title 9, times the text scale.
+
 ## 0.1.0a19: development build (15 November 2026)
 
 The long-run variance of DOLS and of any fractional bandwidth is fixed (it left out a Bartlett lag and could be
