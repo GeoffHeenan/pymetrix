@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.1.0a20: first public release (24 November 2026)
 
-Preparing the first public release: material that pymetrix may not redistribute leaves the repository, and what
+The first public release: material that pymetrix may not redistribute leaves the repository, and what
 stays is attributed.
 
 - **The Fama-French example is downloaded on first use, not shipped.** Kenneth R. French's data library marks its
