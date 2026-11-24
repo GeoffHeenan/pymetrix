@@ -232,7 +232,12 @@ def test_estimation_recovers_a_regimes_parameter_and_the_dialogs_match_code():
                         name="fit"))
     in_code = nk.estimate(data, estimate=["phi_pi", "phi_pi@2015Q1"], regimes=[Regime("2015Q1", {"phi_pi": 1.5})],
                           bounds={"phi_pi@2015Q1": (1.01, 5)})
-    assert np.array_equal(s["fit"].params.values, in_code.params.values)
+    # The same estimate, up to rounding. Known-date regimes have no analytic gradient, so the search runs on
+    # finite-difference gradients, which turn a difference in the last bit of the likelihood into one of about 1e-5
+    # in these estimates (one ulp added to every k-th evaluation moved them by 1.2e-6 to 1.9e-5, standard errors
+    # 0.32). Once, on CI's oldest-versions job, the dialog's fit and the code's differed by 1.5e-7; the two are
+    # bit-identical in every run here, so the cause on that runner is not known.
+    assert np.allclose(s["fit"].params.values, in_code.params.values, rtol=0, atol=1e-4)
     assert np.allclose(s["fit"].params.values, fit.params.values, rtol=0, atol=1e-4)  # the same mode, other bounds
     assert "regimes='2015Q1: phi_pi=1.5'" in s.script()
     s.run(ForecastModel("fit", "2035Q1", "2037Q4", regimes="2035Q2..2035Q4: rho=1, phi_pi=0", name="fc"))
