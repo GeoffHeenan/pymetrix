@@ -1,0 +1,36 @@
+name: Validation case
+description: A published or independently computed result pymetrix should reproduce
+title: "[validation] "
+labels: ["validation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. docs/validation.md lists the checks pymetrix has; a case here may become one. Use public data
+        and published results, and please do not paste another tool's source code or non-public material.
+  - type: textarea
+    id: source
+    attributes:
+      label: The reference
+      description: The paper, book, table or other implementation (with its version), and where the numbers are.
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: Data and specification
+      description: The data (or where to get it), the sample, the method and its options.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: The numbers to reproduce, and to what tolerance
+      description: e.g. the coefficients and standard errors in table 2, to the digits printed.
+    validations:
+      required: true
+  - type: textarea
+    id: pymetrix
+    attributes:
+      label: What pymetrix gives (if you tried)
+      description: The version, the script, and its output.

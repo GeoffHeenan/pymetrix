@@ -1,0 +1,22 @@
+name: Feature request
+description: A method, dialog, data source or other addition you would use
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What you would like
+      description: The method or feature, and how you would use it (a script, a dialog, a step of your work).
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where it is done now
+      description: Another tool or package that does it, a paper or textbook, and how you do it today.
+  - type: textarea
+    id: check
+    attributes:
+      label: How to check it
+      description: Published numbers, another implementation or a closed form it could be checked against, if you know one.

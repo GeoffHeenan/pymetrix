@@ -1,0 +1,47 @@
+name: Numerical discrepancy
+description: pymetrix gives a different number from another tool for the same calculation
+title: "[numbers] "
+labels: ["numerical"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Results that differ usually differ in a default, not in the method: please check
+        docs/defaults.md (Help → Help contents → Defaults, and other packages' defaults) first. Use example or
+        public data, and please do not paste another tool's source code or non-public material.
+  - type: input
+    id: version
+    attributes:
+      label: pymetrix version
+      description: python -c "import pymetrix; print(pymetrix.__version__)", and the plugins involved
+    validations:
+      required: true
+  - type: input
+    id: other
+    attributes:
+      label: The other tool and its version
+      description: e.g. EViews 13, Stata 18, statsmodels 0.14.4, Dynare 6.2
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: The inputs
+      description: The data (or where to get it), the specification, the sample and every option set, in both tools; the
+        pymetrix script and the other tool's commands.
+    validations:
+      required: true
+  - type: textarea
+    id: outputs
+    attributes:
+      label: Both outputs
+      description: The numbers each tool gives, to all the digits it shows.
+    validations:
+      required: true
+  - type: input
+    id: tolerance
+    attributes:
+      label: The tolerance you expect
+      description: e.g. agree to 1e-6 relative, or to the digits printed, and why (the same method, a published table...)
+    validations:
+      required: true

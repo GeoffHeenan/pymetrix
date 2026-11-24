@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/GeoffHeenan/pymetrix/security/advisories/new
+    about: Please report security problems privately, through the Security tab (Report a vulnerability), not in a public issue; see SECURITY.md.

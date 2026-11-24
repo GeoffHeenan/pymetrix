@@ -1,0 +1,32 @@
+name: Bug report
+description: Something fails, crashes or does what the documentation says it should not
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. One problem per issue, please. A number that differs from another tool's is a numerical
+        discrepancy (its own form). A security problem goes to the Security tab, not here (SECURITY.md).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to see it
+      description: Steps, or the smallest script that shows it (File → Export script… gives the app's steps), with example
+        or public data; the error message and its traceback, or a screenshot.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and system
+      description: e.g. 0.1.0a20, Windows 11, Python 3.13 (python -c "import pymetrix; print(pymetrix.__version__)"), and the
+        plugins installed (Help → Plugins)
+    validations:
+      required: true
