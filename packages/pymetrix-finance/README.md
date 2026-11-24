@@ -1,6 +1,6 @@
 # pymetrix-finance
 
-Financial econometrics for [pymetrix](../../README.md), as a plugin: value at risk and expected shortfall with their
+Financial econometrics for [pymetrix](https://github.com/GeoffHeenan/pymetrix), as a plugin: value at risk and expected shortfall with their
 backtests, multivariate GARCH (CCC, DCC, asymmetric DCC, BEKK), copulas (Gaussian, t, Archimedean, BB1, BB6, BB7,
 BB8, Tawn, rotated; fitted or rank margins; family comparison and goodness of fit by parametric or multiplier
 bootstrap; R-, C- and D-vines with a Rosenblatt-transform goodness-of-fit test; Patton's time-varying copulas and DCC
@@ -21,13 +21,13 @@ ff = Dataset.example("french")    # downloaded from Kenneth French's data librar
 value_at_risk(ff, "mkt_rf", level=0.99, method="garch", dist="t", asymmetric=True).backtests()
 ```
 
-In the app, everything is under the **Finance** menu and workspace. The [tutorial](docs/tutorial.md) (also a
-[notebook](docs/tutorial.ipynb)) walks through it on the example datasets, and its tests check what it says. The Fama-French returns (`french`)
+In the app, everything is under the **Finance** menu and workspace. The [tutorial](https://github.com/GeoffHeenan/pymetrix/blob/main/packages/pymetrix-finance/docs/tutorial.md) (also a
+[notebook](https://github.com/GeoffHeenan/pymetrix/blob/main/packages/pymetrix-finance/docs/tutorial.ipynb)) walks through it on the example datasets, and its tests check what it says. The Fama-French returns (`french`)
 are not shipped, as Kenneth French's data library gives no licence to redistribute them: the first
 `Dataset.example("french")` downloads them from the library and keeps them in `~/.pymetrix/cache/datasets/`.
 
 The plugin needs nothing beyond pymetrix's own dependencies. Its checks are listed in pymetrix's
-[validation page](../../docs/validation.md#finance-the-bundled-plugin); arch and QuantLib are used there as test
+[validation page](https://github.com/GeoffHeenan/pymetrix/blob/main/docs/validation.md#finance-the-bundled-plugin); arch and QuantLib are used there as test
 oracles only. License: BSD-3-Clause.
 
 ## Development

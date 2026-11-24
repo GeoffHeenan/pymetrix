@@ -1,15 +1,15 @@
 name: tests
 
-# GitHub Actions minutes are billed while the repository is private (Windows at twice Linux, macOS at ten times), so:
-# - pull requests, and a dispatch with scope "linux" (the default), run a lean Linux set: the oldest and newest Python,
-#   no extras, the installed wheel on Linux and the oldest dependencies. This is what a batch on the WIP branch gets.
+# The repository is public, so its standard GitHub-hosted runners are free:
+# - every push to main, every pull request, a dispatch with scope "linux" (the default) and the weekly run (Mondays)
+#   run the everyday set: full on Linux (the oldest and newest Python) and macOS (the newest), no extras, the
+#   installed wheel on Linux and the oldest dependencies.
 # - a dispatch with scope "release" adds Windows (Python 3.11, the riskiest combination with the newest PySide6), every
-#   Python on Linux, no extras on both Pythons and the Windows wheel. It runs once per release, on the commit to be
-#   tagged (docs/releasing.md).
-# - macOS is paused (it costs ten times Linux); to bring it back, add it to the release set below.
-# - pushes to main run nothing: main only ever moves to a commit that has already passed here.
-# - the weekly run (Mondays) is the Linux set, to catch a new release of a dependency.
+#   Python on Linux, no extras on both Pythons and the wheel on Windows and macOS. It runs on the commit to be tagged
+#   (docs/releasing.md), and whenever a change needs Windows.
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.scope == 'release') && '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.12"},{"os":"ubuntu-latest","python":"3.13"},{"os":"windows-latest","python":"3.11"}]' || '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.13"}]') }}
+        include: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.scope == 'release') && '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.12"},{"os":"ubuntu-latest","python":"3.13"},{"os":"macos-latest","python":"3.13"},{"os":"windows-latest","python":"3.11"}]' || '[{"os":"ubuntu-latest","python":"3.11"},{"os":"ubuntu-latest","python":"3.13"},{"os":"macos-latest","python":"3.13"}]') }}
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
@@ -160,7 +160,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.scope == 'release') && '["ubuntu-latest", "windows-latest"]' || '["ubuntu-latest"]') }}
+        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' && inputs.scope == 'release') && '["ubuntu-latest", "windows-latest", "macos-latest"]' || '["ubuntu-latest"]') }}
     env:
       QT_QPA_PLATFORM: offscreen
     steps:

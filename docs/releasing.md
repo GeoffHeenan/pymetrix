@@ -8,24 +8,18 @@ rule below answers one of the things that went wrong.
 
 - **Nothing reaches `main` before CI has passed on a branch.** Push the branch (or the WIP branch) and start the
   `tests` workflow on it (Actions → tests → Run workflow, scope `linux`), and wait for every job. `main` then moves by
-  fast-forward to that green commit; a push to `main` runs nothing, since its commit has already passed.
-- **Windows once per release.** The `release` scope adds Windows and every Python; it runs once, on the release
-  commit (step 4 of the checklist), not on every batch.
+  fast-forward to that green commit. The push to `main` runs the everyday set again, which also checks `main` itself.
+- **Windows on the release commit.** The `release` scope adds Windows and every Python; it runs on the release
+  commit (step 4 of the checklist), and on a branch whenever a change needs Windows (fonts, layout, paths, Qt).
 
 ## Which jobs run when
 
-These jobs were set up while the repository was private, when GitHub Actions minutes were billed (Windows about twice
-Linux and macOS about ten times), so the expensive jobs run once per release. A public repository's standard runners
-are free, so the push triggers and macOS can come back; that is a change to `.github/workflows/tests.yml` of its own.
+The repository is public, so its standard GitHub-hosted runners are free.
 
 | Event | Jobs |
 |---|---|
-| pull request; Run workflow with scope `linux` (the default); weekly (Mondays) | full on Linux (Python 3.11 and 3.13), oldest supported versions, installed wheel on Linux, no extras (3.13) |
-| Run workflow with scope `release` | full on Linux (3.11, 3.12, 3.13) and Windows (3.11), installed wheel on Linux and Windows, no extras (3.11, 3.13), oldest supported versions |
-| push to `main` | nothing |
-
-macOS is paused for cost (November 2026). To bring it back, add `macos-latest` to the release set in
-`.github/workflows/tests.yml`.
+| push to `main`; pull request; Run workflow with scope `linux` (the default); weekly (Mondays) | full on Linux (Python 3.11 and 3.13) and macOS (3.13), oldest supported versions, installed wheel on Linux, no extras (3.13) |
+| Run workflow with scope `release` | full on Linux (3.11, 3.12, 3.13), macOS (3.13) and Windows (3.11), installed wheel on Linux, Windows and macOS, no extras (3.11, 3.13), oldest supported versions |
 
 The R comparison for TRAMO-SEATS (`jdemetra-reference.yml`, against rjd3tramoseats) runs weekly and on demand, and on
 a pull request only when it touches `packages/pymetrix-seasonal/`, the core modules the plugin builds on

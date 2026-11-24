@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **CI now that the repository is public.** Every push to `main` and every pull request run the tests; macOS (Python
+  3.13) is back in the everyday set, and the `release` scope adds the installed wheel on macOS
+  (`.github/workflows/tests.yml`, `docs/releasing.md`).
+- **The first-party plugins go to PyPI at 0.1.0a1:** pymetrix-assistant, pymetrix-finance, pymetrix-guide,
+  pymetrix-labbook and pymetrix-seasonal (`pip install --pre pymetrix-seasonal`, say). The finance plugin's README
+  links to the repository with full addresses, so they work on its PyPI page.
+
 ## 0.1.0a20: first public release (24 November 2026)
 
 The first public release: material that pymetrix may not redistribute leaves the repository, and what
