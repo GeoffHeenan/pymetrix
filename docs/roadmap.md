@@ -133,7 +133,7 @@ The project has a short, prioritized 0.1 issue list and no unresolved blocker ar
 - [x] A validation matrix for numerical methods ([validation.md](validation.md)).
 - [ ] Clear documentation for data, equations, models, forecasts, reports and projects (the [user guide](guide.md) and in-app help exist; a hosted site does not).
 - [x] Contribution rules, governance and AI-assisted contribution policy; a code of conduct beyond the short one in CONTRIBUTING.md is not yet adopted.
-- [ ] Issue templates for bug reports, numerical discrepancies, feature requests and validation cases (a pull-request template exists).
+- [x] Issue templates for bug reports, numerical discrepancies, feature requests and validation cases (`.github/ISSUE_TEMPLATE`, beside the review-feedback form and the pull-request template; security reports go to the Security tab).
 
 ### Documentation Needed
 
@@ -142,7 +142,7 @@ The project has a short, prioritized 0.1 issue list and no unresolved blocker ar
 - [x] `GOVERNANCE.md` (repository root, GitHub's convention): founder-led governance and future maintainer path.
 - [x] `CONTRIBUTING.md` (root): contribution process, DCO, tests and AI rules.
 - [x] `docs/validation.md`: cross-checks and numerical references.
-- [ ] Defaults that differ from EViews, Stata, statsmodels, linearmodels or other tools: written as the in-app help page `defaults` (**Help → Help contents**); a copy under `docs/` is planned.
+- [x] Defaults that differ from EViews, Stata, statsmodels, linearmodels or other tools: the in-app help page `defaults` (**Help → Help contents**), and [docs/defaults.md](defaults.md), written from it by `scripts/make_defaults_page.py` (a test keeps the two the same).
 - [x] `SECURITY.md` (root): project trust model, plugin trust and reporting security issues (a first version).
 - [x] `examples/course/03_forecast_round`: the main demo workflow.
 

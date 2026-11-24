@@ -32,8 +32,8 @@ every detail.
   data vintage. Typed code in a project runs only once you trust it.
 - **Numbers you can check.** Wherever a mature library exists (statsmodels, linearmodels, arch,
   SciPy), pymetrix uses it; its own code is checked against libraries, published tables, other
-  packages and hand formulas. [Validation](docs/validation.md) lists the checks, and the help
-  page on defaults says where they differ from EViews and Stata.
+  packages and hand formulas. [Validation](docs/validation.md) lists the checks, and
+  [defaults](docs/defaults.md) (also a help page in the app) says where pymetrix's defaults differ from EViews' and Stata's.
 - **Python first, guided when you want it.** Write scripts and notebooks for control; use forms
   for guidance and teaching. Plugins add estimators, tests, data sources and course material,
   and they appear in the forms, the help and the scripts automatically.

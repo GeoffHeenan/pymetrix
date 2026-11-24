@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Issue templates and a defaults page.** `.github/ISSUE_TEMPLATE` has forms for a bug report, a numerical
+  discrepancy (the pymetrix version, the other tool and its version, the inputs, both outputs and the tolerance
+  expected), a feature request and a validation case, beside the review-feedback form; `config.yml` sends security
+  reports to the Security tab, as SECURITY.md asks. `docs/defaults.md` is the in-app help page on defaults that differ
+  from EViews, Stata, statsmodels and linearmodels, written from it by `scripts/make_defaults_page.py`, and a test
+  keeps the two the same; the README and the guide link it.
 - **CI now that the repository is public.** Every push to `main` and every pull request run the tests; macOS (Python
   3.13) is back in the everyday set, and the `release` scope adds the installed wheel on macOS
   (`.github/workflows/tests.yml`, `docs/releasing.md`).

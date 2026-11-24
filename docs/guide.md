@@ -46,7 +46,8 @@ each push to main adds Windows on Python 3.13.
 
 Where pymetrix's defaults differ from EViews' or Stata's (robust and HAC standard
 errors, ADF lag selection, VAR covariance, SUR, HP lambda...), the help page
-**Defaults, and other packages' defaults** says how, and which option matches.
+**Defaults, and other packages' defaults** says how, and which option matches; [defaults](defaults.md) is the same
+page here.
 
 ## Working with results
 
