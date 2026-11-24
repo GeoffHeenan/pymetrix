@@ -1128,9 +1128,33 @@ For a CSV file, give `Dataset.read`'s options: `translate_program(prg, bundle="m
 "obs", "freq": "Q"})`. `smpl` becomes the dataset's active sample, and an assignment under it uses
 `with_series(..., within=Sample(...))`, so only the sample's rows change, period by period when the formula uses its
 own series, as in EViews. Scalars are Python variables: the script writes them into expressions as f-strings, and
-the steps write their values. Estimation and models (phase 2) and loops, `if` blocks and subroutines (phase 3) are
-left out with that reason; so are graphs, tables and the EViews functions pymetrix has no equivalent of
-([known gaps](known-gaps.md)). Nothing is dropped silently: every line with text has a row.
+the steps write their values.
+
+Estimation, tests and models translate too (phase 2). An equation becomes a fitted `Equation` on the page's sample,
+with the method its options map to, and keeps EViews's coefficient numbering, so later lines that read it work:
+
+```
+equation eq.ls(cov=white) cons c inc cons(-1)     eq = Equation("cons ~ inc + cons[-1]", name="eq").fit(q, method=OLS(cov="white"))
+eq.wald c(2)=1                                    eq_wald = eq.test("wald", "inc=1")
+scalar mpc = eq.@coefs(2)                         mpc = float(eq.params["inc"])
+eq.makeresids r                                   q = q.with_series(r=eq.resid)
+model m                                           (collected)
+m.merge eq                                        (collected)
+m.append @identity y = cons + inv                 (collected)
+m.solve                                           m = read_eviews('model m ...', data=q); m_model = m.model
+                                                  m_0 = m_model.solve(q, ("2020Q1", "2024Q4"))
+                                                  q = q.with_series(cons_0=m_0['cons']) ...
+```
+
+A model's lines are collected and read by `read_eviews` before the model is first used; what the reader refuses is
+reported at its line. Scenarios, overrides (from the alias series, `x_1`), excludes, add factors (`addassign`,
+`addinit`) and the solver (`solveopt`) map to `Scenario`, `Model.add_factors` and `Newton` or `GaussSeidel`, and the
+solution's series come back into the page as EViews names them (`cons_0`, `cons_1`). Where EViews's defaults differ
+from pymetrix's (the HAC bandwidth, the ARMA estimator, information criteria per observation, the default solver),
+the line is translated with a note saying what to check; an option that is not mapped leaves the line out, naming
+it. Loops, `if` blocks and subroutines (phase 3) are left out with that reason, and so are the objects they make;
+so are graphs, tables and the EViews functions pymetrix has no equivalent of ([known gaps](known-gaps.md)). Nothing
+is dropped silently: every line with text has a row.
 
 ## Reports
 

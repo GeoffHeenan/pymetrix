@@ -1,7 +1,7 @@
 # EViews work into pymetrix: the `pymetrix-eviews` plugin
 
-Design note, 5 November 2026, decided 24 November 2026 (see "Decisions") · the core additions (decisions 4 and 5) are built, and the plugin's data route 1 (the bundle reader, the experimental export program and File → Import EViews workfile…, named so that it has an access key, since the File menu uses every letter of "Import EViews": [`packages/pymetrix-eviews`](../../packages/pymetrix-eviews/README.md)); programs phase 1 (data work) is built
-(`translate_program`); programs phases 2 to 4, the panel and route 2 are not · builds on the core EViews reader
+Design note, 5 November 2026, decided 24 November 2026 (see "Decisions") · the core additions (decisions 4 and 5) are built, and the plugin's data route 1 (the bundle reader, the experimental export program and File → Import EViews workfile…, named so that it has an access key, since the File menu uses every letter of "Import EViews": [`packages/pymetrix-eviews`](../../packages/pymetrix-eviews/README.md)); programs phases 1 (data work) and 2 (estimation, tests and models) are built
+(`translate_program`); programs phases 3 and 4, the panel and route 2 are not · builds on the core EViews reader
 (`src/pymetrix/models/eviews.py`), the writers (`src/pymetrix/models/writers.py`) and the extension API
 ([plugins.md](plugins.md), `pymetrix.plugins.API` 1.10)
 
@@ -261,7 +261,7 @@ coefficient map, EViews's `c(i)` against pymetrix's term or parameter. Later lin
 | `stepls`, `breakls`, `threshold`, `glm`, `switchreg`, `nls` options | partly `bai_perron`, `ThresholdAR`, `MarkovSwitching` | left out, naming them; phase 2b if wanted |
 | `var v.ls 1 4 y1 y2 @ c x`, `v.ec` | `VAR(["y1", "y2"], lags=4, exog=["x"])`, `VECM` | translated |
 | `system s`, `s.sur`, `s.3sls`, `s.fiml` | `System([...])` with `SUR`, `ThreeSLS`, `FIML` | translated |
-| `eq.wald c(2)=0, c(3)=0` | `eq.wald("x = 0, z = 0")`, through the coefficient map | translated. Wald refers only to plain names and `const` (`c[-1]` is refused), so a specification whose restrictions name a lag or a function is fitted in explicit form with `c_i` parameters |
+| `eq.wald c(2)=0, c(3)=0` | `eq.test("wald", "x = 0, z = 0")`, through the coefficient map | translated. Built: Wald now reads a lagged or function term by its name (`y[-1] = 0`, `log(z) = 0`), so a list specification stays in its linear form |
 | `eq.auto(4)`, `eq.hettest(type=...)`, `eq.archtest`, `eq.reset(2)`, `eq.chow 1990q1` *(verify the forms)* | `eq.test("breusch_godfrey", lags=4)`, `"breusch_pagan"`, `"white"`, `"arch"`, `"reset"`, `"chow"` | translated |
 | `eq.hist`, `eq.rls(q)` *(verify)* | `eq.test("jarque_bera")`, `eq.recursive_residuals()` (CUSUM) | translated |
 | `eq.testdrop x` | `eq.wald("x = 0")`, the same F statistic under least squares with classic errors | translated with a note |

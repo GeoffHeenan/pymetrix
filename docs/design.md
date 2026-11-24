@@ -3893,6 +3893,49 @@ only the draws by the arrays (two implementations to keep in step, and no `exog`
   and their environments for one test's default bandwidth, and a user's own arch would still decide. Instead the
   test's details record arch's version beside the bandwidth, and known-gaps says what changes.
 
+### EViews programs, phase 2: estimation, tests and models (24 November 2026)
+
+The phase 2 table of [design/eviews-plugin.md](design/eviews-plugin.md), in `program/estimation.py` and
+`program/models.py` of `packages/pymetrix-eviews`, mixed into phase 1's translator.
+
+- **Objects made in the step, by value.** An estimation is one recorded call whose receiver is the specification
+  itself: `Equation("y ~ x", name="eq").fit(data, method=OLS(cov="white"))`, `VAR(...).fit(data)`,
+  `System([...]).fit(data, method=SUR())`. The IR gained `New` (an object made from its arguments, in the script as
+  its constructor and in steps mode built from the same arguments), `RefTo` (a session object kept by reference
+  inside a setting: `Scenario(adjust=m_addfactors)`, which the codec records as a reference) and `Cmd` (a recorded
+  command that is not a call). Forecasts and residuals go into the page through `AddToDataset`, the Data → Add
+  results to dataset command, so the History reads `data = data.with_series(r=eq.resid)` as when done by hand.
+- **Wald through `test("wald", ...)`, not `wald`.** `eq.wald` is not a recorded call; `eq.test("wald", ...)` is, and
+  gives the same statistic. pymetrix's Wald reads a lag or function term by its name (`y[-1] = 0`, `log(z) = 0`),
+  so the design's fallback (an explicit form for such restrictions) was not needed: specifications stay linear.
+- **The coefficient map is pymetrix's term names.** `c(i)` is the i-th listed term (`const` for `c`, `ar[1]` for
+  `ar(1)`), the name pymetrix gives its coefficient (the term's text without brackets around all of it); an
+  expression specification's `c(i)` is `c_i`. `@coefs(i)` and `c(i)` read `eq.params["name"]`; `c(i)` after an
+  estimation is the last estimation that fills `c`, as EViews's coefficient vector is.
+- **An option not mapped leaves the line out.** The design said "each option not mapped is listed"; listing it in a
+  note while the estimate runs without it (weights, say) would give other numbers without saying so, which section 7
+  calls worse than leaving the line out. Known default differences and the *(verify)* items are notes; `solveopt`'s
+  unmapped options (`g=`, `z=`) are a note too, since they change only the last digits of a converged solution.
+- **A model is read where it is used.** Its lines are collected; before the first solve, add-factor or after its
+  last line when nothing uses it, the text (with `scalar` declarations for the program's scalars it names, their
+  values passed as `params=`, and the `smpl` and `equation ... .ls` lines of merged equations, read with `data=`) is
+  checked by `ModelSource(text, "eviews").check()` and read by `read_eviews`. The reader's errors go to the lines
+  they name, and the model's lines are left out with them: Brillet's chapter 5 model is refused because its scalar f
+  has no value, as the reader says. A model's fitted equations cannot be recorded by value, so the model is kept by
+  name, `m_model = m.model`, a recorded code step (`RunCode`), and solved by reference.
+- **Add factors as a scenario, not series.** `addassign @all` then `addinit(v=n)` become
+  `m_model.add_factors(data, span)`, used by later solves as `Scenario(adjust=...)`: pymetrix's way, and exact. EViews
+  makes `_a` series; none are made here, so a program that reads them is told so. Overrides solve on a copy of the
+  page with the overridden series replaced by their alias series (`data_1 = data.with_series(x="x_1")`), which keeps
+  the step recordable (a `Scenario(set=...)` would have to carry the series by value); excludes are
+  `Scenario(fix={"y": None})`. The solution's endogenous series come back into the page under the scenario's alias.
+- **The FRB/US results are not reachable yet.** Their models come from the `read_xml_model` add-in and the library's
+  subroutines (phase 3), and their data from the Fed's database (`dbopen`, `fetch`), so their solves are left out,
+  saying the model is made by a line not translated; the 1e-8 comparison with `tests/test_frbus_example.py` waits
+  for phase 3 and a bundle of LONGBASE. Brillet's printed estimates need his data, which are not available.
+- **No app entry yet.** It needs the translation panel of section 3 (the report beside the program, Run as steps
+  through `AppInterface`), not just a dialog: unchanged from phase 1.
+
 ### EViews programs, phase 1: data work (24 November 2026)
 
 Section 2 of [design/eviews-plugin.md](design/eviews-plugin.md) ("What comes out", "Names", the phase 1 table), in

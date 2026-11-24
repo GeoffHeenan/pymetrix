@@ -49,6 +49,36 @@
   `@date`, `@obsnum`, `@round`, `@floor`, `@ceiling`, `@nan`, `@isna`, `@iif`, `nrnd`, `rnd`, ...); none was added
   to core. Checked on hand-written programs with every value worked out by hand, and on the Brillet and FRB/US
   programs with the count of each status fixed. Not in the app yet: translate in code.
+- **EViews programs translated, phase 2: estimation, tests and models** (`pymetrix-eviews`, the phase 2 table of
+  `docs/design/eviews-plugin.md`). `translate_program` now turns `ls`, `tsls`, `gmm`, `liml`, `arch`, `binary`,
+  `ordered`, `censored`, `count`, `qreg`, `heckit` and `ardl` (as `equation eq.ls ...`, `eq.ls ...` or bare) into a
+  fitted `Equation` (or `ARDL`) with the method the options map to: `cov=white` (HC1) and `cov=hac`, the older `h`
+  and `n`, `ar(k)`/`ma(k)` terms (`errors=ARMA(...)`, `method=ML()`), instruments after `@` (`IV`, `GMM`, `LIML`),
+  `arch(p,q)` with `tdist`, `ged`, `egarch` and `thrsh=` (`GARCH`, `EGARCH`), `d=l`/`d=n` (`Logit`, `Probit`,
+  `OrderedLogit`, `OrderedProbit`), `censored(l=, r=)` (`Tobit`), `count(d=p|n)` (`Poisson`, `NegativeBinomial`),
+  `qreg(quant=)` (`Quantile`), `heckit ... @ selection` (`Heckman`), `ardl(deplags=, reglags=, fixed, trend=, ic=)`.
+  A list specification `y c x y(-1)` becomes `y ~ x + y[-1]` (`- 1` without `c`), an expression specification
+  `y = c(1) + c(2)*x` an explicit form with parameters `c_1`, `c_2`; each estimate keeps its coefficient map
+  (EViews's `c(i)` against pymetrix's coefficient), which later lines use: `eq.@coefs(i)`, `@stderrs`, `@tstats`,
+  `@r2`, `@rbar2`, `@se`, `@ssr`, `@dw`, `@regobs`, `@logl`, `@ncoef`, `@aic`/`@schwarz`/`@hq` (per observation, as
+  EViews), and `c(i)` after an estimation (the last one that fills `c`), as scalars' values. `var v.ls 1 4 y1 y2 @ c x`
+  (`VAR`), `v.ec(case, rank)` (`VECM`); `system` with `append` and `@inst`, then `sur`, `3sls`, `fiml`, `tsls`
+  (`System` with `SUR`, `ThreeSLS`, `FIML`, `TwoSLS`). Tests: `wald` (through the coefficient map, `eq.test("wald",
+  ...)`), `testdrop`, `auto`, `hettest`, `archtest`, `reset`, `chow`, `hist`, `rls`; `x.uroot(adf|pp|kpss|dfgls|ers|np,
+  ...)` (`data.test`) and `g.coint(a|c, lags)` (`data.johansen`). `eq.forecast`, `eq.fit` and `eq.makeresids` add
+  the forecast, its standard error and the residuals to the page (Add to dataset). Models: `model`, `append`, `merge`
+  of a least-squares equation, `@identity`, `@add` and `@innov` are collected into one text, read by
+  `read_eviews(text, data=..., params=...)` before the model is first used (or after its last line), the core
+  reader's refusals passed into the report at their lines; `solve` and `solveopt` (`o=g|n|b`, `m=`, `c=`),
+  `addassign @all` and `addinit(v=n) @all` (`Model.add_factors`, then `Scenario(adjust=...)`), `scenario(n, a=_1)`,
+  `override` (the alias series) and `exclude` (`Scenario(fix=...)`), the solution's endogenous series added to the
+  page under the scenario's alias (`y_0`, `y_1`). Known default differences (the HAC bandwidth, the ARMA and GARCH
+  estimators, information criteria per observation, the default solver) and every *(verify)* item of the design are
+  translated with a note saying what to check; an option that is not mapped leaves the line out, naming it.
+  `stepls`, `breakls`, `threshold`, `switchreg`, `glm` and `nls` are left out naming pymetrix's equivalents;
+  `testadd` and the extreme-value link (`d=x`) are gaps. Checked against NumPy least squares, two-stage least
+  squares, a Newton logit, the Wald and White formulas, an ADF regression, a model's response worked out by hand
+  and the bundle fixture's EViews estimates; the script and the steps give equal objects.
 - **Assigning a series within a sample** (EViews' `smpl 2000q1 2010q4` then `y = ...`). `data.with_series(y="...",
   within=Sample(...))` assigns only the rows the sample selects and keeps the others' values; a new series is missing
   outside it. `within` takes a `Sample` (periods, a panel's entities, `where=` conditions, windows per entity), a

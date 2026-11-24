@@ -6,7 +6,8 @@ with its series' labels, units and sources, and the page's groups, samples, scal
 equations (with EViews's own estimates) and models. The binary `.wf1` file is not read: its format is not
 published, and a misread column of numbers looks like data.
 
-It also translates EViews **programs** (`.prg`), for data work so far (phase 1; see "Programs" below). Running
+It also translates EViews **programs** (`.prg`): data work, estimation, tests and models so far (phases 1 and 2;
+see "Programs" below). Running
 EViews for you through COM is later work (see pymetrix's `docs/design/eviews-plugin.md`).
 
 ## The export program is experimental
@@ -113,7 +114,7 @@ out = t.run(session)     # steps mode: each data statement a recorded step; scal
 (with `read_options={"time": "obs", "freq": "Q"}`, `Dataset.read`'s options). A program that starts with `wfcreate`
 needs neither. `run` keeps the script and the report in the project (`session.attachments["pymetrix-eviews"]`).
 
-This is phase 1, data work:
+Phase 1, data work:
 
 | EViews | pymetrix |
 | --- | --- |
@@ -129,10 +130,32 @@ This is phase 1, data work:
 | `scalar m = @mean(x)` (also `@sum`, `@min`, `@max`, `@stdev`, `@median`, `@obs`) | `float(data.eval("x")[data.sample_mask()].mean())` |
 | `vector(3) v`, `matrix(2,2) m`, `m.fill 1, 2, 3, 4` | `Matrix.zeros(3, 1)`, `Matrix([[1, 3], [2, 4]])` (by column, as EViews) |
 
-Left out, each with its reason and pymetrix's way where there is one: estimation, tests and models (phase 2),
-loops, `if` blocks, subroutines and `include` (phase 3), graphs, tables, spools and display, databases, add-ins, and
-expression functions pymetrix has no equivalent of (`@year`, `@round`, `@nan`, `@iif`, `nrnd`... ; pymetrix's
-known gaps lists them). Translating in the app is later work.
+Phase 2, estimation, tests and models:
+
+| EViews | pymetrix |
+| --- | --- |
+| `equation eq.ls(cov=white) y c x y(-1)`, `eq.ls ...`, `ls ...` | `eq = Equation("y ~ x + y[-1]", name="eq").fit(data, method=OLS(cov="white"))` |
+| `ls y = c(1) + c(2)*x` | `Equation("y ~ c_1 + c_2*x", params=("c_1", "c_2")).fit(data)` |
+| `ls y c x ar(1)` | `Equation("y ~ x", errors=ARMA(ar=1)).fit(data, method=ML())`, with a note on EViews's ARMA estimator |
+| `tsls`, `gmm`, `liml` with `@` instruments | `IV(endog=..., instruments=...)`, `GMM(instruments=...)`, `LIML(...)` |
+| `arch(1,1)`, `binary(d=l)`, `ordered`, `censored(l=0)`, `count`, `qreg(quant=.25)`, `heckit ... @ s c z`, `ardl` | `GARCH`, `Logit`/`Probit`, `OrderedProbit`, `Tobit`, `Poisson`, `Quantile`, `Heckman`, `ARDL` |
+| `var v.ls 1 4 y1 y2 @ c x`, `v.ec(c, 1) 1 4 y1 y2` | `VAR(("y1", "y2"), lags=4, exog=("x",))`, `VECM(...)` |
+| `system s`, `s.append ...`, `s.sur` (`3sls`, `fiml`, `tsls`) | `System([...]).fit(data, method=SUR())` |
+| `eq.wald c(2)=0`, `eq.testdrop x`, `eq.auto(4)`, `eq.hettest`, `eq.archtest(1)`, `eq.reset(1)`, `eq.chow 2000q1`, `eq.hist`, `eq.rls(q)` | `eq.test("wald", "x=0")`, `"breusch_godfrey"`, `"breusch_pagan"`, `"arch"`, `"reset"`, `"chow"`, `"jarque_bera"`, `eq.recursive_residuals()` |
+| `x.uroot(adf, const)`, `g.coint(c, 4)` | `data.test("adf", "x", trend="c", lags="bic")`, `data.johansen((...), lags=4)` |
+| `scalar b = eq.@coefs(2)`, `@stderrs`, `@r2`, `@aic`, `c(2)` | `float(eq.params["x"])`, ...; `@aic` per observation, as EViews |
+| `eq.forecast yf`, `eq.fit yf`, `eq.makeresids r` | `eq.forecast(data, span, dynamic=True)`, then `data.with_series(yf=...)`; `data.with_series(r=eq.resid)` |
+| `model m`, `m.append`, `m.merge eq`, `@identity`, `@add`, `@innov` | collected, then `m = read_eviews(text, data=..., params=...)`; its refusals at their lines |
+| `m.solveopt(o=g)`, `m.addassign @all`, `m.addinit(v=n) @all`, `m.scenario(n, a=_1) "s"`, `m.override x`, `m.exclude y`, `m.solve` | `GaussSeidel()`, `m_model.add_factors(data, span)`, `Scenario(adjust=..., fix=...)`, `m_model.solve(...)`, the series added to the page as `y_0`, `y_1` |
+
+An option that is not mapped leaves the line out, naming it; where EViews's defaults differ from pymetrix's, the line
+is translated with a note saying what to check.
+
+Left out, each with its reason and pymetrix's way where there is one: loops, `if` blocks, subroutines and `include`
+(phase 3) and the objects they make, `stepls`, `breakls`, `threshold`, `switchreg`, `glm` and `nls`, `testadd` and the
+extreme-value link (gaps), graphs, tables, spools and display, databases, add-ins, and expression functions pymetrix
+has no equivalent of (`@year`, `@round`, `@nan`, `@iif`, `nrnd`... ; pymetrix's known gaps lists them). Translating
+in the app is later work.
 
 ## Installing
 

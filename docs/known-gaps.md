@@ -205,20 +205,35 @@ blocking you, say so: that is how priorities get set.
   script, not the project). It refits only least-squares equations without options against EViews's estimates.
   Running EViews through COM is not built yet. Nor are IRIS databanks saved as .mat files; one saved as CSV loads
   once the rows of classes and units under the names are left out (`skiprows=[1, 2]`), which Load data cannot do.
-- **EViews programs are translated for data work only (phase 1)** by `pymetrix-eviews` (`translate_program`).
-  Left out, each line with its reason in the report: estimation, tests, forecasts and models (phase 2: `ls`,
-  `equation`, `model`, `var`, `eq.wald`, `m.solve`...); loops, `if` blocks, subroutines and `include`, the lines
-  inside them, and lines that need a value only they give (phase 3); graphs, tables, spools, display and settings,
-  EViews databases (`fetch`, `store`, `dbopen`), add-ins and user commands, external programs. Within data work:
-  `read` and `import` (use `Dataset.read`), `copy` between pages (`to_freq`), page operations (`pagestruct`,
-  `pagedelete`...), alpha series, weekly, daily, undated and semi-annual new pages, samples of several pairs of
-  dates, conditions with lags or functions other than log, exp, abs and sqrt, groups of expressions, `rename` and
-  `delete` with patterns, element assignment in matrices and tables, `coef` vectors, `label(r)` remarks, `@trend`,
-  `@seas` and `@elem` in data work (`eviews_series` makes them only for a model), sample statistics inside a larger
-  expression (give a scalar the statistic first), EViews's object data members (`x.@count`) and string, date and
-  matrix functions (`@str`, `@val`, `@word`, `@dateval`, `@rows`...). A declared scalar starts as NA and `x.label`
-  without an option sets the description; both are marked to verify. Not in the app yet: no Translate EViews
-  program dialog or translation panel; translate in code.
+- **EViews programs are translated for data work, estimation, tests and models (phases 1 and 2)** by
+  `pymetrix-eviews` (`translate_program`). Left out, each line with its reason in the report: loops, `if` blocks,
+  subroutines and `include`, the lines inside them, lines that need a value only they give, and the objects they
+  make (a model an add-in or a subroutine builds, as in the FRB/US programs) (phase 3); graphs, tables, spools,
+  display and settings, EViews databases (`fetch`, `store`, `dbopen`), add-ins and user commands, external
+  programs. Within data work: `read` and `import` (use `Dataset.read`), `copy` between pages (`to_freq`), page
+  operations (`pagestruct`, `pagedelete`...), alpha series, weekly, daily, undated and semi-annual new pages,
+  samples of several pairs of dates, conditions with lags or functions other than log, exp, abs and sqrt, groups of
+  expressions, `rename` and `delete` with patterns, element assignment in matrices and tables, `label(r)` remarks,
+  `@trend`, `@seas` and `@elem` in data work (`eviews_series` makes them only for a model), sample statistics inside
+  a larger expression (give a scalar the statistic first), objects' data members inside a series expression
+  (`eq.@coefs(2)` is translated as a scalar's value) and string, date and matrix functions (`@str`, `@val`,
+  `@word`, `@dateval`, `@rows`...). Within estimation: `stepls`, `breakls` (`bai_perron`), `threshold`
+  (`ThresholdAR`), `switchreg` (`MarkovSwitching`), `glm` and `nls` options; **`testadd`** (the omitted-variables
+  test has no pymetrix equivalent); **the extreme-value link** of `binary`, `ordered` and `censored` (`d=x`: no
+  complementary log-log family), and `censored`'s logistic errors and limits given as series; `count`'s other
+  distributions; seasonal ARMA terms (`sar`, `sma`), ARMA ranges, `pdl` and `@expand`; weights (`w=`) and every
+  other option not mapped (the line is left out naming it); VAR lags other than one range from 1, VEC cases e and
+  exogenous variables; systems estimated by `ls`; `c(i)` inside a series expression; a VAR's forecast (EViews
+  makes a model of it); `hettest` with its own regressors, `chow` with several dates. Within models: `merge` of an
+  equation not estimated by least squares, or with ARMA terms; add factors on some equations only (`@all` is
+  translated), `addinit` other than `v=n`; `solveopt`'s stochastic, static and fitted solutions (`s=`, `d=`), and
+  its other options listed in a note, not mapped (`g=`, `z=`...); the Actuals scenario; `makegroup`. Translated
+  with a note, to check against EViews: White is HC1; the HAC bandwidth; the ARMA estimator (exact ML here, by
+  version in EViews); GARCH's presample variance; GMM's weighting iterations; quantile regression's standard
+  errors; `heckit` by ML; ARDL's lag search; information criteria per observation; the default solver (Newton
+  here); add factors used in every scenario; the alias series outside the solved span holding the data. A declared
+  scalar starts as NA and `x.label` without an option sets the description; both are marked to verify. Not in the
+  app yet: no Translate EViews program dialog or translation panel; translate in code.
 - **EViews expression functions pymetrix's expressions lack** (the audit of phase 1, over the functions in the
   Brillet and FRB/US programs and those the design names): `@year`, `@quarter`, `@month`, `@day`, `@date`,
   `@obsnum`/`@obsid` (the period and observation number), `@round`, `@floor`, `@ceiling`, `@nan` and `@isna`
