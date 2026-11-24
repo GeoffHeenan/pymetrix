@@ -17,11 +17,11 @@ The automatic bandwidth (``bandwidth_rule="newey-west"``, the default) is that o
 (1991), as in arch 9.0 or later and R's sandwich (``bwNeweyWest`` with ``kernHAC``): the pilot lag is the integer
 part of 4 (T/100)^(2/9), S = 1.1447 (alpha T)^(1/3) is the bandwidth of the Bartlett kernel k(j/S), and lag j has
 the weight 1 - j/S for every j < S, that is 1 - j/(b+1) with b = max(S - 1, 0); FMOLS and CCR round up first, b =
-ceil(S) - 1. ``bandwidth_rule="legacy"`` gives pymetrix 0.1.0a18's numbers (and arch's before 9.0): the pilot lag
-rounded up, b = S (FMOLS and CCR: ceil(S)), and only the lags j <= floor(b). That rule leaves out lag floor(b) + 1 of
-a fractional b, so its long-run variance can be negative; it is kept for one release to reproduce earlier results.
-The estimators equal ``arch.unitroot.cointegration``'s: arch 9's under the default rule, and arch 7's and 8's under
-"legacy", with the bandwidth chosen automatically or given.
+ceil(S) - 1. It is the only rule: ``bandwidth_rule="legacy"`` (pymetrix 0.1.0a18's rule, and arch's before 9.0,
+which left out lag floor(b) + 1 of a fractional b and could give a negative long-run variance) was kept for 0.1.0a19
+and 0.1.0a20 and then removed; asking for it raises a SpecificationError that says so. The estimators equal
+``arch.unitroot.cointegration``'s: arch 9's with the bandwidth chosen automatically or given, and arch 7's and 8's
+with a whole-number bandwidth given.
 
 Gregory-Hansen: the Engle-Granger ADF test on the residuals of a regression with a break, at every date in the middle
 70% of the sample; the smallest ADF statistic is reported. Critical values are simulated for the sample size, number
@@ -56,14 +56,18 @@ def _trend(n: int, trend: str) -> np.ndarray:
     return np.column_stack(cols) if cols else np.zeros((n, 0))
 
 
-BANDWIDTH_RULES = ("newey-west", "legacy")
+BANDWIDTH_RULES = ("newey-west",)
 
 
-def _check_rule(bandwidth_rule: str) -> bool:
-    """True for the legacy rule; refuses an unknown rule."""
+def _check_rule(bandwidth_rule: str) -> None:
+    """Refuses any rule but "newey-west", saying so plainly for the removed "legacy" (so that a script or a saved
+    workfile from 0.1.0a19 or 0.1.0a20 that asked for it stops with a clear error rather than other numbers)."""
+    if bandwidth_rule == "legacy":
+        raise SpecificationError("bandwidth_rule='legacy' (pymetrix 0.1.0a18's automatic bandwidth and lags) was removed "
+                                 "after 0.1.0a20; leave bandwidth_rule out for Newey and West's (1994) rule, or install "
+                                 "pymetrix 0.1.0a20 to reproduce the old numbers")
     if bandwidth_rule not in BANDWIDTH_RULES:
-        raise SpecificationError("bandwidth_rule is 'newey-west' or 'legacy' (pymetrix 0.1.0a18's rule)")
-    return bandwidth_rule == "legacy"
+        raise SpecificationError(f"bandwidth_rule is 'newey-west' (the only rule), not {bandwidth_rule!r}")
 
 
 def newey_west_bandwidth(x: np.ndarray, bandwidth_rule: str = "newey-west") -> float:
@@ -72,13 +76,13 @@ def newey_west_bandwidth(x: np.ndarray, bandwidth_rule: str = "newey-west") -> f
     s0 = sigma_0 + 2 sum_{j=1..n} sigma_j, s1 = 2 sum_{j=1..n} j sigma_j.
 
     "newey-west": n is the integer part of 4 (T/100)^(2/9), as Newey and West, arch 9.0 or later and R's sandwich
-    take it, and S is at most T - 1. "legacy" (pymetrix 0.1.0a18, arch before 9.0): n is rounded up, and S is not
-    capped. S is returned unrounded; ``long_run_covariance`` turns it into the bandwidth b of the weights."""
-    legacy = _check_rule(bandwidth_rule)
+    take it, and S is at most T - 1 (``bandwidth_rule`` accepts only "newey-west"). S is returned unrounded;
+    ``long_run_covariance`` turns it into the bandwidth b of the weights."""
+    _check_rule(bandwidth_rule)
     v = x.sum(axis=1)
     T = len(v)
     pilot = 4 * (T / 100) ** (2 / 9)
-    n = int(np.ceil(pilot)) if legacy else int(pilot)
+    n = int(pilot)
     f0 = fq = 0.0
     for j in range(n + 1):
         s = float(v[j:] @ v[:T - j]) / T
@@ -86,7 +90,7 @@ def newey_west_bandwidth(x: np.ndarray, bandwidth_rule: str = "newey-west") -> f
         f0 += scale * s
         fq += scale * j * s
     S = float(1.1447 * ((fq / f0) ** 2 * T) ** (1 / 3))
-    return S if legacy else min(S, T - 1.0)
+    return min(S, T - 1.0)
 
 
 def long_run_covariance(x: np.ndarray, bandwidth: float | None = None, force_int: bool = True,
@@ -94,23 +98,19 @@ def long_run_covariance(x: np.ndarray, bandwidth: float | None = None, force_int
     """(Omega, Lambda, Sigma, b) of x (not centred): Sigma = Gamma_0, Lambda = Sigma + sum_j w_j Gamma_j, Omega =
     Lambda + Lambda' - Sigma, Gamma_j = sum_t x_t x_{t-j}' / T, with the Bartlett weights w_j = 1 - j/(b+1).
 
-    b is ``bandwidth`` when given; otherwise, from Newey and West's S (``newey_west_bandwidth``), b = max(S - 1, 0)
-    under "newey-west", so that the weights 1 - j/S are those of the kernel k(j/S) (as arch 9.0 or later and R's
-    sandwich ``kernHAC``), and b = S under "legacy". ``force_int`` rounds b up to a whole number: under "newey-west"
-    the automatic b is then ceil(S) - 1 (arch's ``force_int``, and sandwich's ``NeweyWest`` lag floor(S) when S is
-    fractional); under "legacy" ceil(S). A given bandwidth is rounded up too.
+    b is ``bandwidth`` when given; otherwise, from Newey and West's S (``newey_west_bandwidth``), b = max(S - 1, 0),
+    so that the weights 1 - j/S are those of the kernel k(j/S) (as arch 9.0 or later and R's sandwich ``kernHAC``).
+    ``force_int`` rounds b up to a whole number: the automatic b is then ceil(S) - 1 (arch's ``force_int``, and
+    sandwich's ``NeweyWest`` lag floor(S) when S is fractional). A given bandwidth is rounded up too.
 
-    Lags used: "newey-west" uses every lag j < b + 1, each with a positive weight, so a fractional b uses lag
-    floor(b) + 1 and the estimate is positive semi-definite for any b; "legacy" stops at floor(b), as pymetrix
-    0.1.0a18 and arch before 9.0 did, which is not a Bartlett kernel for a fractional b and can give a negative long-run
-    variance. A whole-number b uses the lags 1..b under either rule."""
-    legacy = _check_rule(bandwidth_rule)
+    Lags used: every lag j < b + 1, each with a positive weight, so a fractional b uses lag floor(b) + 1 and the
+    estimate is positive semi-definite for any b (pymetrix 0.1.0a18 and arch before 9.0 stopped at floor(b)). A
+    whole-number b uses the lags 1..b. ``bandwidth_rule`` accepts only "newey-west"."""
+    _check_rule(bandwidth_rule)
     x = np.atleast_2d(np.asarray(x, float).T).T
     T = len(x)
     if bandwidth is not None:
         b = float(bandwidth)
-    elif legacy:
-        b = newey_west_bandwidth(x, bandwidth_rule)
     else:
         S = newey_west_bandwidth(x, bandwidth_rule)
         b = max((float(np.ceil(S)) if force_int else S) - 1.0, 0.0)
@@ -124,10 +124,9 @@ def long_run_covariance(x: np.ndarray, bandwidth: float | None = None, force_int
 
 
 def bartlett_weights(b: float, bandwidth_rule: str = "newey-west") -> np.ndarray:
-    """The weights w_1, w_2, ... of lags 1, 2, ... for the bandwidth b: w_j = 1 - j/(b+1) for every j < b + 1
-    ("newey-west"), or only for j <= floor(b) ("legacy", pymetrix 0.1.0a18)."""
-    legacy = _check_rule(bandwidth_rule)
-    top = int(b + 1) if legacy else int(np.ceil(b + 1))
+    """The weights w_1, w_2, ... of lags 1, 2, ... for the bandwidth b: w_j = 1 - j/(b+1) for every j < b + 1."""
+    _check_rule(bandwidth_rule)
+    top = int(np.ceil(b + 1))
     j = np.arange(1, top, dtype=float)
     return (b + 1 - j) / (b + 1)
 
@@ -160,8 +159,7 @@ class CointegratingRegression:
         rows = [[float(b), float(s), float(t), float(2 * sps.norm.sf(abs(t)))] for b, s, t in zip(self.params, self.se, z)]
         label = {"fmols": "Fully modified OLS", "ccr": "Canonical cointegrating regression", "dols": "Dynamic OLS"}[self.method]
         notes = [f"{label}; {len(self.resid)} observations; R^2 {self.r2:.4f}; long-run variance {self.long_run_variance:.6g}; "
-                 f"Bartlett bandwidth {self.bandwidth:g}"
-                 + (" (legacy rule of pymetrix 0.1.0a18)." if self.bandwidth_rule == "legacy" else ".")]
+                 f"Bartlett bandwidth {self.bandwidth:g}."]
         if self.method == "dols":
             notes.append(f"{self.leads} leads and {self.lags} lags of the differenced regressors (their coefficients not shown).")
         notes.append("Standard errors are asymptotically normal: the cointegrating vector can be tested with z statistics.")
@@ -205,11 +203,11 @@ def _r2(y: np.ndarray, resid: np.ndarray, trend: str) -> float:
 def cointegrating_regression(data: Dataset, y: str, x: Sequence[str], method: Literal["fmols", "ccr", "dols"] = "fmols",
                              trend: Literal["n", "c", "ct", "ctt"] = "c", bandwidth: float | None = None,
                              leads: int | None = None, lags: int | None = None, span: Any = None,
-                             where: str | None = None, bandwidth_rule: Literal["newey-west", "legacy"] = "newey-west") -> CointegratingRegression:
+                             where: str | None = None, bandwidth_rule: Literal["newey-west"] = "newey-west") -> CointegratingRegression:
     """The cointegrating regression of ``y`` on ``x`` (and ``trend``) by FMOLS, CCR or DOLS, over the rows of ``span`` (first,
     last) and ``where`` (a condition on the rows, e.g. ``"year >= 1990"``). ``bandwidth_rule`` is "newey-west" (Newey and
-    West 1994, as arch 9.0 and R's sandwich) or "legacy" (pymetrix 0.1.0a18's automatic bandwidth and lags, kept for one
-    release to reproduce earlier results); see ``long_run_covariance``."""
+    West 1994, as arch 9.0 and R's sandwich), the only rule; "legacy" (pymetrix 0.1.0a18's) was removed after 0.1.0a20
+    and raises a SpecificationError that says so. See ``long_run_covariance``."""
     x = [x] if isinstance(x, str) else list(x)
     _check_rule(bandwidth_rule)
     if method not in ("fmols", "ccr", "dols"):

@@ -3893,6 +3893,25 @@ only the draws by the arrays (two implementations to keep in step, and no `exog`
   and their environments for one test's default bandwidth, and a user's own arch would still decide. Instead the
   test's details record arch's version beside the bandwidth, and known-gaps says what changes.
 
+### Removing the legacy bandwidth rule (24 November 2026)
+
+- **What goes.** `bandwidth_rule="legacy"` (0.1.0a18's automatic bandwidth and truncated Bartlett lags) was kept
+  for 0.1.0a19 and 0.1.0a20 and is removed, as planned (above). Its recorded 0.1.0a18 numbers leave the tests with it.
+- **The argument stays, with one value.** `cointegrating_regression(..., bandwidth_rule=...)` (and
+  `long_run_covariance`, `newey_west_bandwidth`, `bartlett_weights`) still take `bandwidth_rule`, accepting only
+  `"newey-west"`. Removing the argument would have needed a call migration (version 2) that drops `"newey-west"`
+  and fails on `"legacy"`, and scripts typed by hand with the default spelled out would stop with a TypeError;
+  keeping it costs one documented argument and lets every such script run. `"legacy"` raises a
+  `SpecificationError` that names the removal and the last version with the rule: silently computing other numbers
+  for a script that asked for old ones was rejected.
+- **The dialog field goes** (schema 2, with a migration): a saved step's `bandwidth_rule` of `"newey-west"` is
+  dropped, and `"legacy"` raises a `MigrationError` (a project reports it as the step it cannot open), for the same
+  reason. The field was only ever written to scripts when legacy, so scripts from the dialog are unaffected.
+- **Tests with arch 7 and 8** (the oldest-versions job) can no longer compare automatic bandwidths, since those arch
+  versions use the removed rule; they hand arch pymetrix's bandwidth rounded up to a whole number, where both use
+  lags 1..b. The default rule is still checked against numbers recorded from arch 9.0.0 and R's sandwich whatever
+  arch is installed.
+
 ### Preparing the public release: what may be redistributed (20 November 2026)
 
 - **Fama-French data downloaded, not shipped.** The data library marks its files as Fama's and French's copyright and

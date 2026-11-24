@@ -1623,9 +1623,8 @@ add_topic("cointegration", "Cointegration and VECMs", """
     (Estimate → VARs and local projections → Cointegrating regression; Start and End limit the sample, and a
     condition on the rows under Advanced leaves rows out, the rows kept then taken as consecutive periods). Their
     long-run covariance uses the Bartlett kernel with Newey and West's (1994) automatic bandwidth, as arch 9 and
-    R's sandwich choose it; Bandwidth rule = legacy under Advanced gives pymetrix 0.1.0a18's numbers for this
-    release. Gregory and Hansen's test allows the relation to break once. In panels with long time series, the mean group
-    and pooled mean group estimators let each unit have its own dynamics, the latter with a common long run, and
+    R's sandwich choose it. Gregory and Hansen's test allows the relation to break once. In panels with long time
+    series, the mean group and pooled mean group estimators let each unit have its own dynamics, the latter with a common long run, and
     common correlated effects absorb factors common to all units (Test → Gregory-Hansen cointegration test, and
     Estimate → VARs and local projections → Panel mean group and CCE).
 

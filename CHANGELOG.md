@@ -9,6 +9,20 @@
   pymetrix-labbook and pymetrix-seasonal (`pip install --pre pymetrix-seasonal`, say). The finance plugin's README
   links to the repository with full addresses, so they work on its PyPI page.
 
+### Removed (breaking)
+
+- **`bandwidth_rule="legacy"` of cointegrating regressions is gone**, as 0.1.0a19 announced: it reproduced
+  pymetrix 0.1.0a18's automatic Bartlett bandwidth and lags (arch's before 9.0), which leave out a lag of a
+  fractional bandwidth and can give a negative long-run variance. FMOLS, CCR and DOLS use Newey and West's (1994)
+  rule, as arch 9 and R's sandwich, the default since 0.1.0a19; results that left the rule out do not change. The
+  argument stays and accepts only `"newey-west"`, so scripts that spell out the default still run; asking for
+  `"legacy"` (`cointegrating_regression`, `long_run_covariance` and its helpers), including in a replayed script or
+  recorded call, raises a `SpecificationError` that says the rule was removed and that pymetrix 0.1.0a20 still has
+  it. The dialog loses its **Bandwidth rule** field under Advanced (step schema 2): a step saved by 0.1.0a19 or
+  0.1.0a20 with the default rule opens as before, and one saved with legacy stops with an error naming the rule
+  rather than giving other numbers. With arch 7 or 8 installed, the tests compare with arch by handing it a
+  whole-number bandwidth, under which the two use the same lags.
+
 ## 0.1.0a20: first public release (24 November 2026)
 
 The first public release: material that pymetrix may not redistribute leaves the repository, and what

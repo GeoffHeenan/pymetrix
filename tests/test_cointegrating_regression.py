@@ -1,7 +1,8 @@
 """Cointegrating regressions and the Gregory-Hansen test, checked independently: the long-run covariance and its
 automatic bandwidth against arch's Bartlett estimator; FMOLS, CCR and DOLS (with arch's BIC choice of leads and lags)
-against arch.unitroot.cointegration, estimates and standard errors, with a constant and with a trend, each under the
-bandwidth rule of the arch installed (tests/test_lrv_bandwidth.py checks both rules whatever arch is installed); the
+against arch.unitroot.cointegration, estimates and standard errors, with a constant and with a trend (arch 9 with its
+own automatic bandwidth; arch 7 and 8 with a whole-number bandwidth handed over; tests/test_lrv_bandwidth.py checks the
+rule against arch 9's numbers whatever arch is installed); the
 Gregory-Hansen statistic at its break as statsmodels' ADF t on that regression's residuals; its simulated 5% critical
 values against Gregory and Hansen's table; a simulated break date recovered; a span and a row condition (where) against
 arch on just those rows, and the dialog's Start, End and Where against the API call and its replayed script."""
@@ -18,11 +19,16 @@ arch_coint = pytest.importorskip("arch.unitroot.cointegration")
 
 # arch 9.0 changed its automatic Bartlett bandwidth to Newey and West's (1994) rule as R's sandwich has it (the pilot
 # lag's integer part, S - 1 as the bandwidth b of the weights 1 - j/(b+1)) and, for a fractional b, includes lag
-# floor(b) + 1. pymetrix's default rule ("newey-west") is arch 9's; bandwidth_rule="legacy" is pymetrix 0.1.0a18's,
-# which is arch's before 9.0 (the oldest-versions job installs arch 7). Each arch is compared under its own rule, with
-# no bandwidth handed over.
+# floor(b) + 1. pymetrix's rule is arch 9's (pymetrix 0.1.0a18's, arch's before 9.0, was removed after 0.1.0a20).
+# arch 9 is compared with no bandwidth handed over. arch 7 and 8 (the oldest-versions job installs arch 7) choose
+# another automatic bandwidth, and leave out lag floor(b) + 1 of a fractional one, so they are given pymetrix's
+# bandwidth rounded up to a whole number, with which the two use the same lags 1..b; pymetrix is given it too.
 ARCH_BEFORE_9 = int(pytest.importorskip("arch").__version__.split(".")[0]) < 9
-RULE = "legacy" if ARCH_BEFORE_9 else "newey-west"
+
+
+def _whole(b: float) -> float | None:
+    """The bandwidth to hand arch: None (its own automatic choice) with arch 9; b rounded up before 9."""
+    return float(np.ceil(b)) if ARCH_BEFORE_9 else None
 
 
 @pytest.fixture(scope="module")
@@ -45,8 +51,13 @@ def test_the_long_run_covariance_against_arch():
 
     e = np.random.default_rng(1).normal(size=(300, 3)).cumsum(0) * 0.01 + np.random.default_rng(2).normal(size=(300, 3))
     for force_int in (True, False):
-        omega, lam, sigma, b = long_run_covariance(e, force_int=force_int, bandwidth_rule=RULE)
-        auto = Bartlett(e, center=False, force_int=force_int)  # arch's own automatic bandwidth
+        omega, lam, sigma, b = long_run_covariance(e, force_int=force_int)
+        if ARCH_BEFORE_9:
+            if b != np.ceil(b):
+                continue  # arch 7 and 8 leave out lag floor(b) + 1 of a fractional bandwidth
+            auto = Bartlett(e, bandwidth=b, center=False, force_int=force_int)
+        else:
+            auto = Bartlett(e, center=False, force_int=force_int)  # arch's own automatic bandwidth
         assert b == pytest.approx(auto.bandwidth, rel=1e-12)
         assert omega == pytest.approx(np.asarray(auto.cov.long_run), abs=1e-12)
         assert lam == pytest.approx(np.asarray(auto.cov.one_sided), abs=1e-12)
@@ -54,16 +65,18 @@ def test_the_long_run_covariance_against_arch():
     # with every arch version's estimate
     e100 = e[:100]
     assert newey_west_bandwidth(e100) == pytest.approx(Bartlett(e100, center=False).opt_bandwidth, rel=1e-12)
-    assert newey_west_bandwidth(e100, "legacy") == newey_west_bandwidth(e100)
 
 
 @pytest.mark.parametrize("trend", ["c", "ct"])
 @pytest.mark.parametrize("method", ["fmols", "ccr", "dols"])
 def test_against_arch(system, method, trend):
     data, Y, X = system
-    ours = cointegrating_regression(data, "y", ["a", "b"], method=method, trend=trend, bandwidth_rule=RULE)
+    ours = cointegrating_regression(data, "y", ["a", "b"], method=method, trend=trend)
     cls = {"fmols": arch_coint.FullyModifiedOLS, "ccr": arch_coint.CanonicalCointegratingReg, "dols": arch_coint.DynamicOLS}[method]
-    ref = cls(Y, X, trend=trend).fit()
+    given = _whole(ours.bandwidth)
+    if given is not None:
+        ours = cointegrating_regression(data, "y", ["a", "b"], method=method, trend=trend, bandwidth=given)
+    ref = cls(Y, X, trend=trend).fit(bandwidth=given)
     m = len(ours.params)
     assert ours.bandwidth == pytest.approx(ref.bandwidth, rel=1e-10)
     assert ours.params == pytest.approx(ref.params.to_numpy()[:m], abs=1e-10)
@@ -77,12 +90,16 @@ def test_against_arch(system, method, trend):
 
 def test_dols_with_given_leads_and_lags(system):
     data, Y, X = system
-    ours = cointegrating_regression(data, "y", ["a", "b"], method="dols", leads=2, lags=3, bandwidth_rule=RULE)
-    ref = arch_coint.DynamicOLS(Y, X, trend="c", leads=2, lags=3).fit()
+    ours = cointegrating_regression(data, "y", ["a", "b"], method="dols", leads=2, lags=3)
+    given = _whole(ours.bandwidth)
+    if given is not None:
+        ours = cointegrating_regression(data, "y", ["a", "b"], method="dols", leads=2, lags=3, bandwidth=given)
+    ref = arch_coint.DynamicOLS(Y, X, trend="c", leads=2, lags=3).fit(bandwidth=given)
     assert ours.params == pytest.approx(ref.params.to_numpy()[:3], abs=1e-10)
     assert ours.se == pytest.approx(ref.std_errors.to_numpy()[:3], abs=1e-10)
-    given = cointegrating_regression(data, "y", ["a", "b"], method="dols", leads=2, lags=3, bandwidth=4.5, bandwidth_rule=RULE)
-    ref = arch_coint.DynamicOLS(Y, X, trend="c", leads=2, lags=3).fit(bandwidth=4.5)  # a fractional bandwidth given
+    b = 5.0 if ARCH_BEFORE_9 else 4.5  # a fractional bandwidth given (arch 9: lag 5 used as here)
+    given = cointegrating_regression(data, "y", ["a", "b"], method="dols", leads=2, lags=3, bandwidth=b)
+    ref = arch_coint.DynamicOLS(Y, X, trend="c", leads=2, lags=3).fit(bandwidth=b)
     assert given.se == pytest.approx(ref.std_errors.to_numpy()[:3], abs=1e-10)
 
 
@@ -131,8 +148,9 @@ def test_span_and_where_choose_the_rows(system):
     span = ("1910Q1", "1980Q4")
     rows = (np.asarray(data.frame.index >= pd.Period("1910Q1")) & np.asarray(data.frame.index <= pd.Period("1980Q4"))
             & (flagged["keep"].to_numpy() == 1))
-    ours = cointegrating_regression(flagged, "y", ["a", "b"], method="fmols", span=span, where="keep == 1", bandwidth_rule=RULE)
-    ref = arch_coint.FullyModifiedOLS(Y[rows].reset_index(drop=True), X[rows].reset_index(drop=True), trend="c").fit()
+    ours = cointegrating_regression(flagged, "y", ["a", "b"], method="fmols", span=span, where="keep == 1")
+    ref = arch_coint.FullyModifiedOLS(Y[rows].reset_index(drop=True), X[rows].reset_index(drop=True),
+                                      trend="c").fit(bandwidth=_whole(ours.bandwidth))  # FMOLS's b is a whole number
     assert len(ours.resid) == rows.sum() < 284
     assert ours.params == pytest.approx(ref.params.to_numpy()[:3], abs=1e-10) and ours.se == pytest.approx(ref.std_errors.to_numpy()[:3], abs=1e-10)
     whole = cointegrating_regression(data, "y", ["a", "b"])

@@ -7,8 +7,9 @@
 - The default rule ("newey-west") against numbers recorded from arch 9.0.0 (``arch.unitroot.cointegration`` and
   ``arch.covariance.kernel.Bartlett``) and from R's sandwich 3.1.0 (``bwNeweyWest``, ``kernHAC`` and ``NeweyWest``,
   prewhite = FALSE, adjust = FALSE, on DOLS residuals).
-- The legacy rule against numbers recorded from pymetrix 0.1.0a18 on the same fixtures, to 1e-12.
-- The dialog's Bandwidth rule against the API call, and its generated script replayed.
+- The removed "legacy" rule (pymetrix 0.1.0a18's, kept for 0.1.0a19 and 0.1.0a20): asking for it, in a call, a
+  replayed script or a dialog step saved by those versions, stops with an error that names it; a saved step with the
+  default rule loads and runs as before.
 """
 
 import numpy as np
@@ -62,24 +63,9 @@ ARCH9 = {
     ("sample_macro", "dols", "c"): (3.191390398811027, [0.9593021681249401, -0.003770867518657656], [0.0014962469502196093, 0.009173448705969303]),
 }
 
-# from pymetrix 0.1.0a18 (the same as arch 8.0.0's)
-A18 = {
-    ("system", "fmols", "c"): (2.0, [1.9986141927749652, -1.0050694375740745, 0.9095301855169143], [0.009083334208654169, 0.020692203638929818, 0.22082161854996232]),
-    ("system", "fmols", "ct"): (4.0, [2.045581702044642, -0.9966450864798534, 0.7229133203408179, 0.0043560059954339415], [0.018714219833228973, 0.022611455871955673, 0.24561222771077162, 0.0014906584077455994]),
-    ("system", "ccr", "c"): (2.0, [1.9985873378800574, -1.0051435835071132, 0.9100659187937231], [0.009098755111937175, 0.02066970632731359, 0.21897512792047136]),
-    ("system", "ccr", "ct"): (4.0, [2.045636920001432, -0.9966007978423693, 0.7273104683390512, 0.004358090356405142], [0.01867877930907849, 0.022586926697804367, 0.24361956971058005, 0.0014905718240922187]),
-    ("system", "dols", "c"): (11.70548871080216, [1.9998208785415872, -1.0041536756767877, 0.9171138109386094], [0.012136715305123537, 0.027690609472255278, 0.29300089578666116]),
-    ("system", "dols", "ct"): (10.541536685476277, [2.0500645049267305, -0.9950126837030497, 0.7484536510618888, 0.004691166098208993], [0.02092700418386621, 0.02530953093213399, 0.2722437586211751, 0.0016621086998740043]),
-    ("sample_macro", "fmols", "c"): (8.0, [0.9589984613250936, -0.001851429339398825], [0.0012631856613225779, 0.0075702858669324646]),
-    ("sample_macro", "ccr", "c"): (8.0, [0.9590080236283025, -0.0019108729494810113], [0.001237548829127745, 0.007390675898134317]),
-    ("sample_macro", "dols", "c"): (3.3994881609819174, [0.9593021681249418, -0.0037708675186625485], [0.0015057466633202332, 0.009231691184483432]),
-}
-
-
 def test_every_lag_below_b_plus_one_is_used():
     assert bartlett_weights(1.5) == pytest.approx([1 - 1 / 2.5, 1 - 2 / 2.5], abs=1e-15)  # lag 2 = floor(1.5) + 1 included
-    assert bartlett_weights(1.5, "legacy") == pytest.approx([1 - 1 / 2.5], abs=1e-15)  # 0.1.0a18 left it out
-    assert len(bartlett_weights(3.0)) == len(bartlett_weights(3.0, "legacy")) == 3  # a whole number: lags 1..b either way
+    assert len(bartlett_weights(3.0)) == 3  # a whole number: lags 1..b
     assert len(bartlett_weights(0.0)) == 0 and len(bartlett_weights(0.3)) == 1
     x = np.random.default_rng(1).normal(size=(120, 2)).cumsum(0) * 0.05 + np.random.default_rng(2).normal(size=(120, 2))
     T = len(x)
@@ -95,22 +81,17 @@ def test_every_lag_below_b_plus_one_is_used():
 
 def test_the_spectral_window_is_not_negative():
     lam = np.linspace(0, np.pi, 4001)
-    worst_legacy = 0.0
     for b in np.arange(0.0, 15.01, 0.05):
         w = bartlett_weights(b)
         window = 1 + 2 * np.cos(np.outer(lam, np.arange(1, len(w) + 1))) @ w
         assert window.min() >= -1e-12, b
-        wl = bartlett_weights(b, "legacy")
-        worst_legacy = min(worst_legacy, (1 + 2 * np.cos(np.outer(lam, np.arange(1, len(wl) + 1))) @ wl).min())
-    assert worst_legacy < -0.19  # the legacy truncation is not a kernel: b = 1.5 reaches -0.200
 
 
 def test_the_ar1_example_is_positive():
     e = _ar1()
     new = long_run_covariance(e, 1.5, force_int=False)[0][0, 0]
-    old = long_run_covariance(e, 1.5, force_int=False, bandwidth_rule="legacy")[0][0, 0]
     assert new == pytest.approx(1.4006582323389827, rel=1e-12)  # arch 9.0.0's Bartlett(e, bandwidth=1.5, center=False)
-    assert old == pytest.approx(-0.5419578388580346, rel=1e-12)  # pymetrix 0.1.0a18 and arch 8: negative
+    # (pymetrix 0.1.0a18 and arch 8, which left out lag 2, gave -0.5419578388580346)
     x = np.column_stack([e, _ar1(0.6, seed=3), _ar1(-0.5, seed=4)])
     for b in np.arange(0.0, 12.01, 0.1):  # positive semi-definite for every bandwidth
         assert np.linalg.eigvalsh(long_run_covariance(x, b, force_int=False)[0]).min() > -1e-12
@@ -127,19 +108,6 @@ def test_the_default_rule_equals_arch_9(cases, key):
     # here); 1e-10 is the agreement claimed and still about 1e-10 of a standard error
     assert ours.params == pytest.approx(params, rel=1e-10, abs=1e-10)
     assert ours.se == pytest.approx(se, rel=1e-10)
-
-
-@pytest.mark.parametrize("key", sorted(A18))
-def test_the_legacy_rule_reproduces_0_1_0a18(cases, key):
-    case, method, trend = key
-    data, y, x = cases[case]
-    ours = cointegrating_regression(data, y, x, method=method, trend=trend, bandwidth_rule="legacy")
-    bw, params, se = A18[key]
-    assert ours.bandwidth == pytest.approx(bw, rel=1e-12)
-    # abs: a coefficient near 0 differs by 7e-13 with numpy 1.26 and by up to 1.5e-12 with another OpenBLAS kernel
-    assert ours.params == pytest.approx(params, rel=1e-12, abs=1e-10)
-    assert ours.se == pytest.approx(se, rel=1e-12)
-    assert ours.bandwidth_rule == "legacy" and "legacy rule" in str(ours.summary())
 
 
 def test_against_r_sandwich():
@@ -168,28 +136,58 @@ def test_against_r_sandwich():
 def test_bandwidth_is_capped_and_rules_checked():
     e = _ar1(0.99, T=30, seed=2)[:, None]
     assert newey_west_bandwidth(e) <= 29
+    assert long_run_covariance(e, bandwidth_rule="newey-west")[0] == pytest.approx(long_run_covariance(e)[0], abs=0)
     with pytest.raises(SpecificationError, match="bandwidth_rule"):
         long_run_covariance(e, bandwidth_rule="arch8")
     with pytest.raises(SpecificationError, match="bandwidth_rule"):
         cointegrating_regression(Dataset.from_frame(_system()), "y", ["a", "b"], bandwidth_rule="bad")
 
 
-def test_the_dialog_s_bandwidth_rule():
+def test_the_removed_legacy_rule_says_so():
+    """A call or a replayed script from 0.1.0a19 or 0.1.0a20 that asked for "legacy" stops with an error naming it."""
+    from pymetrix.calls import make_call
+    from pymetrix.codec import Ref
+    from pymetrix.commands import Session
+
+    data = Dataset.from_frame(_system())
+    for call in (lambda: cointegrating_regression(data, "y", ["a", "b"], method="dols", bandwidth_rule="legacy"),
+                 lambda: long_run_covariance(_ar1()[:, None], bandwidth_rule="legacy"),
+                 lambda: bartlett_weights(1.5, "legacy"), lambda: newey_west_bandwidth(_ar1()[:, None], "legacy")):
+        with pytest.raises(SpecificationError, match="legacy.*removed after 0.1.0a20"):
+            call()
+    s = Session()
+    s.objects["data"] = data
+    saved = make_call("pymetrix:cointegrating_regression", output="old", data=Ref("data"), y="y", x=["a", "b"],
+                      method="dols", trend="c", bandwidth_rule="legacy")  # as the 0.1.0a20 dialog recorded it
+    with pytest.raises(SpecificationError, match="removed after 0.1.0a20"):
+        saved.run(s)
+    with pytest.raises(SpecificationError, match="removed after 0.1.0a20"):
+        exec("from pymetrix import cointegrating_regression\n" + saved.to_code(), dict(s.objects))
+
+
+def test_dialog_steps_saved_with_a_bandwidth_rule():
+    """Steps saved by 0.1.0a19 or 0.1.0a20 (schema 1, with the Bandwidth rule field): the default rule loads as the
+    same step without it; "legacy" stops with a MigrationError naming the rule. The dialog's call equals the API's."""
     from pymetrix.commands import Session
     from pymetrix.commands.builtin import FitCointegratingRegression
+    from pymetrix.commands.registry import MigrationError, from_json, to_json
 
+    fields = {"y": "y", "x": "a, b", "data": "data", "method": "dols", "trend": "c", "name": "coint", "bandwidth": None,
+              "leads": None, "lags": None, "start": "", "end": "", "where": ""}
+    saved = {"kind": "command", "id": "pymetrix:fit_cointegrating_regression", "version": 1,
+             "fields": {**fields, "bandwidth_rule": "newey-west"}}
+    step = from_json(saved)
+    assert step == FitCointegratingRegression("y", "a, b", method="dols")
+    assert to_json(step)["version"] == 2 and "bandwidth_rule" not in to_json(step)["fields"]
+    with pytest.raises(MigrationError, match="Bandwidth rule = legacy"):
+        from_json({**saved, "fields": {**fields, "bandwidth_rule": "legacy"}})
     data = Dataset.from_frame(_system())
     s = Session()
     s.objects["data"] = data
-    s.run(FitCointegratingRegression("y", "a, b", method="dols", bandwidth_rule="legacy", name="old"))
-    s.run(FitCointegratingRegression("y", "a, b", method="dols", name="new"))
-    by_api = cointegrating_regression(data, "y", ["a", "b"], method="dols", bandwidth_rule="legacy")
-    np.testing.assert_array_equal(s["old"].cov, by_api.cov)
-    np.testing.assert_array_equal(s["new"].cov, cointegrating_regression(data, "y", ["a", "b"], method="dols").cov)
-    assert not np.allclose(s["old"].cov, s["new"].cov)
+    s.run(step)
+    np.testing.assert_array_equal(s["coint"].cov, cointegrating_regression(data, "y", ["a", "b"], method="dols").cov)
     script = s.script()
-    assert "bandwidth_rule='legacy'" in script and script.count("bandwidth_rule") == 1  # the default is left out
+    assert "bandwidth_rule" not in script
     ns = dict(s.objects)
     exec(script, ns)
-    np.testing.assert_array_equal(ns["old"].cov, by_api.cov)
-    np.testing.assert_array_equal(ns["new"].cov, s["new"].cov)
+    np.testing.assert_array_equal(ns["coint"].cov, s["coint"].cov)

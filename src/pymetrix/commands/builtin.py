@@ -15,7 +15,7 @@ from ..plugins import installed, registry
 from ..var import VAR, Cholesky, LongRun
 from ..models import Model
 from ..stats import available_tests
-from .registry import Command, Widget, command, existing_series, migration
+from .registry import Command, MigrationError, Widget, command, existing_series, migration
 from .session import Session
 
 
@@ -2262,11 +2262,11 @@ class FitCointegratingRegression(Command):
     coefficients' z statistics are standard normal. Dynamic OLS adds leads and lags of the differenced regressors,
     chosen by BIC unless given. Start and End limit the sample; under Advanced, a condition on the rows (Where) can
     leave rows out, and the rows kept are then taken as consecutive periods. The automatic bandwidth is Newey and
-    West's (1994), as in arch 9 and R's sandwich; Bandwidth rule (Advanced) = legacy reproduces pymetrix 0.1.0a18's
-    standard errors, kept for one release.
+    West's (1994), as in arch 9 and R's sandwich.
     """
 
     topics: ClassVar[tuple[str, ...]] = ("cointegration",)
+    schema_version: ClassVar[int] = 2  # 2: bandwidth_rule removed (its "legacy" rule left after 0.1.0a20)
 
     y: Annotated[str, Widget("series", depends_on="data", help="the dependent series (in levels)")]
     x: Annotated[str, Widget("series", depends_on="data", multiple=True, help="the cointegrated regressors (in levels)")]
@@ -2285,9 +2285,6 @@ class FitCointegratingRegression(Command):
     where: Annotated[str, Widget("text", advanced=True, group="Sample",
                                  help="a condition on the rows, e.g. year >= 1990; the rows kept are taken as consecutive "
                                       "periods; empty = all rows")] = ""
-    bandwidth_rule: Annotated[Literal["newey-west", "legacy"], Widget(
-        "choice", advanced=True, help="newey-west: Newey and West (1994), as arch 9 and R's sandwich; legacy: pymetrix "
-                                      "0.1.0a18's automatic bandwidth and lags, to reproduce earlier results")] = "newey-west"
 
     def to_call(self) -> Any:
         from ..calls import make_call
@@ -2298,8 +2295,6 @@ class FitCointegratingRegression(Command):
             extra["span"] = _span(self.start, self.end)
         if self.where.strip():
             extra["where"] = self.where.strip()
-        if self.bandwidth_rule != "newey-west":
-            extra["bandwidth_rule"] = self.bandwidth_rule
         return make_call("pymetrix:cointegrating_regression", output=self.name, recorded_by=self.command_id, data=Ref(self.data),
                          y=self.y, x=_names(self.x), method=self.method, trend=self.trend, **extra)
 
@@ -2308,6 +2303,18 @@ class FitCointegratingRegression(Command):
 
     def to_code(self) -> str:
         return self.to_call().to_code()
+
+
+@migration("pymetrix:fit_cointegrating_regression", 1)
+def _coint_bandwidth_rule(fields: dict[str, Any]) -> dict[str, Any]:  # schema 2: bandwidth_rule removed
+    """A step saved by 0.1.0a19 or 0.1.0a20: "newey-west" is what every step now does; "legacy" cannot be reproduced,
+    so the step stops with an error that says why rather than giving other numbers."""
+    rule = fields.pop("bandwidth_rule", "newey-west")
+    if rule != "newey-west":
+        raise MigrationError(f"this cointegrating regression was saved with Bandwidth rule = {rule}, pymetrix 0.1.0a18's "
+                             "rule, which was removed after 0.1.0a20; set the step again (Newey and West's rule) or "
+                             "open the workfile with pymetrix 0.1.0a20 to reproduce its numbers")
+    return fields
 
 
 @command(menu="Test/Johansen cointegration...")

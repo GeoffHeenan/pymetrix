@@ -280,9 +280,9 @@ blocking you, say so: that is how priorities get set.
   plug-in rule it is noisy: one more autocovariance in the pilot can move it by several lags, and it can be 0 (no
   serial-correlation correction at all) when the summed series' autocovariances cancel, as for FMOLS and CCR with a
   trend on the 400-row simulated system in the tests, whose errors are AR(1) with 0.5. Give a bandwidth and check that
-  the conclusion survives a few. `bandwidth_rule="legacy"` (pymetrix 0.1.0a18's rule, arch's before 9.0) is kept
-  for one release only; for a fractional bandwidth it leaves out lag floor(b) + 1, so its long-run variance can be
-  negative.
+  the conclusion survives a few. pymetrix 0.1.0a18's rule (`bandwidth_rule="legacy"`, arch's before 9.0) was
+  removed after 0.1.0a20: results from 0.1.0a18 and earlier can be repeated only with pymetrix 0.1.0a20 or earlier
+  (or arch 7 or 8, with a whole-number bandwidth given, where the two rules use the same lags).
 - **Phillips-Ouliaris** is computed by arch, and with the bandwidth left empty arch chooses it: arch 9.0 chooses it
   differently from arch 7 and 8 (Newey and West's rule as above), which can move the statistic and p-value a long way
   (US consumption on income, statsmodels' macrodata: Zt -3.03, p = 0.105 with arch 8; -3.33, p = 0.052 with arch 9).

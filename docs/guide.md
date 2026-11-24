@@ -2119,9 +2119,8 @@ regression's dialog has Start and End, and under Advanced **Rows where**, a cond
 taken as consecutive periods, as rows with missing values are.
 
 The long-run covariance behind FMOLS, CCR and DOLS uses the Bartlett kernel with Newey and West's (1994) automatic
-bandwidth, as arch 9 and R's sandwich choose it. `bandwidth_rule="legacy"` (Advanced → **Bandwidth rule** in the
-dialog) gives the numbers of pymetrix 0.1.0a18 and earlier, for this release only; the automatic bandwidth is a noisy
-choice, so check a few given bandwidths (`bandwidth=4`) before relying on a borderline z statistic.
+bandwidth, as arch 9 and R's sandwich choose it (pymetrix 0.1.0a18's rule, `bandwidth_rule="legacy"`, was
+removed after 0.1.0a20; use 0.1.0a20 to repeat older numbers). The automatic bandwidth is a noisy choice, so check a few given bandwidths (`bandwidth=4`) before relying on a borderline z statistic.
 
 ### Critical values for short samples
 

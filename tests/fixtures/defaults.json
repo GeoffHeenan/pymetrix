@@ -563,9 +563,8 @@
   "name": "choice",
   "regressors": "<required>"
  },
- "command pymetrix:fit_cointegrating_regression (schema 1)": {
+ "command pymetrix:fit_cointegrating_regression (schema 2)": {
   "bandwidth": null,
-  "bandwidth_rule": "newey-west",
   "data": "data",
   "end": "",
   "lags": null,
