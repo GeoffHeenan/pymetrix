@@ -1,6 +1,6 @@
 # EViews work into pymetrix: the `pymetrix-eviews` plugin
 
-Design note, 5 November 2026 · a proposal: nothing here is built · builds on the core EViews reader
+Design note, 5 November 2026, decided 24 November 2026 (see "Decisions") · nothing here is built yet · builds on the core EViews reader
 (`src/pymetrix/models/eviews.py`), the writers (`src/pymetrix/models/writers.py`) and the extension API
 ([plugins.md](plugins.md), `pymetrix.plugins.API` 1.8)
 
@@ -17,8 +17,9 @@ replay?
   `convert_expression` and `eviews_series`. The plugin builds on them.
 - **Data through EViews itself.** The plugin ships an export program. The user runs it once in their own EViews,
   and it writes a *bundle*: each page's series as CSV, and a JSON manifest with the metadata, equations and models.
-  The plugin reads the bundle in one step. On Windows, with EViews installed, the plugin can run the same program
-  through COM automation. The binary `.wf1` is not read.
+  The plugin reads the bundle in one step. The binary `.wf1` is not read. The project has no EViews licence, so
+  the export program ships marked *experimental* until someone runs it in EViews; until then, a workfile saved
+  from EViews as CSV or Excel, which core already reads, is the supported way in.
 - **Programs translated, not emulated.** A `.prg` becomes a readable pymetrix Python script and a translation
   report. Every line is either translated or listed with a reason. Nothing is dropped silently, as the model reader
   already does. The work comes in four phases: data, estimation, control flow, and what is left in the report.
@@ -75,7 +76,7 @@ What the program does, page by page:
 The program changes nothing in the workfile. It uses its own temporary object names, with a prefix, and deletes
 them at the end. It writes an `export.log` with one line per object: exported, or skipped and why.
 
-### Route 2 (optional, Windows only): the same program through COM
+### Route 2 (deferred): the same program through COM
 
 When EViews is installed on Windows, the plugin can drive it through EViews's COM automation server *(verify: the
 `EViews.Manager` ProgID, `GetApplication`, `Run`, and from which version COM is offered)*. It opens the workfile,
@@ -83,6 +84,8 @@ runs the same `pymetrix_export.prg` into a temporary folder, closes EViews, and 
 nothing that route 1 does not do, so there is one export to maintain and test. Its only Python dependency is
 `pywin32`, an optional extra (`pip install pymetrix-eviews[com]`). Without it, or off Windows, the dialog shows
 route 1 only, with the reason.
+
+**Deferred (decision 8).** Without EViews it cannot be tested at all, so it is not built now.
 
 ### Route 3 (not pursued): reading `.wf1` directly
 
@@ -214,7 +217,7 @@ changes which variable later lines use.
 
 | EViews | pymetrix | Status |
 | --- | --- | --- |
-| `wfopen macro.wf1` | `Dataset.read(".../macro.evbundle", page=...)` for the bundle given to the translator | translated; without a bundle, an error saying how to make one |
+| `wfopen macro.wf1` | `Dataset.read(path, ...)` for the bundle, or the CSV or Excel file saved from EViews, given to the translator | translated; without either, an error saying how to make one |
 | `wfcreate q 1990q1 2030q4`, `pagecreate` | a new, empty dated Dataset | **gap:** there is no recorded call for an empty Dataset of a frequency and range. Proposed for core (decision 5) |
 | `pageselect p` | later lines use the Dataset `p` | translated (no step) |
 | `wfsave`, `wfclose`, `pagesave` | the project is saved by the user | left out: "save the project (File → Save)" |
@@ -313,7 +316,8 @@ The plugin follows the extension API (1.8) and the existing first-party plugins.
 - **File → Import EViews…** A dialog, `@command(menu="File/Import EViews...")`, so it lands at the end of the File
   menu. It has three choices. *Workfile bundle* takes a `.evbundle` file and the pages to read. *Program* takes a
   `.prg`, with an optional bundle for its `wfopen`. *Run EViews for me* (route 2, Windows only) takes a `.wf1`.
-  The dialog also offers *Get the export program*. For a bundle, the dialog's step is one recorded command, and
+  *Run EViews for me* is not built while route 2 is deferred. The dialog also offers *Get the export program*,
+  marked experimental. For a bundle, the dialog's step is one recorded command, and
   its code is one `Dataset.read(...)` line per page. Its ID is fixed in `command_ids.json`.
 - **The translation report**, a docked panel (`AppPanel("EViews translation", create, area="bottom")`):
   - a table, one row per line: line number, status (with a colour and a text label, so it does not rely on colour),
@@ -373,7 +377,8 @@ core changes.
 - **Where results are recorded.** Each comparison gets a row in `docs/validation.md`. Every gap gets an item in
   `docs/known-gaps.md`.
 - **The export program itself** can only be run in EViews. Before each release someone with an EViews licence
-  runs it on the fixture workfiles, and the bundle must match the hand-made fixtures (decision 7).
+  runs it on the fixture workfiles, and the bundle must match the hand-made fixtures (decision 7). The project has
+  no such person now, so the program ships marked experimental, and the import says so.
 
 ## 5. Size, by phase
 
@@ -428,26 +433,21 @@ Phases 1 and 2 of programs depend on data route 1. Phase 3 can start after phase
 - **Scope creep.** EViews's command set is large. The phases list what is in; everything else is reported, not
   built.
 
-## Decisions needed
+## Decisions
 
-1. **The plan as a whole:** a plugin, data through an export program, programs translated in four phases.
-   *Recommended:* yes, data route 1 first, then programs phases 1 and 2.
-2. **Script, steps, or both.** *Recommended:* both, from one parse. The app runs steps and attaches the script and
-   the report to the project.
-3. **Replay without the plugin.** A project that read a bundle needs the plugin to replay. *Recommended:* accept
-   this, as with PSETS, and add *Save the data as Parquet* to the import, which cuts the dependency for those who
-   want that.
-4. **Core helpers made public** (extension API 1.9, additive): the statement splitter with offsets, the
-   expression parser and `Diagnostic`. *Recommended:* yes. The alternative is copying the parser into the plugin,
-   which would then drift from core.
-5. **Two small core additions:** a recorded call for an empty dated Dataset (`wfcreate`), and assignment within a
-   sample (`with_series(..., within=sample)` or similar). *Recommended:* yes. Without them, phase 1 leaves out
-   many common lines. The alternative is plugin-only helpers, which would make generated scripts depend on the
-   plugin.
-6. **The metadata format.** JSON written by EViews, as specified, or a TSV of attributes that the plugin turns
-   into JSON. *Recommended:* JSON, with the TSV as a fallback if the EViews check (decision 7) shows escaping
-   cannot be made reliable.
-7. **Who checks the export program in EViews before each release,** and on which versions. *Recommended:* the two
-   most recent major versions, by a named maintainer with a licence.
-8. **Route 2's dependency.** `pywin32` only, or EViews's own Python package for COM. *Recommended:* `pywin32`, a
-   thin layer, until the other package's licence and maintenance are checked.
+Decided 24 November 2026.
+
+1. **The plan:** yes. Order of work: the core additions (4 and 5), then the bundle reader with hand-made fixtures,
+   then programs phases 1 and 2. Programs are the main deliverable, since they need no EViews to build or test.
+2. **Script and steps:** both, from one parse. The app runs steps and attaches the script and the report to the
+   project.
+3. **Replay needs the plugin:** accepted, as with PSETS, with *Save the data as Parquet* on the import to cut the
+   dependency.
+4. **Core helpers public** (extension API 1.9, additive): yes.
+5. **Two core additions** (an empty dated Dataset; assignment within a sample): yes.
+6. **Metadata format:** JSON, with the TSV of attributes as the fallback.
+7. **The EViews check:** the project has no EViews licence. The export program ships marked *experimental*, tested
+   only against the hand-made fixtures and the schema, and the import says so. A workfile saved from EViews as CSV
+   or Excel is the supported way in until someone with a licence has run the program on the two most recent major
+   versions; then the label comes off.
+8. **Route 2 (COM):** deferred. It cannot be tested without EViews.
