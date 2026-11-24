@@ -1152,9 +1152,34 @@ reported at its line. Scenarios, overrides (from the alias series, `x_1`), exclu
 solution's series come back into the page as EViews names them (`cons_0`, `cons_1`). Where EViews's defaults differ
 from pymetrix's (the HAC bandwidth, the ARMA estimator, information criteria per observation, the default solver),
 the line is translated with a note saying what to check; an option that is not mapped leaves the line out, naming
-it. Loops, `if` blocks and subroutines (phase 3) are left out with that reason, and so are the objects they make;
-so are graphs, tables and the EViews functions pymetrix has no equivalent of ([known gaps](known-gaps.md)). Nothing
-is dropped silently: every line with text has a row.
+it. Graphs, tables and the EViews functions pymetrix has no equivalent of are left out with the reason ([known
+gaps](known-gaps.md)). Nothing is dropped silently: every line with text has a row.
+
+Control flow translates too (phase 3). Loops stay loops, an `if` block an `if`, and a subroutine a function, defined
+at the top of the script:
+
+```
+for %c us uk                                   for c in ["us", "uk"]:
+  equation eq_{%c}.ls y_{%c} c x_{%c}              globals()[f"eq_{c}"] = Equation(f"y_{c} ~ x_{c}", name=f"eq_{c}").fit(q)
+  if eq_{%c}.@r2 > 0.5 then                         if globals()[f"eq_{c}"].stats["r2"] > 0.5:
+    %good = %good + " " + %c                            good = good + " " + c
+  endif
+next
+call suffixed(%name, "_aerr")                  name = suffixed(name, "_aerr")
+subroutine suffixed(string %s, string %tail)   def suffixed(s, tail):
+  %s = %s + %tail                                  s = s + tail
+endsub                                             return s
+```
+
+Steps mode runs the loops, conditions and calls in Python, so the session records only flat steps, each one undoable,
+and a condition is decided by the results made before it. EViews passes arguments by reference: a parameter the
+subroutine assigns goes back to the caller's variable. A subroutine that is not `local` shares the program's names;
+a `local` one shares none. `include lib` translates `lib.prg` in line, its rows in the report under its name. The
+program's arguments are the script's parameters: `translate_program(prg, args="us 2020q1")` puts `arg0 = "us"` and
+`arg1 = "2020q1"` at its top, and `t.run(session, args=...)` runs it with others. What the program uses but does not
+make (a model an add-in reads, the series a database fills) is given with `objects={"stdver": model}`: the script
+expects it under that name, and steps mode puts it in the session. A `while` loop in steps mode stops after 10,000
+passes (`run(while_cap=...)`).
 
 ## Reports
 

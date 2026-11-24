@@ -3893,6 +3893,58 @@ only the draws by the arrays (two implementations to keep in step, and no `exog`
   and their environments for one test's default bandwidth, and a user's own arch would still decide. Instead the
   test's details record arch's version beside the bandwidth, and known-gaps says what changes.
 
+### EViews programs, phase 3: control flow (24 November 2026)
+
+The phase 3 table of [design/eviews-plugin.md](design/eviews-plugin.md), in `program/control.py` (the blocks, the
+program's values, the walker), `program/script.py` (the script) and `program/steps.py` (steps mode) of
+`packages/pymetrix-eviews`.
+
+- **A block is translated once, as its text is.** The program is read into blocks (`for`, `while`, `if`,
+  `subroutine`, `include`), and each body is translated once by the phase 1 and 2 translator, in order. Whatever a
+  body may assign (worked out from its text, through the subroutines it calls) is a value known only when the
+  program runs, before and after the block: later lines use it by name, never a value guessed before. Unrolling a
+  loop was rejected: the script must keep the loop, and a loop's bounds are often known only when it runs.
+- **Names made as the program runs.** `{%s}` with a value known before the program runs is put in, as in phase 1;
+  otherwise the translator puts a placeholder in the text, translates the line as usual, and turns the placeholder
+  into a `Text` wherever a name goes: an f-string in the script (`**{f"y_{s}": f"log(x_{s})"}`) and the name made
+  when the step runs. An object so named is `globals()[f"eq_{c}"]` in the script, the plainest Python for a name
+  made at run time. After such a name, which series a page has is no longer checked.
+- **Subroutines are functions, defined first; arguments go back by return.** EViews finds a program's subroutines
+  before it runs, so the script defines them at its top. EViews passes arguments by reference: a parameter the body
+  assigns is returned and the call gives it back to the caller's variable (`end = dateshift(start, end, 23)`), which
+  reads as Python and keeps the by-reference effect; an argument that is not a variable takes nothing back, as in
+  EViews. A subroutine that is not `local` declares the program's names it assigns `global`. A body is translated at
+  its first call, on the page selected then (pages are followed as the text runs); one nothing calls, after the
+  program. A `local` subroutine's data and estimation lines are left out: EViews deletes what it makes, and a
+  function that rebinds a page's variable locally would do something else.
+- **The sample inside a block is the page's when the line runs.** An assignment inside a block or a subroutine is
+  `with_series(..., within=data.sample)` (a `Py` value in the IR, worked out when the step runs), since which `smpl`
+  came last depends on the passes and branches; outside blocks, the explicit `Sample(...)` of phases 1 and 2 stays.
+- **The program's values are read by their own reader.** Conditions, bounds and string and number assignments with
+  the programming language's functions are read by a small recursive-descent reader into Python (`and`, `or`,
+  comparisons of strings, `+` joining strings, `@word`, `@wfind`, a group's `@count`, an equation's `@r2`...), not
+  by the core expression parser, which is for series. A value whose inputs are all known before the program runs is
+  worked out (so `{%x}` after `%x = @lower("A")` is put in); one that reads the data or a result is not.
+- **Steps mode interprets; the History stays flat.** `run_steps` walks the ops tree: loops and conditions in Python,
+  each statement a recorded call through `session.run` or the runner given (`run=`, the app's `AppInterface.run`),
+  so each step can be undone and none is a typed loop (design note on commands, decision 4). `stop` ends the run;
+  `while` stops with an error after `while_cap` passes. The script and the steps run the same Python for every
+  condition and value, and the tests require equal objects.
+- **What the program does not make is given.** `objects=` registers a model (solved by the model lines, `makegroup`
+  of its variables) or a page; the script expects them by name and steps mode puts them in the session. The
+  program's arguments are run-time values with defaults at the script's top (`arg0 = "us"`), so they are the
+  script's parameters, not values baked in.
+- **FRB/US example1 compared.** With the library included, the model given (`read_eviews_xml`) and LONGBASE opened
+  in place of the page the database fills, and `call dateshift` (EViews's date numbers, not translated) replaced by
+  its date, the translated program's funds-rate shock equals the simulation written by hand with
+  `tests/test_frbus_example.py`'s means to the last bit (1e-8 required), in the script and in the steps. The other
+  examples need the MCE library (names with `$`, matrices), EViews's date numbers and the add-in's options, which are
+  left out with their reasons.
+- **Errors mean the program is wrong, not that the translator is short.** Subroutine bodies that phases 1 and 2 left
+  out now meet syntax the translator does not take (`$` in names, `g(i)`, doubled quotes): each is left out with its
+  reason, so the FRB/US counts still have 0 errors. A line the translator fails on is an error row naming the
+  exception, not a lost translation.
+
 ### EViews programs, phase 2: estimation, tests and models (24 November 2026)
 
 The phase 2 table of [design/eviews-plugin.md](design/eviews-plugin.md), in `program/estimation.py` and
@@ -3932,7 +3984,7 @@ The phase 2 table of [design/eviews-plugin.md](design/eviews-plugin.md), in `pro
 - **The FRB/US results are not reachable yet.** Their models come from the `read_xml_model` add-in and the library's
   subroutines (phase 3), and their data from the Fed's database (`dbopen`, `fetch`), so their solves are left out,
   saying the model is made by a line not translated; the 1e-8 comparison with `tests/test_frbus_example.py` waits
-  for phase 3 and a bundle of LONGBASE. Brillet's printed estimates need his data, which are not available.
+  for phase 3 and a bundle of LONGBASE (done in phase 3, above). Brillet's printed estimates need his data, which are not available.
 - **No app entry yet.** It needs the translation panel of section 3 (the report beside the program, Run as steps
   through `AppInterface`), not just a dialog: unchanged from phase 1.
 

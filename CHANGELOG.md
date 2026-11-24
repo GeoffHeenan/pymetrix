@@ -79,6 +79,35 @@
   `testadd` and the extreme-value link (`d=x`) are gaps. Checked against NumPy least squares, two-stage least
   squares, a Newton logit, the Wald and White formulas, an ADF regression, a model's response worked out by hand
   and the bundle fixture's EViews estimates; the script and the steps give equal objects.
+- **EViews programs translated, phase 3: control flow** (`pymetrix-eviews`, the phase 3 table of
+  `docs/design/eviews-plugin.md`). Loops stay loops in the script: `for !i = 1 to n step k` (`for i in range(1, n +
+  1, k):`, a negative step too), `for %s a b {%names}` (`for s in [...]`), `while ... wend`; `if ... else ... endif`;
+  `exitloop` (`break`), `return`, `stop` (`raise SystemExit`). Subroutines are functions defined first, with
+  `string` and `scalar` parameters; EViews passes arguments by reference, so a parameter the subroutine assigns is
+  returned to the caller's variable (`simend = dateshift(simstart, simend, 23)`); one that is not `local` shares the
+  program's names (`global`), a `local` one shares none (its data and estimation lines are left out: EViews deletes
+  what it makes). `include` translates the included program in line, its rows in the report under its name
+  (`report.line(3, file="lib.prg")`, `report.files()`); a subroutine's body is translated at its first `call`. Names
+  made from the program's variables (`series y_{%s} = log(x_{%s})`, `equation eq_{%c}.ls ...`) are f-strings in the
+  script (`**{f"y_{s}": f"log(x_{s})"}`, `globals()[f"eq_{c}"]`) and plain names in the steps. The program's
+  values: conditions and bounds with `and`, `or`, `not`, string comparison and `+`, `@word`, `@wcount`, `@wfind`,
+  `@wlookup` (the page's series), `@isobject`, `@lower`, `@upper`, `@replace`, `@trim`, `@left`, `@right`, `@mid`,
+  `@instr`, `@len`, `@str`, `@val`, the sample's statistics and `@obssmpl` (worked out from the data when the line
+  runs), a group's `@count`, `@seriesname(i)` and `@members`, an equation's `@r2` and the other phase 2 members, so
+  `if eq.@r2 > 0.5` is decided by the equation just estimated. `makegroup` of a model's `@endog`/`@exog`. The
+  program's arguments (`%0`, `%1`) are the script's parameters (`arg0 = "us"` at its top; `translate_program(...,
+  args="us 2020q1")`, `run(args=...)`). `objects=` gives what the program uses but does not make (a model an add-in
+  reads, a page a database fills). Steps mode runs the control flow in Python and records only the steps, flat, each
+  undoable; a `while` loop stops after `while_cap` passes (10,000; `run(while_cap=...)`); `run(run=...)` runs each
+  step through another runner (the app's). Inside a block the sample is the one the page has when the line runs
+  (`within=data.sample`). Left out with the reason: EViews's date numbers (`@dateval`, `@dateadd`, `@datestr`),
+  object parameters of subroutines (`series s`), names with `$`, a group's i-th series `g(i)`, `{!i+1}`, pages and
+  models made inside a block. Checked on programs written for the tests with every value worked out by hand
+  (loops with steps, while, exitloop, if on strings and on an estimate's R-squared against NumPy, subroutines by
+  reference, local and returning early, include, arguments, stop), the script and the steps giving equal objects;
+  and on the Fed's example1.prg with its library, the model and LONGBASE given as `tests/test_frbus_example.py` does:
+  the funds-rate shock's responses equal to the hand-written simulation to the last bit (1e-8 required), both ways.
+  The FRB/US and Brillet counts are updated, errors still 0.
 - **Assigning a series within a sample** (EViews' `smpl 2000q1 2010q4` then `y = ...`). `data.with_series(y="...",
   within=Sample(...))` assigns only the rows the sample selects and keeps the others' values; a new series is missing
   outside it. `within` takes a `Sample` (periods, a panel's entities, `where=` conditions, windows per entity), a

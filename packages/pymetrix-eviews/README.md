@@ -151,11 +151,32 @@ Phase 2, estimation, tests and models:
 An option that is not mapped leaves the line out, naming it; where EViews's defaults differ from pymetrix's, the line
 is translated with a note saying what to check.
 
-Left out, each with its reason and pymetrix's way where there is one: loops, `if` blocks, subroutines and `include`
-(phase 3) and the objects they make, `stepls`, `breakls`, `threshold`, `switchreg`, `glm` and `nls`, `testadd` and the
-extreme-value link (gaps), graphs, tables, spools and display, databases, add-ins, and expression functions pymetrix
-has no equivalent of (`@year`, `@round`, `@nan`, `@iif`, `nrnd`... ; pymetrix's known gaps lists them). Translating
-in the app is later work.
+Phase 3, control flow (loops stay loops in the script; steps mode runs them in Python and records flat steps):
+
+| EViews | pymetrix |
+| --- | --- |
+| `for !i = 1 to n step k ... next` | `for i in range(1, n + 1, k):` |
+| `for %s a b c ... next`, `for %s {%names}` | `for s in ["a", "b", "c"]:`, `for s in names.split():` |
+| `while !x < 100 ... wend` | `while x < 100:`; steps mode stops after `while_cap` passes (10,000) |
+| `if %s = "a" and eq.@r2 > 0.5 then ... else ... endif` | `if s == "a" and eq.stats["r2"] > 0.5:`, decided as the program runs |
+| `exitloop`, `return`, `stop` | `break`, `return`, `raise SystemExit` |
+| `subroutine f(string %a, scalar !b) ... endsub`, `call f(%x, 2)` | `def f(a, b): ...` at the top of the script; `x = f(x, 2)` when `f` assigns `%a` (arguments by reference) |
+| `subroutine local f(...)` | a function that shares none of the program's names |
+| `include lib` | `lib.prg` translated in line, its rows under its name |
+| `series y_{%s} = log(x_{%s})`, `equation eq_{%c}.ls ...` | `with_series(**{f"y_{s}": f"log(x_{s})"})`, `globals()[f"eq_{c}"] = ...` |
+| `%0`, `%1` | `arg0`, `arg1`: the script's parameters (`translate_program(..., args="us 2020q1")`) |
+| `@word`, `@wcount`, `@wfind`, `@wlookup`, `@isobject`, `@lower`, `@replace`, `@mid`..., `g.@count`, `g.@seriesname(i)`, `@sum(x)`, `@obssmpl` | `s.split()[i - 1]`, `len(s.split())`, `" ".join(q.series("x*").names)`, `"x" in q.names`, `len(g.names)`... |
+| `m.makegroup(a,n) g @endog` | `g = q.series(*m_model.endogenous)` |
+
+What a program uses but does not make (in EViews an add-in or a database makes it) is given with `objects=`: the
+FRB/US programs' model, read by `read_eviews_xml`, as `objects={"stdver": model}`; the script expects it under that
+name and steps mode puts it in the session.
+
+Left out, each with its reason and pymetrix's way where there is one: `stepls`, `breakls`, `threshold`, `switchreg`,
+`glm` and `nls`, `testadd` and the extreme-value link (gaps), graphs, tables, spools and display, databases, add-ins,
+EViews's date numbers (`@dateval`, `@dateadd`), object parameters of subroutines, names with `$`, and expression
+functions pymetrix has no equivalent of (`@year`, `@round`, `@nan`, `@iif`, `nrnd`... ; pymetrix's known gaps lists
+them).
 
 ## Installing
 
@@ -176,5 +197,8 @@ them. The tests check every value and metadata field read, the refusals and thei
 
 `tests/fixtures/programs/` holds EViews programs written for the tests; `test_program.py` checks every value they
 make against values worked out by hand, and that the script and the steps give equal objects.
-`test_program_validation.py` translates Brillet's and the FRB/US programs (`PYMETRIX_BRILLET`, `PYMETRIX_FRBUS`;
-skipped without them) and fixes the count of each status.
+`test_program_control.py` does the same for loops, `if` blocks, subroutines, included programs and the program's
+arguments. `test_program_validation.py` translates Brillet's and the FRB/US programs (`PYMETRIX_BRILLET`,
+`PYMETRIX_FRBUS`; skipped without them) and fixes the count of each status; with the FRB/US data package too
+(`PYMETRIX_FRBUS_DATA`), it runs example1.prg, given the model and LONGBASE, against the same simulation written by
+hand.

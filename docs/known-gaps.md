@@ -205,10 +205,21 @@ blocking you, say so: that is how priorities get set.
   script, not the project). It refits only least-squares equations without options against EViews's estimates.
   Running EViews through COM is not built yet. Nor are IRIS databanks saved as .mat files; one saved as CSV loads
   once the rows of classes and units under the names are left out (`skiprows=[1, 2]`), which Load data cannot do.
-- **EViews programs are translated for data work, estimation, tests and models (phases 1 and 2)** by
-  `pymetrix-eviews` (`translate_program`). Left out, each line with its reason in the report: loops, `if` blocks,
-  subroutines and `include`, the lines inside them, lines that need a value only they give, and the objects they
-  make (a model an add-in or a subroutine builds, as in the FRB/US programs) (phase 3); graphs, tables, spools,
+- **EViews programs are translated for data work, estimation, tests, models and control flow (phases 1 to 3)** by
+  `pymetrix-eviews` (`translate_program`). Left out, each line with its reason in the report: in control flow,
+  EViews's date numbers (`@dateval`, `@dateadd`, `@datestr`: write the dates, or pass them as the program's
+  arguments), subroutine parameters that are objects (`series s`, `group g`: string and scalar ones are translated),
+  a `local` subroutine's data and estimation lines, names with `$` in them (`_$_x`, as the FRB/US MCE library uses),
+  a group's i-th series in an expression (`g(i)`), names made from an expression in braces (`{!i+1}`), pages and
+  models made or changed inside a loop, an `if` block or a subroutine, `for` over several string variables at once,
+  `@log`/`@exp` of a value known only as the program runs, `@wlookup` of other object types than series, `@equaloption`
+  and the other program functions not listed in the guide; a subroutine's body is translated once, at its first
+  `call`, on the page selected then; after a name made as the program runs, which series a page has is no longer
+  checked; a number in a made name is written as Python writes it (`2.0` for a division's result, where EViews
+  writes `2`); a `while` loop in steps mode stops after `while_cap` passes; dates known only when the program runs
+  are passed to `Sample` as written (quarterly and annual EViews dates read, monthly ones do not); objects the
+  program uses but does not make (a model an add-in reads, a database's series) are given with `objects=` and the
+  bundle; graphs, tables, spools,
   display and settings, EViews databases (`fetch`, `store`, `dbopen`), add-ins and user commands, external
   programs. Within data work: `read` and `import` (use `Dataset.read`), `copy` between pages (`to_freq`), page
   operations (`pagestruct`, `pagedelete`...), alpha series, weekly, daily, undated and semi-annual new pages,
