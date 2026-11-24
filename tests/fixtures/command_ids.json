@@ -87,7 +87,7 @@
   "pymetrix:fit_kernel_density": 1,
   "pymetrix:fit_kernel_regression": 1,
   "pymetrix:fit_vecm": 1,
-  "pymetrix:fit_cointegrating_regression": 1,
+  "pymetrix:fit_cointegrating_regression": 2,
   "pymetrix:forecast": 1,
   "pymetrix:forecast_model": 2,
   "pymetrix:freeze_series": 1,
