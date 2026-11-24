@@ -1,14 +1,16 @@
 # Known gaps
 
-pymetrix is at version 0.1.0a19, a development build. This page lists what is missing or rough, so nobody has to
+pymetrix is at version 0.1.0a20, a development build. This page lists what is missing or rough, so nobody has to
 discover it the hard way. The [design document](design.md) has a "Not yet" list for each area;
 this page collects the ones that matter most to a first-time user. If something here is
 blocking you, say so: that is how priorities get set.
 
 ## Project and release
 
-- **Not on PyPI yet.** A development build: a wheel on the GitHub release, no PyPI
-  package and no installer yet; see [installing pymetrix](install.md). A one-step installer for
+- **A development build, pre-release on PyPI.** pymetrix 0.1.0a20 is on PyPI (`pip install --pre pymetrix`), and so
+  are the plugins pymetrix-seasonal, pymetrix-finance, pymetrix-guide, pymetrix-labbook and pymetrix-assistant
+  (0.1.0a1, `pip install --pre pymetrix-seasonal`, say); pymetrix-psets and pymetrix-eviews are installed from the
+  repository. Alpha versions: APIs may still change. No installer yet; see [installing pymetrix](install.md). A one-step installer for
   locked-down Windows machines is not started; `pymetrix-gui --shortcut` makes a desktop shortcut once installed.
 - **One developer so far.** Most code was written quickly, with AI assistance, and checked
   against other implementations (see [validation](validation.md)). It has not yet been reviewed

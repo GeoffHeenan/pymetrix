@@ -1,7 +1,9 @@
 # Installing pymetrix
 
 pymetrix needs Python 3.11 or later (3.13 is the main test platform) on Windows, macOS or Linux. It
-is not on PyPI yet: the development builds are attached to releases of the GitHub repository.
+is on PyPI as a pre-release (0.1.0a20: `pip install --pre pymetrix`, or `"pymetrix[all]"`), and the same builds are
+attached to releases of the GitHub repository. The plugins pymetrix-seasonal, pymetrix-finance, pymetrix-guide,
+pymetrix-labbook and pymetrix-assistant are on PyPI too (0.1.0a1, `pip install --pre pymetrix-finance`, say).
 Install into a virtual environment of its own, so nothing else on your machine changes.
 
 ## System requirements
@@ -40,17 +42,23 @@ source pymetrix-env/bin/activate
 
 ## 2. pymetrix
 
-**From the release's wheel.** Download `pymetrix-0.1.0a19-py3-none-any.whl` from the release page,
+**From PyPI** (a pre-release, so `--pre`):
+
+```bash
+python -m pip install --pre "pymetrix[all]"
+```
+
+**Or from the release's wheel.** Download `pymetrix-0.1.0a20-py3-none-any.whl` from the release page,
 then, in the folder where it is:
 
 ```bash
-python -m pip install "pymetrix-0.1.0a19-py3-none-any.whl[all]"
+python -m pip install "pymetrix-0.1.0a20-py3-none-any.whl[all]"
 ```
 
 **Or straight from the repository**, if you have access to it (git must be installed):
 
 ```bash
-python -m pip install "pymetrix[all] @ git+https://github.com/GeoffHeenan/pymetrix@v0.1.0a19"
+python -m pip install "pymetrix[all] @ git+https://github.com/GeoffHeenan/pymetrix@v0.1.0a20"
 ```
 
 `[all]` adds the desktop app (PySide6), linearmodels, arch, scikit-learn, Jupyter forms and the report

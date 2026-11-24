@@ -4,9 +4,10 @@ Draft roadmap for discussion, October 2026.
 
 This roadmap is founder-led until the project has active maintainers beyond the project lead. It is intended to make early review more concrete, not to lock the project into a fixed public plan.
 
-> **Where things stand (13 November 2026): Stage 0 done; the repository is public and open source
-> (BSD-3-Clause); the November development build (0.1.0a19) is ready for the first demos, which have not happened
-> yet.** The three demos, built from a wheel into a
+> **Where things stand (24 November 2026): Stage 0 done; the repository is public and open source
+> (BSD-3-Clause); the November development build, 0.1.0a20, is on PyPI as a pre-release (`pip install --pre
+> pymetrix`, with five first-party plugins at 0.1.0a1) and ready for the first demos, which have not happened yet;
+> the EViews plugin (`pymetrix-eviews`: workfiles through a bundle, programs translated) is in progress.** The three demos, built from a wheel into a
 > clean environment, run end to end as notebooks and in the app. The demo path, governance and contribution drafts,
 > the validation page, the CI smoke test, the one-page pitch, the review brief and a note on
 > what is new since 0.1.0a8 exist, and the modelling side is checked against Dynare
