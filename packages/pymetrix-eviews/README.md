@@ -6,8 +6,8 @@ with its series' labels, units and sources, and the page's groups, samples, scal
 equations (with EViews's own estimates) and models. The binary `.wf1` file is not read: its format is not
 published, and a misread column of numbers looks like data.
 
-Translating EViews **programs** (`.prg`) into pymetrix scripts, and running EViews for you through COM, are later
-work (see pymetrix's `docs/design/eviews-plugin.md`).
+It also translates EViews **programs** (`.prg`), for data work so far (phase 1; see "Programs" below). Running
+EViews for you through COM is later work (see pymetrix's `docs/design/eviews-plugin.md`).
 
 ## The export program is experimental
 
@@ -95,6 +95,45 @@ macro-export/
 The manifest's JSON Schema is `src/pymetrix_eviews/bundle-1.schema.json` (`bundle_schema()`); pymetrix's
 `docs/design/eviews-plugin.md` describes each key.
 
+## Programs
+
+`translate_program` turns an EViews program into a readable pymetrix script, a report with a row for every line,
+and the same work as recorded steps:
+
+```python
+from pymetrix_eviews import translate_program
+
+t = translate_program("C:/work/macro.prg", bundle="C:/work/macro-export/macro.evbundle")
+print(t.script)          # each EViews line as a comment, above what it became
+t.report.summary()       # line, status (translated, translated with a note, left out, error), EViews, Python, reason
+out = t.run(session)     # steps mode: each data statement a recorded step; scalars, strings, matrices returned
+```
+
+`bundle` is what the program's `wfopen` opens: the bundle, or a CSV or Excel file saved from the workfile in EViews
+(with `read_options={"time": "obs", "freq": "Q"}`, `Dataset.read`'s options). A program that starts with `wfcreate`
+needs neither. `run` keeps the script and the report in the project (`session.attachments["pymetrix-eviews"]`).
+
+This is phase 1, data work:
+
+| EViews | pymetrix |
+| --- | --- |
+| `wfopen`, `wfcreate`, `pagecreate`, `pageselect` | `Dataset.read(...)`, `Dataset.empty("Q", "1990Q1", "2030Q4")`, a variable per page |
+| `smpl 1990q1 @last`, `smpl @first+4 2000q4 if x > 0`, `sample s ...`, `smpl s` | `data.with_sample(Sample(...))`, a `Sample` variable |
+| `series y = ...`, `genr`, `y = ...` | `data.with_series(y="...", within=Sample(...))` under a sample; period by period when the formula uses `y` |
+| `series y`, `y = na` | `data.with_series(y=None)` |
+| `frml y = ...` | `data.derive(y="...")` |
+| `group g a b`, `g.add c` | `g = data.series("a", "b")` |
+| `x.label(d)`, `x.label(u)`, `x.label(s)`, `x.displayname`, `x.setattr(units)` | `data.with_info("x", ...)` |
+| `rename a b`, `delete a b`, `x.fill(o=2000q1) 1, 2` | `data.rename(a="b")`, `data.drop("a", "b")`, `data.edit({...})` |
+| `scalar s = 0.3`, `!i = 2`, `%s = "a"`, `string s = "a"` | Python variables; `{%s}` and `{!i}` put in where known before the program runs |
+| `scalar m = @mean(x)` (also `@sum`, `@min`, `@max`, `@stdev`, `@median`, `@obs`) | `float(data.eval("x")[data.sample_mask()].mean())` |
+| `vector(3) v`, `matrix(2,2) m`, `m.fill 1, 2, 3, 4` | `Matrix.zeros(3, 1)`, `Matrix([[1, 3], [2, 4]])` (by column, as EViews) |
+
+Left out, each with its reason and pymetrix's way where there is one: estimation, tests and models (phase 2),
+loops, `if` blocks, subroutines and `include` (phase 3), graphs, tables, spools and display, databases, add-ins, and
+expression functions pymetrix has no equivalent of (`@year`, `@round`, `@nan`, `@iif`, `nrnd`... ; pymetrix's
+known gaps lists them). Translating in the app is later work.
+
 ## Installing
 
 ```bash
@@ -111,3 +150,8 @@ annual, a panel, an undated cross-section) with every case above, and malformed 
 "EViews estimates" in them were computed with NumPy's least squares on the fixture's data, and a test recomputes
 them. The tests check every value and metadata field read, the refusals and their places, the dialog against the
 `Dataset.read` calls it stands for, and that the scripts replay.
+
+`tests/fixtures/programs/` holds EViews programs written for the tests; `test_program.py` checks every value they
+make against values worked out by hand, and that the script and the steps give equal objects.
+`test_program_validation.py` translates Brillet's and the FRB/US programs (`PYMETRIX_BRILLET`, `PYMETRIX_FRBUS`;
+skipped without them) and fixes the count of each status.

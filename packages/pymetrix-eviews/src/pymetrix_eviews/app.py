@@ -147,7 +147,45 @@ def _help() -> None:
         format version (update pymetrix-eviews), a CSV without a column the manifest lists, and pages of a frequency
         pandas has no period for (semi-annual, multi-year, intraday): those read as undated. Value maps are kept in
         each series' metadata (Variable.extra) but are not labels of its values: pymetrix has no value labels yet.
-        """)
+
+        EViews programs (.prg) are translated in code, with translate_program: see the topic on EViews programs.
+        """, see_also=("eviews-programs",))
+    add_help_topic("eviews-programs", "EViews programs (the pymetrix-eviews plugin)", """
+        translate_program turns an EViews program (.prg) into three things, from one reading of it:
+
+            from pymetrix_eviews import translate_program
+            t = translate_program("macro.prg", bundle="macro-export/macro.evbundle")
+            print(t.script)        # Python, each EViews line as a comment above what it became
+            t.report.summary()     # a row per line, with its status and the reason
+            t.run(session)         # the same work as steps, recorded in the session's History
+
+        The script uses pymetrix's public API only, and reads like the program. Running it, or running the steps,
+        gives the same datasets and values. The steps are recorded as if made in dialogs; the script and the
+        report are kept in the project.
+
+        **What the statuses mean.** Translated: the line became the Python shown. Translated with a note: it did,
+        and the note says something to know (a name changed, a value put in, a formula worked out period by
+        period). Left out: the line is not translated, and the reason says why and what to use in pymetrix.
+        Error: the line does not read, or names something the program has not made. Every line with text has a
+        row: nothing is dropped silently.
+
+        **What is translated (phase 1, data work).** wfopen (of the bundle the export program wrote, or of a CSV
+        or Excel file saved from the workfile, given as bundle=), wfcreate and pagecreate, pageselect; smpl and
+        sample, with dates, @first and @last, offsets, if conditions and named samples; series, genr and plain
+        assignments, within the current sample; frml as a derived series; group; label, displayname and setattr;
+        rename, delete and fill; scalars, !numbers and %strings as Python variables, with {%s} and {!i} put in where
+        their value is known before the program runs; @mean, @sum, @min, @max, @stdev, @median and @obs as a
+        scalar's value over the sample; vectors and matrices.
+
+        **What is left out, for now.** Estimation, tests, forecasts and models (phase 2); loops, if blocks,
+        subroutines and include (phase 3), with the lines inside them; graphs, tables, spools and display; EViews
+        databases (fetch and store); add-ins; and the expression functions pymetrix has no equivalent of, such as
+        @year, @round, @nan, @iif and nrnd (docs/known-gaps.md in pymetrix lists them).
+
+        A program's wfopen needs the workfile's data: export it with the export program (experimental), or save it
+        from EViews as CSV or Excel and pass that file, with read_options={"time": "obs", "freq": "Q"} for
+        Dataset.read.
+        """, see_also=("eviews-import",))
 
 
 with plugin_context(PLUGIN):

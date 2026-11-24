@@ -20,8 +20,15 @@ EViews: the project has no EViews licence. Until someone with one has run it on 
 saving the workfile from EViews as CSV or Excel, which pymetrix reads with File → Load data…, is the supported way
 in. The reader is tested against bundles written by hand to the format, and the manifest's JSON Schema.
 
-In the app: **File → Import EViews workfile…** (a workfile bundle, or a copy of the export program). Translating EViews
-programs (``.prg``) and running EViews through COM are later work.
+EViews programs (``.prg``) are translated into a readable script, a report with a row per line, and the same work as
+recorded steps; this is phase 1, data work (estimation, control flow and the rest are left out with the reason):
+
+    from pymetrix_eviews import translate_program
+    t = translate_program("C:/work/macro.prg", bundle="C:/work/macro-export/macro.evbundle")
+    print(t.script); t.report.summary(); t.run(session)
+
+In the app: **File → Import EViews workfile…** (a workfile bundle, or a copy of the export program). Translating
+programs in the app and running EViews through COM are later work.
 """
 
 from __future__ import annotations
@@ -43,6 +50,8 @@ from .bundle import (  # noqa: E402
     FORMAT, FORMAT_VERSIONS, PROGRAM_VERSION, SUFFIX, EViewsBundleNote, bundle_model, bundle_pages, bundle_schema,
     compare_estimates, eviews_objects, eviews_sample, export_program, read_bundle, save_export_program,
 )
+
+from .program import ProgramTranslation, ReportRow, TranslationReport, translate_program  # noqa: E402
 
 _registered = False
 
@@ -69,4 +78,4 @@ register()
 
 __all__ = ["FORMAT", "FORMAT_VERSIONS", "PLUGIN", "PROGRAM_VERSION", "SUFFIX", "EViewsBundleNote", "__version__", "bundle_model",
            "bundle_pages", "bundle_schema", "compare_estimates", "eviews_objects", "eviews_sample", "export_program",
-           "read_bundle", "register", "save_export_program"]
+           "read_bundle", "register", "save_export_program", "ProgramTranslation", "ReportRow", "TranslationReport", "translate_program"]
