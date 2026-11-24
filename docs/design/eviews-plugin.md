@@ -1,8 +1,8 @@
 # EViews work into pymetrix: the `pymetrix-eviews` plugin
 
-Design note, 5 November 2026, decided 24 November 2026 (see "Decisions") · nothing here is built yet · builds on the core EViews reader
+Design note, 5 November 2026, decided 24 November 2026 (see "Decisions") · the core additions (decisions 4 and 5) are built; the plugin is not · builds on the core EViews reader
 (`src/pymetrix/models/eviews.py`), the writers (`src/pymetrix/models/writers.py`) and the extension API
-([plugins.md](plugins.md), `pymetrix.plugins.API` 1.8)
+([plugins.md](plugins.md), `pymetrix.plugins.API` 1.10)
 
 ## The question
 
@@ -218,7 +218,7 @@ changes which variable later lines use.
 | EViews | pymetrix | Status |
 | --- | --- | --- |
 | `wfopen macro.wf1` | `Dataset.read(path, ...)` for the bundle, or the CSV or Excel file saved from EViews, given to the translator | translated; without either, an error saying how to make one |
-| `wfcreate q 1990q1 2030q4`, `pagecreate` | a new, empty dated Dataset | **gap:** there is no recorded call for an empty Dataset of a frequency and range. Proposed for core (decision 5) |
+| `wfcreate q 1990q1 2030q4`, `pagecreate` | `Dataset.empty("Q", "1990Q1", "2030Q4")` (File → New dataset) | translated (built in core, decision 5) |
 | `pageselect p` | later lines use the Dataset `p` | translated (no step) |
 | `wfsave`, `wfclose`, `pagesave` | the project is saved by the user | left out: "save the project (File → Save)" |
 | `read`, `import` of a CSV or Excel file | `Dataset.read(path, ...)` | translated when the options map; otherwise left out, naming `Dataset.read` |
@@ -226,9 +226,9 @@ changes which variable later lines use.
 | `smpl 1990q1 2007q4`, `smpl @all`, `smpl @first 2000q4` | `data = data.with_sample(Sample(...))` (Set sample) | translated |
 | `smpl if x > 0`, `sample s ...`, `smpl s` | `Sample(where="x > 0")`, a named `Sample` | translated |
 | `series y = <expr>`, `genr y = <expr>`, bare `y = <expr>` under `smpl @all` | `data = data.with_series(y="<expr>")` (Generate series), the expression through `convert_expression` | translated |
-| the same under a smaller sample | none | **gap:** EViews assigns only inside the sample and keeps the other values; `with_series` assigns every period. Left out until core has an assignment within a sample (decision 5) |
+| the same under a smaller sample | `data.with_series(y="<expr>", within=Sample(...))` (Generate series → Within): only the sample's rows, the others kept; a formula using its own series period by period, as EViews | translated (built in core, decision 5) |
 | `frml y = <expr>` | `data.derive(y="<expr>")` (a derived series, *Keep updated*) | translated |
-| `series y` (declared, all NA) | none: pymetrix's expressions have no missing-value literal | **gap**, with the empty Dataset (decision 5) |
+| `series y` (declared, all NA); `y = na` | `data.with_series(y=None)`, with `within=` under a sample | translated (built in core); `na` inside a larger expression: **gap** |
 | `group g a b c`, `g.add d` | `g = data.series("a", "b", "c")`: a `Selection` | translated |
 | `x.label`, `x.displayname`, `x.setattr(units)` *(verify the forms)* | `data.with_info("x", label=..., units=...)` | translated |
 | `rename`, `delete` of series | `data.rename(...)`, `data.drop(...)` | translated |
@@ -311,7 +311,7 @@ These are listed, each with a reason and the pymetrix equivalent where there is 
 
 ## 3. In the app
 
-The plugin follows the extension API (1.8) and the existing first-party plugins.
+The plugin follows the extension API (1.10) and the existing first-party plugins.
 
 - **File → Import EViews…** A dialog, `@command(menu="File/Import EViews...")`, so it lands at the end of the File
   menu. It has three choices. *Workfile bundle* takes a `.evbundle` file and the pages to read. *Program* takes a
@@ -352,8 +352,10 @@ packages/pymetrix-eviews/
 
 The plugin needs a few things from core that are now private: the statement splitter that keeps offsets
 (`_blank`, `_statements`), the expression parser behind `convert_expression`, and the `Diagnostic` type. They would
-be exposed under public names through `pymetrix.extension`, as an additive API 1.9 (decision 4). No behaviour in
-core changes.
+be exposed under public names through `pymetrix.extension`, as an additive API (decision 4). No behaviour in
+core changes. Built as API 1.10 (1.9 was already taken): `eviews_blank_comments`, `eviews_statements`,
+`parse_eviews_expression` and its node classes, `render_eviews_expression`, `EViewsExpressionError`, `Diagnostic` and
+`line_and_column` ([plugins.md](plugins.md)).
 
 ## 4. Validation
 
@@ -423,8 +425,9 @@ Phases 1 and 2 of programs depend on data route 1. Phase 3 can start after phase
   precision *(verify the option)*. A fixture test catches a CSV with too few digits.
 - **Text in EViews strings.** Labels with quotes, backslashes or non-ASCII characters can break the JSON. Keeping
   long texts in files and parsing strictly limits the damage. A TSV attributes file is the fallback (decision 6).
-- **Assigning within a sample.** It is common in EViews programs. Until core supports it, many lines will be left
-  out. This is the largest single gap (decision 5).
+- **Assigning within a sample.** It is common in EViews programs, and was the largest single gap. Core now has it
+  (`with_series(..., within=...)`, decision 5); the translator must still pass each line's sample, and keep EViews's
+  period-by-period order where a line uses its own series.
 - **Different defaults.** HAC bandwidths, information criteria per observation, and the ARMA estimator differ. A
   translated line that runs but differs is worse than one left out. Each known difference is a "translated with a
   note" reason, and the re-estimation check catches the rest.
@@ -443,7 +446,7 @@ Decided 24 November 2026.
    project.
 3. **Replay needs the plugin:** accepted, as with PSETS, with *Save the data as Parquet* on the import to cut the
    dependency.
-4. **Core helpers public** (extension API 1.9, additive): yes.
+4. **Core helpers public** (extension API 1.9, additive): yes. Built as 1.10, since 1.9 had been used meanwhile.
 5. **Two core additions** (an empty dated Dataset; assignment within a sample): yes.
 6. **Metadata format:** JSON, with the TSV of attributes as the fallback.
 7. **The EViews check:** the project has no EViews licence. The export program ships marked *experimental*, tested

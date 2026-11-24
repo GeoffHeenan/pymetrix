@@ -1064,13 +1064,16 @@
   "data": "<required>",
   "series": "<required>"
  },
- "command pymetrix:generate_series (schema 2)": {
+ "command pymetrix:generate_series (schema 3)": {
   "data": "data",
+  "end": "",
   "for_each": "",
   "formula": "<required>",
   "keep_updated": false,
   "replace": false,
-  "series": "<required>"
+  "series": "<required>",
+  "start": "",
+  "within": ""
  },
  "command pymetrix:gregory_hansen_test (schema 1)": {
   "data": "data",
@@ -1282,6 +1285,12 @@
   "shock": "<required>",
   "size": 1.0,
   "solution": "<required>"
+ },
+ "command pymetrix:new_dataset (schema 1)": {
+  "end": "",
+  "freq": "Q",
+  "name": "data",
+  "start": ""
  },
  "command pymetrix:new_sample (schema 1)": {
   "data": "data",

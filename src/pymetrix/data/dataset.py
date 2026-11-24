@@ -183,6 +183,29 @@ class Dataset:
                        replace(data.meta, vintage={"policy": "example", "name": name, "package_version": __version__}))
 
     @classmethod
+    @api("pymetrix:dataset.empty")
+    def empty(cls, freq: str, start: str, end: str) -> Dataset:
+        """A time series dataset with no series yet: every period of frequency ``freq`` (``"Y"``, ``"Q"``, ``"M"``,
+        ``"W"``, ``"D"``; ``"Y-JUN"`` for a July-June year; ``"A"`` is read as ``"Y"``) from ``start`` to ``end``, both
+        included, on a time axis named ``time`` (EViews' ``wfcreate q 1990q1 2030q4``). Add series with ``with_series``:
+        ``Dataset.empty("Q", "1990Q1", "2030Q4").with_series(t="1", y=None)``."""
+        code = str(freq).strip().upper()
+        code = "Y" + code[1:] if code[:1] == "A" else code
+        try:
+            pd.Period("2000", freq=code)
+        except (ValueError, TypeError, AttributeError):
+            raise DataError(f"{freq!r} is not a frequency: give Y, Q, M, W or D (Y-JUN for a July-June year)") from None
+        try:
+            first, last = pd.Period(str(start), freq=code), pd.Period(str(end), freq=code)
+        except (ValueError, TypeError, AttributeError):
+            raise DataError(f"{start!r} to {end!r} are not periods of frequency {code}: e.g. 1990Q1 for quarters, "
+                            "1990-01 for months, 1990 for years") from None
+        if last < first:
+            raise DataError(f"the dataset ends ({end}) before it starts ({start})")
+        periods = pd.period_range(first, last, freq=first.freq).rename("time")
+        return cls(pd.DataFrame(index=periods), (TimeAxis("time", periods.freqstr),))
+
+    @classmethod
     @api("pymetrix:dataset.read", show=lambda arguments: {"vintage"} if "://" in str(arguments.get("source", "")) else set())
     def read(cls, source: str, vintage: str = "latest", **kw: Any) -> Dataset:
         """Read a file (by its extension) or a connector's address (``fred://GDPC1``).
@@ -331,29 +354,84 @@ class Dataset:
         return out.rename(expr)
 
     @api("pymetrix:dataset.with_series")
-    def with_series(self, **exprs: str | pd.Series) -> Dataset:
-        """Add or replace series, from expressions or from aligned Series.
+    def with_series(self, *, within: Any = None, **exprs: str | pd.Series | None) -> Dataset:
+        """Add or replace series, from expressions or from aligned Series; ``None`` makes a series of missing values
+        (EViews' ``series y``).
 
         The values are fixed (like EViews' ``genr``); use ``derive`` for series that
         follow their inputs. Derived series that depend on a replaced series are
         recomputed; a derived series replaced here becomes a plain one. A replaced series keeps
         its label, description and units, but not its source, vintage, retrieval time or external
         reference: those described the old values.
+
+        ``within`` (a ``Sample``, a ``(start, end)`` span or ``"start:end"``) assigns only the rows it selects and
+        keeps the others' values, missing for a new series: EViews' ``smpl 2000q1 2010q4`` then ``y = ...``. Lags
+        still reach outside it. A formula that uses the series it assigns is then computed one period at a time,
+        each period seeing the values just assigned before it, as EViews does: ``y="y[-1]*1.02"`` grows ``y`` by 2%
+        a period through the sample. Without ``within`` every row is assigned and a formula sees the values as they
+        were before the call. A series named ``within`` is added with ``add_series``.
         """
+        mask, sample = None, None
+        if within is not None:
+            from .sample import Sample
+
+            sample = within if isinstance(within, Sample) else Sample(within)
+            mask = sample.mask(self)
+            if not mask.any():
+                raise DataError(f"the sample {sample} selects no rows of this dataset")
         frame = self.frame.copy()
         variables = dict(self.variables)
         for name, value in exprs.items():
+            old = variables.get(name)
+            kept = self._kept_values(name) if mask is not None else None
             if isinstance(value, str):
-                frame[name] = self.eval(value).to_numpy()
-                variables[name] = Variable(name, derived_from=value)
+                if mask is not None and self.time_axis is not None and self._uses(value, name):
+                    values = self._by_period(name, value, mask, kept)
+                else:
+                    values = self.eval(value).to_numpy()
+            elif value is None:
+                values = np.full(len(frame), np.nan)
             else:
-                frame[name] = self._aligned(name, value)
-                old = variables.get(name)
-                variables[name] = (replace(old, recipe=None, derived_from=None, source="", source_key="", vintage=None, release_lag=None,
-                                           retrieved="", external_ref="")
-                                   if old is not None else Variable(name))
+                values = self._aligned(name, value)  # a Series, so its dtype stays (text, nullable integers)
+            frame[name] = values if mask is None else np.where(mask, np.asarray(values, dtype=float), kept)
+            if isinstance(value, str) and (mask is None or old is None):
+                variables[name] = Variable(name, derived_from=value if mask is None else f"{value} within {sample}")
+            elif old is not None:
+                variables[name] = replace(old, recipe=None, derived_from=f"{value} within {sample}" if isinstance(value, str) else None,
+                                          source="", source_key="", vintage=None, release_lag=None, retrieved="", external_ref="")
+            else:
+                variables[name] = Variable(name)
         out = Dataset(frame, self.axes, variables, self.flags, self.meta)
         return out._recompute(set(exprs))
+
+    def _kept_values(self, name: str) -> np.ndarray:
+        """A series' values as numbers, for the rows an assignment within a sample keeps (missing for a new one)."""
+        if name not in self.frame.columns:
+            return np.full(len(self.frame), np.nan)
+        try:
+            return self.frame[name].to_numpy(dtype=float, na_value=np.nan)
+        except (TypeError, ValueError):
+            raise DataError(f"{name} is not numeric, so it cannot be assigned within a sample") from None
+
+    @staticmethod
+    def _uses(expr: str, name: str) -> bool:
+        from ..expr.nodes import Name
+
+        return any(isinstance(n, Name) and n.id == name for n in parse_expression(expr).walk())
+
+    def _by_period(self, name: str, expr: str, mask: np.ndarray, start: np.ndarray) -> np.ndarray:
+        """``expr`` for series ``name``, which it uses, one period of ``mask`` at a time, in order: each period sees
+        the values assigned before it (EViews' assignment under ``smpl``). All of a panel's entities at once."""
+        frame = self.frame.copy()
+        frame[name] = start
+        work = Dataset(frame, self.axes, self.variables, self.flags, self.meta)
+        periods = np.asarray(frame.index.get_level_values(self.time_axis.name).asi8)
+        for period in np.unique(periods[mask]):
+            rows = mask & (periods == period)
+            column = frame[name].to_numpy(dtype=float, copy=True)
+            column[rows] = work.eval(expr).to_numpy(dtype=float)[rows]
+            frame[name] = column
+        return frame[name].to_numpy(dtype=float)
 
     def _aligned(self, name: str, value: pd.Series) -> pd.Series:
         """``value`` on this dataset's rows. A series of another frequency, or one none of whose periods are this
@@ -412,13 +490,15 @@ class Dataset:
         out = Dataset(frame, self.axes, variables, self.flags, self.meta)
         return out._recompute(None, only=set(recipes))
 
-    def with_each(self, series: Any, name: str, formula: str, derived: bool = False, replace: bool = False) -> Dataset:
+    def with_each(self, series: Any, name: str, formula: str, derived: bool = False, replace: bool = False,
+                  within: Any = None) -> Dataset:
         """A new series for each of ``series`` (names separated by spaces or commas, wildcards such as ``"ip_*"``, a
         list or a ``Selection``), named by the template ``name`` and computed by the template ``formula``:
         ``data.with_each("gdp cons inv", "{x}_g", "100*d(log({x}))")``. ``{x}`` is the series; ``{1}``, ``{2}``... the
         parts a wildcard's ``*`` or ``?`` matched (``"ip_*"`` with ``"{1}_growth"``). With ``derived`` they are derived
         series (``derive``); otherwise their values are computed once (``with_series``). Series that exist already
-        are an error unless ``replace``.
+        are an error unless ``replace``. ``within`` assigns only a sample's rows, as ``with_series`` does (not with
+        ``derived``).
 
         Recorded and scripted as the one ``with_series`` (or ``derive``) call it makes, with every new series written
         out, so a script replays exactly whatever series are added later. ``pymetrix.data.each.preview_each`` shows
@@ -429,7 +509,11 @@ class Dataset:
         found = preview_each(self, series, name, formula, replace=replace, derived=derived)
         if not found.ok:
             raise SpecificationError("; ".join(found.errors()))
-        return self.derive(**found.formulas()) if derived else self.with_series(**found.formulas())
+        if derived:
+            if within is not None:
+                raise DataError("a derived series follows its formula in every period: within= is for with_series")
+            return self.derive(**found.formulas())
+        return self.with_series(**({"within": within} if within is not None else {}), **found.formulas())
 
     @property
     def derived(self) -> dict[str, Any]:

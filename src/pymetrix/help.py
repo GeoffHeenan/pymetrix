@@ -1741,9 +1741,19 @@ add_topic("samples", "Samples", """
     then use it unless they are given another span. It belongs to the dataset, and the
     line that sets it is recorded, so scripts and projects replay it. A sample only
     selects rows: lags still reach back before it, never across entities, and generated
-    series are computed over all the data (unlike EViews' genr). Conditions are kept as
+    series are computed over all the data. Conditions are kept as
     text and applied to the data each time; results record the sample they used. In
     code, samples combine with & (and), | (or) and ~ (not).
+
+    To assign a series only within a sample, as EViews' smpl followed by y = ... does,
+    give the sample under Within in Data > Generate series (with_series(y="...",
+    within=Sample(...)) in code): the sample's rows are assigned and the others keep
+    their values, missing in a new series. A formula that uses the series it assigns,
+    such as y[-1]*1.02, is then computed one period at a time, each period seeing the
+    values just assigned, as in EViews. with_series(y=None) makes a series of missing
+    values (EViews' series y). File > New dataset makes an empty dataset of a frequency
+    from a first to a last period (Dataset.empty("Q", "1990Q1", "2030Q4"); EViews'
+    wfcreate).
 
     A condition uses column names, numbers, text and dates in quotes (time >= '2000Q1'),
     comparisons, in [...] (country in ['DEU', 'FRA']), and, or, not, arithmetic and the

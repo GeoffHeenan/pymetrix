@@ -37,6 +37,8 @@ TRANSLATIONS: tuple[Translation, ...] = (
                 'data = Dataset.read("macro.xlsx", time="date", freq="Q")'),
     Translation("EViews", ("dbopen", "fetch"), "fetch from a database", "File → Load from connector…",
                 'Dataset.read("fred://GDPC1")'),
+    Translation("EViews", ("wfcreate", "pagecreate"), "a new, empty workfile page", "File → New dataset…",
+                'data = Dataset.empty("Q", "1990Q1", "2030Q4")'),
     Translation("EViews", ("wfsave",), "save the workfile", "File → Save project", ""),
     Translation("EViews", ("genr", "series"), "a new series, computed once", "Data → Generate series…",
                 'data = data.with_series(dy="d(y)")'),
@@ -44,6 +46,8 @@ TRANSLATIONS: tuple[Translation, ...] = (
                 'data = data.derive(dly="dlog(y)")'),
     Translation("EViews", ("smpl",), "the active sample", "Data → Sample → Set sample…",
                 'data = data.with_sample(("2000Q1", "2019Q4"))'),
+    Translation("EViews", ("smpl then y =",), "assign a series within a sample", "Data → Generate series…",
+                'data = data.with_series(y="x / 2", within=("2000Q1", "2019Q4"))'),
     Translation("EViews", ("sample",), "a named sample", "Data → Sample → New sample…",
                 'Sample(start="2000Q1", end="2019Q4")'),
     Translation("EViews", ("group",), "a group of series", "Data → Select series…", 'data.series("c", "i", "g")'),
@@ -250,9 +254,10 @@ def _eviews_text() -> str:
     The ADF test chooses its lags by AIC, where EViews uses the Schwarz criterion (`lags="bic"` matches it); the HP
     filter's lambda follows the frequency, as in EViews. These, the robust and HAC standard errors and the VAR and
     SUR residual covariances are set out, with the option that matches, in
-    [Defaults, and other packages' defaults]({link("topic", "defaults")}). One more: a series made under a sample is
-    computed over all the data, not only the sample (unlike `genr` under `smpl`); the sample only chooses the rows
-    that estimation, tests and graphs use.
+    [Defaults, and other packages' defaults]({link("topic", "defaults")}). One more: a series made under the active
+    sample is computed over all the data (the active sample only chooses the rows that estimation, tests and graphs
+    use); to assign only within a sample, as `genr` under `smpl` does, give it under **Within** in Generate series
+    (`data.with_series(y="x / 2", within=("2000Q1", "2019Q4"))`).
 
     ## Different by design
 

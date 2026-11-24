@@ -3893,6 +3893,38 @@ only the draws by the arrays (two implementations to keep in step, and no `exog`
   and their environments for one test's default bandwidth, and a user's own arch would still decide. Instead the
   test's details record arch's version beside the bandwidth, and known-gaps says what changes.
 
+### Core additions for the EViews plugin (24 November 2026)
+
+Decisions 4 and 5 of [design/eviews-plugin.md](design/eviews-plugin.md), built before the plugin.
+
+- **The reader's text helpers are public, by name, not by a new layer** (extension API 1.10). `pymetrix.extension`
+  maps `eviews_blank_comments`, `eviews_statements`, `parse_eviews_expression`, `render_eviews_expression`,
+  `walk_eviews_expression`, the tree's node classes, `EViewsExpressionError`, `Diagnostic` and `line_and_column` to
+  the reader's own functions and classes, as `figure_views` maps to `views._figure`. A plugin then splits and parses
+  a program exactly as `read_eviews` does, and a change in the reader reaches it. Wrapping them in new public
+  functions (offsets as lines and columns, a nicer node type) was rejected: two parsers to keep in step. The nodes'
+  fields (`at`, `name`, `lag`, `fn`, `args`, ...) are now part of the API, so they change only additively. The version
+  is 1.10, not 1.9: 1.9 was already `Session.proposing`. Versions compare as numbers.
+- **An empty dataset is a classmethod and a dialog.** `Dataset.empty(freq, start, end)` is a recorded call
+  (`pymetrix:dataset.empty`), as `Dataset.example` and `Dataset.read` are, and **File → New dataset…** records it, as
+  Load data and Load example data record theirs. Only a dated time series: an empty panel or cross-section needs its
+  entities, which `from_frame` already takes; the time axis is named `time`, as `from_frame` names an unnamed one.
+- **Assignment within a sample is an argument of `with_series`**: `within=` (a `Sample`, a span or `"start:end"`),
+  so the History and the script show one ordinary call. The active sample still does not limit generated series:
+  that would make a dataset's values depend on a hidden setting, and every existing script would change. A separate
+  method (`assign`) was rejected as a second way to add series; the cost is that a series cannot be named `within`
+  through `with_series` (`add_series` makes one). A formula that uses the series it assigns is computed one period at
+  a time inside the sample (leads and the series itself see the values before the call), as EViews computes it, since
+  the common EViews idiom `y = y(-1)*1.02` would otherwise be translated into different numbers. Without `within`,
+  `with_series` is unchanged: one pass over the values before the call. Keep updated (a derived series) and `within`
+  are refused together: a derived series follows its formula in every period.
+- **`with_series(y=None)`** makes a series of missing values (EViews' `series y`), and with `within`, missing values in
+  the sample's rows (`y = na`). Formulas still have no missing-value literal.
+- **Generate series gains Within** (a named sample, or a first and last period; under Advanced), step schema 3 with a
+  migration from 2 that leaves the new fields empty. Adding fields with defaults needs no migration (the registry's
+  rule), but schema 3 makes an older pymetrix say the step was saved by a newer version rather than list unknown
+  fields.
+
 ### Removing the legacy bandwidth rule (24 November 2026)
 
 - **What goes.** `bandwidth_rule="legacy"` (0.1.0a18's automatic bandwidth and truncated Bartlett lags) was kept

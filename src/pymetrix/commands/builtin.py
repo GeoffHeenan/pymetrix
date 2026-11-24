@@ -6,7 +6,7 @@ import re
 from dataclasses import MISSING, dataclass, fields, is_dataclass
 from typing import Annotated, Any, ClassVar, Literal
 
-from ..errors import SpecificationError
+from ..errors import DataError, SpecificationError
 from ..data import Dataset
 from ..estimation import ARMA, OLS, Equation, Logit, Poisson, Probit
 from ..estimation.registry import MAIN_FORM_FIELDS, labels_of
@@ -142,6 +142,49 @@ class LoadExample(Command):
         from ..calls import make_call
 
         return make_call("pymetrix:dataset.example", output=self.name, recorded_by=self.command_id, name=self.dataset)
+
+    def run(self, session: Session) -> Dataset:
+        return self.to_call().run(session)
+
+    def to_code(self) -> str:
+        return self.to_call().to_code()
+
+
+@command(menu="File/New dataset...")
+@dataclass(frozen=True)
+class NewDataset(Command):
+    """Make an empty time series dataset: every period of a frequency from a first to a last period, with no series
+    yet (EViews' wfcreate). Add series to it with Data > Generate series, or type them in with the spreadsheet.
+
+    Use it for a scenario, a calendar of future periods, or data built from formulas. Generate series fills a series
+    over every period, or only over a sample (its Within fields), as EViews' smpl does before y = ...; the other
+    periods are missing in a new series.
+    """
+
+    topics: ClassVar[tuple[str, ...]] = ("samples",)
+
+    freq: Annotated[Literal["Q", "M", "Y", "Y-JUN", "W", "D"], Widget("choice", help="the frequency: quarters, months, years, "
+                                                                            "years from July to June, weeks or days")] = "Q"
+    start: Annotated[str, Widget("period", help="the first period, e.g. 1990Q1, 1990-01 or 1990")] = ""
+    end: Annotated[str, Widget("period", help="the last period, included, e.g. 2030Q4")] = ""
+    name: str = "data"
+
+    def validate(self, session: Session) -> list[str]:
+        if not self.name.isidentifier():
+            return [f"{self.name!r} is not a valid name"]
+        if not self.start or not self.end:
+            return ["give the first and last periods"]
+        try:
+            Dataset.empty(self.freq, self.start, self.end)
+        except DataError as exc:
+            return [str(exc)]
+        return []
+
+    def to_call(self) -> Any:
+        from ..calls import make_call
+
+        return make_call("pymetrix:dataset.empty", output=self.name, recorded_by=self.command_id, freq=self.freq,
+                         start=self.start, end=self.end)
 
     def run(self, session: Session) -> Dataset:
         return self.to_call().run(session)

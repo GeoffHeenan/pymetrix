@@ -451,7 +451,8 @@ core.describe(data)                       # "380 of 1200 rows, 3 country, 1995Q1
 A sample belongs to the dataset (it is saved with it) and the line that sets it is
 recorded, so scripts and projects replay it; there is no hidden global sample. It only
 selects rows: lags reach back before it and never cross entities, and generated or
-derived series are computed over all the data (unlike `genr` under EViews' `smpl`).
+derived series are computed over all the data, unless the sample is given to `with_series`
+(below).
 Conditions are kept as text and applied each time; results record the sample they
 used. A condition (`where=`, here and in estimation) is pandas' row-condition syntax, checked before it runs: column
 and axis names (in backticks if they have spaces), numbers, text and dates in quotes (`time >= '2000Q1'`), comparisons,
@@ -462,6 +463,32 @@ refused with an error saying what was found, so a project from someone else cann
 **Data → Sample → Set sample…** makes it a dataset's active sample; the data window, its graphs
 and the start and end fields of every dialog then show that sample. Results estimated
 on the old sample are then out of date: **Recalculate** estimates them again on the new one.
+
+**Assigning within a sample.** `with_series(..., within=...)` assigns only the rows a sample selects and keeps the
+others' values, as EViews' `smpl 2000q1 2010q4` followed by `y = ...` does. `within` is a `Sample` (periods,
+entities, `where=` conditions, windows per entity), a `(start, end)` span or `"start:end"`. A new series is missing
+outside the sample; a value of `None` makes a series of missing values (EViews' `series y`), or missing values in the
+sample's rows:
+
+```python
+data = data.with_series(y=None)                                          # a series of missing values
+data = data.with_series(y="x / 2", within=("2000Q1", "2010Q4"))          # only 2000Q1 to 2010Q4
+data = data.with_series(gdp="gdp[-1] * 1.02", within=Sample(start="2025Q1"))   # extend gdp by 2% a quarter
+data = data.with_series(d="1", within=Sample(where="u > 8", country=["FRA"]))  # rows of a panel
+```
+
+Lags reach outside the sample. A formula that uses the series it assigns is computed one period at a time, each
+period seeing the values assigned before it, as in EViews: the third line compounds from the last value before
+2025Q1. A lead, or the series at the same period, sees the values before the call. Without `within` a formula is
+computed once over every row from the values before the call, as before. In the app, **Data → Generate series…**
+has **Within** under Advanced: a named sample, or a first and last period. **Keep updated** (a derived series) and
+**Within** do not go together: a derived series follows its formula in every period. `with_each(..., within=...)` does
+the same for each of several series.
+
+**An empty dataset.** `Dataset.empty("Q", "1990Q1", "2030Q4")` (**File → New dataset…**; EViews' `wfcreate q 1990q1
+2030q4`) has every period from the first to the last and no series; its time axis is named `time`. The frequency is
+`Y`, `Q`, `M`, `W` or `D` (`Y-JUN` for a July-June year; `A` reads as `Y`). Fill it with `with_series`, or type
+values in with the spreadsheet. The step is recorded, so the script and the project rebuild it.
 
 `with_series` stays static (like EViews' `genr`); `derive` is dynamic. In code both add or
 replace; a replaced series keeps its label and units but not its source or vintage, which
@@ -4361,7 +4388,12 @@ replayable call: `@api("myplugin:fit")`), `make_call` and `Ref` (a dialog's call
 `report_progress`, `check_cancelled`; `add_help_topic`; `ReportTemplate`, `ExampleDataset`, `Workspace`,
 `MenuLayout`, `AppPanel`; `SessionObserver`, `SessionEvent`; `numerical_hessian`, `point_estimate`; and (API 1.4)
 `migration`, `call_migration` and `renamed_arguments`, for renaming a dialog's fields or a call's arguments without
-breaking saved projects and scripts. Its other imports come from the stable modules,
+breaking saved projects and scripts; and (API 1.10) the core EViews reader's text helpers, for a plugin that
+translates EViews programs: `eviews_blank_comments` and `eviews_statements` (a program's statements with their
+offsets), `parse_eviews_expression` (an expression as a tree of `EViewsNumber`, `EViewsName`, `EViewsCoefficient`,
+`EViewsCall`, `EViewsNegative`, `EViewsBinary` and `EViewsBrackets` nodes, each with its offset), `walk_eviews_expression`,
+`render_eviews_expression` (a tree as `convert_expression` writes it), `EViewsExpressionError` (what does not read,
+with `.at` and `.length`), and `Diagnostic` and `line_and_column` to report it at a line and column. Its other imports come from the stable modules,
 `pymetrix.extension.STABLE`: `pymetrix` itself, `errors`, `data`, `output`, `figures`, `estimation`, `statespace`,
 `metadata` and `commands`, and no name starting with `_`. The finance plugin is held to this by a test.
 

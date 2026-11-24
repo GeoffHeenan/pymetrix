@@ -230,7 +230,7 @@ def test_project_round_trip_keeps_the_patterns_and_the_call(wide, tmp_path):
 
 
 def test_command_contract_schema_and_old_steps(wide):
-    assert GenerateSeries.schema_version == 2  # for_each was added with a default: no migration needed (registry docs)
+    assert GenerateSeries.schema_version == 3  # 3: within, start and end (test_assign_within.py); for_each came with a default
     old = {"series": "z", "formula": "gdp*2", "data": "data", "keep_updated": False, "replace": False}  # saved before
     assert upgrade("pymetrix:generate_series", 2, dict(old))["series"] == "z"
     cmd = from_json({"kind": "command", "id": "pymetrix:generate_series", "version": 2, "fields": old})

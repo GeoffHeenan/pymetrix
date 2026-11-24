@@ -9,6 +9,24 @@
   pymetrix-labbook and pymetrix-seasonal (`pip install --pre pymetrix-seasonal`, say). The finance plugin's README
   links to the repository with full addresses, so they work on its PyPI page.
 
+- **Assigning a series within a sample** (EViews' `smpl 2000q1 2010q4` then `y = ...`). `data.with_series(y="...",
+  within=Sample(...))` assigns only the rows the sample selects and keeps the others' values; a new series is missing
+  outside it. `within` takes a `Sample` (periods, a panel's entities, `where=` conditions, windows per entity), a
+  `(start, end)` span or `"start:end"`. Lags reach outside the sample, and a formula that uses the series it assigns
+  is computed one period at a time, as EViews does, so `gdp="gdp[-1]*1.02"` extends `gdp` by 2% a period.
+  `with_series(y=None)` makes a series of missing values (EViews' `series y`). **Data → Generate series…** has
+  **Within** under Advanced, a named sample or a first and last period (step schema 3; older steps open unchanged);
+  `with_each(..., within=...)` too. Without `within`, `with_series` is unchanged.
+- **An empty dataset: `Dataset.empty("Q", "1990Q1", "2030Q4")`** (EViews' `wfcreate q 1990q1 2030q4`), every period of
+  the frequency from the first to the last and no series, recorded and replayed; **File → New dataset…**.
+- **Extension API 1.10** (additive): the core EViews reader's text helpers under public names in
+  `pymetrix.extension`, for a plugin that translates EViews programs: `eviews_blank_comments`, `eviews_statements`
+  (statements with their offsets), `parse_eviews_expression` and the tree's node classes (`EViewsNumber`,
+  `EViewsName`, `EViewsCoefficient`, `EViewsCall`, `EViewsNegative`, `EViewsBinary`, `EViewsBrackets`),
+  `walk_eviews_expression`, `render_eviews_expression` (as `convert_expression` writes), `EViewsExpressionError`,
+  `Diagnostic` and `line_and_column`. They are the reader's own helpers; the reader is unchanged. The command and
+  function reference gains section 6, the extension API's names (`docs/reference/extension.csv`). `plugins.API` is
+  now `"1.10"`: compare versions as numbers.
 - **Impulse responses by name: `irf.paths`.** Every impulse-response result (VARs, VECMs, local projections' and
   solved models' `irf(...)`) has a `paths` attribute: a DataFrame with a column per response and shock labelled
   `"y <- shock"` (the response, then the shock, the labels `to_frame()` and `irf["y", "shock"]` already used) and a

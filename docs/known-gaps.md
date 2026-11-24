@@ -380,6 +380,13 @@ blocking you, say so: that is how priorities get set.
   are refused. A time axis compares with text in order (`time >= '2000Q1'`) but not with `==`, `!=` or `in`, as
   before. The dialogs' check as you type reads a condition with pymetrix's formula parser, so it can flag a valid
   condition (`country in ['DEU']`) that runs.
+- **Assignment within a sample and empty datasets** (`with_series(..., within=...)`, `Dataset.empty`). Formulas have
+  no missing-value literal (EViews' `na` inside an expression, as in `@recode(x > 0, x, na)`): a series of missing
+  values is `with_series(y=None)`, and missing values in some rows `with_series(y=None, within=...)`. A formula that
+  uses the series it assigns is computed one period at a time, so on a long daily series with a wide sample it is
+  slower than one pass. The active sample (Set sample) still does not limit Generate series: give the sample under
+  Within. `Dataset.empty` makes a dated time series only (no empty panel or undated page; `from_frame` builds those
+  from their entities), with no dialog field to declare series: add them with Generate series or the spreadsheet.
 - **Forecast rounds** carry their own record (data end, judgement, notes, conditions) but not the model's
   provenance: a report built only from a round has no provenance appendix. Add the fitted model
   to the report as well (Lab 3 does).

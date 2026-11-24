@@ -22,7 +22,7 @@ SERIES_BROWSER = "@series-browser"  # File → Browse series…: finds codes; wh
 # An entry is a command's class name, SEPARATOR, an app action ("@..."), or (submenu title, [entries]). A command's
 # label is its own (the part of its menu path after the "/"), unless given as (class name, label).
 MENU_LAYOUT: dict[str, list[Any]] = {
-    "File": ["LoadData", "LoadFromConnector", SERIES_BROWSER, "LoadExample", "OpenResult", SEPARATOR, "ExportReport"],
+    "File": ["LoadData", "LoadFromConnector", SERIES_BROWSER, "LoadExample", "NewDataset", "OpenResult", SEPARATOR, "ExportReport"],
     "Data": [
         "PlotSeries", SPREADSHEET, SEPARATOR,
         "SelectSeries", "GenerateSeries", "DeriveSeries", "DeriveEach", "AddToDataset", SEPARATOR,

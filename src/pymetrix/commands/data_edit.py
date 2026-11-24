@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 from ..errors import SpecificationError
-from .registry import Command, Widget, command, existing_series
+from .registry import Command, Widget, command, existing_series, migration
 
 if TYPE_CHECKING:
     from .session import Session
@@ -157,6 +157,10 @@ class GenerateSeries(Command):
     the dataset's series browser (Generate for each…). Series and Formula are then templates: `{x}` is each series,
     `{1}`, `{2}`... the parts a wildcard matched (`ip_*` with `{1}_growth`). The preview lists every new series
     before it is made, and the step records them all, written out, in one call.
+
+    Within (under Advanced) assigns only the periods or rows of a sample, a named one or a first and last period,
+    and keeps the other values (missing in a new series): EViews' smpl, then y = .... A formula that uses the series
+    it assigns is then computed one period at a time, so y[-1]*1.02 grows y through the sample.
     """
 
     topics: ClassVar[tuple[str, ...]] = ("derived-series", "generate-for-each")
@@ -170,8 +174,24 @@ class GenerateSeries(Command):
     replace: Annotated[bool, Widget("checkbox", help="replace a series of the same name, if there is one")] = False
     for_each: Annotated[str, Widget("text", group="For each", help="make one series for each of these: names (gdp cons inv), "
                                                                    "wildcards (*_sa, ip_*) or both; empty: just one series")] = ""
+    within: Annotated[str, Widget("object", source="Sample", advanced=True, group="Within",
+                                  help="assign only the rows of this named sample and keep the others' values; "
+                                       "empty: every row, or the periods below")] = ""
+    start: Annotated[str, Widget("period", advanced=True, group="Within", help="assign from this period only (with End: "
+                                                                               "EViews' smpl before y = ...)")] = ""
+    end: Annotated[str, Widget("period", advanced=True, group="Within", help="assign up to this period only")] = ""
 
-    schema_version: ClassVar[int] = 2  # 2: replace (schema-1 steps replaced silently); for_each added with a default
+    schema_version: ClassVar[int] = 3  # 2: replace (schema-1 steps replaced silently); for_each added with a default;
+    # 3: within, start and end (assignment within a sample), so a step that uses them is refused by older versions by name
+
+    def _within(self) -> Any:
+        """The sample to assign within, for the call: the named one (a reference), the periods given, or None."""
+        from ..codec import Ref
+        from ..data import Sample
+
+        if self.within:
+            return Ref(self.within)
+        return Sample(start=self.start or None, end=self.end or None) if self.start or self.end else None
 
     def preview(self, session: Session) -> Any:
         """What *For each* would make (``pymetrix.data.each.preview_each``): a row per new series, checked."""
@@ -200,6 +220,12 @@ class GenerateSeries(Command):
                 "marks": [marks.get(r.status, "") for r in found.rows], "summary": summary, "ok": not errors}
 
     def validate(self, session: Session) -> list[str]:
+        if self.within and (self.start or self.end):
+            return ["Within: choose a named sample or give periods, not both"]
+        if self.keep_updated and (self.within or self.start or self.end):
+            return ["Keep updated makes a series that follows its formula in every period: clear Within, or untick Keep updated"]
+        if self.within and self.within not in session.objects:
+            return [f"no sample named {self.within!r}"]
         if self.for_each.strip():
             return self.preview(session).errors() if self.data in session.objects else [f"no dataset named {self.data!r}"]
         if not self.series.isidentifier():
@@ -224,14 +250,23 @@ class GenerateSeries(Command):
         from ..codec import Ref
 
         verb = "derive" if self.keep_updated else "with_series"
+        within = self._within()
         return make_call(f"pymetrix:dataset.{verb}", Ref(self.data), output=self.data, recorded_by=self.command_id,
-                         **self.formulas(session))
+                         **({"within": within} if within is not None else {}), **self.formulas(session))
 
     def run(self, session: Session) -> Any:
         return self.to_call(session).run(session)
 
     def to_code(self) -> str:
         if self.for_each.strip():  # without the dataset to expand it in: the helper that does (the step records the expansion)
-            options = (", derived=True" if self.keep_updated else "") + (", replace=True" if self.replace else "")
+            within = self._within()
+            options = (", derived=True" if self.keep_updated else "") + (", replace=True" if self.replace else "") + (
+                f", within={self.within if self.within else repr(within)}" if within is not None else "")
             return f"{self.data} = {self.data}.with_each({self.for_each!r}, {self.series!r}, {self.formula!r}{options})"
         return self.to_call().to_code()
+
+
+@migration("pymetrix:generate_series", 2)
+def _generate_within(fields: dict[str, Any]) -> dict[str, Any]:  # schema 3: within, start and end, empty by default
+    """A step saved before assignment within a sample assigned every row: empty Within fields do the same."""
+    return fields
