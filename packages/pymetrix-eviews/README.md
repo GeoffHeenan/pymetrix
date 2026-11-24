@@ -172,6 +172,12 @@ What a program uses but does not make (in EViews an add-in or a database makes i
 FRB/US programs' model, read by `read_eviews_xml`, as `objects={"stdver": model}`; the script expects it under that
 name and steps mode puts it in the session.
 
+In the app, **File → Translate EViews program…** asks for the program, its workfile data and its arguments, and the
+**EViews translation** panel (View → EViews translation, docked at the bottom) shows the report: a row per line with
+its status in words and colour, the program and the script side by side following the selected row, a filter per
+status with its count, Copy, Copy script, and Run as steps (each step recorded and undoable; the run stops at the
+first step that fails and marks its row).
+
 Left out, each with its reason and pymetrix's way where there is one: `stepls`, `breakls`, `threshold`, `switchreg`,
 `glm` and `nls`, `testadd` and the extreme-value link (gaps), graphs, tables, spools and display, databases, add-ins,
 EViews's date numbers (`@dateval`, `@dateadd`), object parameters of subroutines, names with `$`, and expression

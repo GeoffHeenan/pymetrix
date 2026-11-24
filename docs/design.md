@@ -3893,6 +3893,30 @@ only the draws by the arrays (two implementations to keep in step, and no `exog`
   and their environments for one test's default bandwidth, and a user's own arch would still decide. Instead the
   test's details record arch's version beside the bandwidth, and known-gaps says what changes.
 
+### EViews programs in the app: the translation panel (24 November 2026)
+
+Section 3 of [design/eviews-plugin.md](design/eviews-plugin.md): `TranslateEViewsProgram` in `app.py` and the panel in
+`panel.py` of `packages/pymetrix-eviews`.
+
+- **Two File lines, not one Import EViews… dialog.** The workfile bundle keeps File → Import EViews workfile…;
+  programs get File → Translate EViews program… (`eviews:translate_program`), whose "program" brings the free g as
+  its access key (the File menu uses every other letter of its words). A program and a bundle ask for different
+  things (arguments, a CSV's date column), and one dialog with a choice between them would hide half its fields.
+- **The step translates; the panel shows.** A menu line is a recorded command, so the translate step is in the
+  History (`translate_program(...)` in the script) and changes no data. The panel's list is the History's
+  translate steps, each translated again from its fields when the panel does not hold it (from the program the
+  project keeps, `attachments["pymetrix-eviews"]["<stem>/<file>"]`, when the file has moved): undoing the step
+  removes it, and a reopened project brings it back. The translation is not a session object, so it needs no view,
+  no results contract and no place in the Objects panel.
+- **Only `AppInterface`.** The panel reads `app.session`, runs steps with `app.run` (the run's `run=` runner),
+  writes to the status bar and opens the dialog with `app.open_dialog`; it refreshes on `on_history_changed`. The one
+  thing it does outside the interface is show its own dock when a new translation arrives (its parent widget), since
+  the interface has no "show me".
+- **Run as steps runs everything, from the first line.** A range of lines, or stepping one line at a time, would
+  need the steps' state (the program's variables) kept between clicks; not built.
+- **The status in words and in colour.** The status cell holds the status's text, with a translucent colour behind
+  it that reads on light and dark themes; a failed step's row says "failed" and its reason cell the error.
+
 ### EViews programs, phase 3: control flow (24 November 2026)
 
 The phase 3 table of [design/eviews-plugin.md](design/eviews-plugin.md), in `program/control.py` (the blocks, the

@@ -1,7 +1,9 @@
 # EViews work into pymetrix: the `pymetrix-eviews` plugin
 
 Design note, 5 November 2026, decided 24 November 2026 (see "Decisions") · the core additions (decisions 4 and 5) are built, and the plugin's data route 1 (the bundle reader, the experimental export program and File → Import EViews workfile…, named so that it has an access key, since the File menu uses every letter of "Import EViews": [`packages/pymetrix-eviews`](../../packages/pymetrix-eviews/README.md)); programs phases 1 (data work), 2 (estimation, tests and models) and 3 (control flow) are built
-(`translate_program`); programs phase 4, the panel and route 2 are not · builds on the core EViews reader
+(`translate_program`), and so are File → Translate EViews program… and the EViews translation panel (section 3; the
+design's single Import EViews… dialog became two File lines, each with an access key); programs phase 4 and route 2
+are not · builds on the core EViews reader
 (`src/pymetrix/models/eviews.py`), the writers (`src/pymetrix/models/writers.py`) and the extension API
 ([plugins.md](plugins.md), `pymetrix.plugins.API` 1.10)
 

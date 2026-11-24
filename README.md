@@ -39,7 +39,8 @@ every detail.
   and they appear in the forms, the help and the scripts automatically.
 - **Coming from EViews.** The `pymetrix-eviews` plugin (experimental, `packages/pymetrix-eviews`) reads workfiles
   through a bundle its export program writes, and translates EViews programs into readable pymetrix scripts with a
-  report on every line: data work, estimation, tests, models and control flow (loops, ifs, subroutines).
+  report on every line: data work, estimation, tests, models and control flow (loops, ifs, subroutines), in code or
+  with File → Translate EViews program… and its panel.
 
 ## Install
 

@@ -108,6 +108,19 @@
   and on the Fed's example1.prg with its library, the model and LONGBASE given as `tests/test_frbus_example.py` does:
   the funds-rate shock's responses equal to the hand-written simulation to the last bit (1e-8 required), both ways.
   The FRB/US and Brillet counts are updated, errors still 0.
+- **File → Translate EViews program… and the EViews translation panel** (`pymetrix-eviews`, section 3 of
+  `docs/design/eviews-plugin.md`). The dialog asks for the program, the workfile data its `wfopen` opens (the bundle,
+  or a CSV or Excel file with its date column and frequency) and the program's arguments (`%0`, `%1`); its step
+  (`eviews:translate_program`, fixed in the plugin's `command_ids.json`) translates, keeps the program, its script
+  and its report in the project, and changes no data; its code is `translate_program(...)`. The docked panel (View →
+  EViews translation, at the bottom) lists the session's translations and shows the report: a row per line (an
+  included program's under its name), the status in words and in colour, the EViews text, the Python and the reason;
+  the program and the script side by side, both scrolled to the selected row's line; a filter for each status with
+  its count; **Copy** (the selected rows, or the whole report) and **Copy script**; and **Run as steps**, which runs
+  the translation's steps through `AppInterface.run`, so each is recorded and undoable, stopping at the first that
+  fails and marking its row. The panel uses only `AppInterface`. Undoing the translate step removes it from the
+  panel; a reopened project's translations come back from its History (from the program the project keeps, when the
+  file has moved). Tested offscreen and under the Windows font emulation.
 - **Assigning a series within a sample** (EViews' `smpl 2000q1 2010q4` then `y = ...`). `data.with_series(y="...",
   within=Sample(...))` assigns only the rows the sample selects and keeps the others' values; a new series is missing
   outside it. `within` takes a `Sample` (periods, a panel's entities, `where=` conditions, windows per entity), a

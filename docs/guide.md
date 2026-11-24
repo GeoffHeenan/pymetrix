@@ -1181,6 +1181,13 @@ make (a model an add-in reads, the series a database fills) is given with `objec
 expects it under that name, and steps mode puts it in the session. A `while` loop in steps mode stops after 10,000
 passes (`run(while_cap=...)`).
 
+In the app, **File → Translate EViews program…** asks for the program, the workfile data its `wfopen` opens and its
+arguments. The translation opens in the **EViews translation** panel (View → EViews translation): a row for each
+line, its status in words and in colour, and the reason; the program and the script side by side, both following
+the row you select; a filter for each status, with its count; **Copy** and **Copy script**; and **Run as steps**,
+which makes the program's work steps of the session, one at a time, each in the History and undoable. It stops at
+the first step that fails and marks that row.
+
 ## Reports
 
 ```python

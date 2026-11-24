@@ -219,7 +219,9 @@ blocking you, say so: that is how priorities get set.
   writes `2`); a `while` loop in steps mode stops after `while_cap` passes; dates known only when the program runs
   are passed to `Sample` as written (quarterly and annual EViews dates read, monthly ones do not); objects the
   program uses but does not make (a model an add-in reads, a database's series) are given with `objects=` and the
-  bundle; graphs, tables, spools,
+  bundle (the app's dialog has no field for `objects=`: translate in code for that); the translation panel's Run as
+  steps runs every step of the program, from the first, into the open session (no choosing a range of lines); graphs,
+  tables, spools,
   display and settings, EViews databases (`fetch`, `store`, `dbopen`), add-ins and user commands, external
   programs. Within data work: `read` and `import` (use `Dataset.read`), `copy` between pages (`to_freq`), page
   operations (`pagestruct`, `pagedelete`...), alpha series, weekly, daily, undated and semi-annual new pages,
