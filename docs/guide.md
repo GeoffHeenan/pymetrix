@@ -1088,6 +1088,27 @@ empties it and `connectors.configure_cache(search_ttl=..., metadata_ttl=..., ena
 changes it. Requests are kept by their address with any key taken out. An institution's SDMX
 service becomes searchable with `register_sdmx_provider(name, url, structure_url=..., agency=...)`.
 
+## EViews workfiles (the EViews plugin)
+
+pymetrix does not read EViews's binary workfiles (`.wf1`). The supported way in is to save the workfile from EViews as
+CSV or Excel and load that with **File → Load data…**. The `pymetrix-eviews` plugin (`pip install -e
+packages/pymetrix-eviews` in a clone) adds a second, **experimental** way: its export program, `pymetrix_export.prg`
+(**File → Import EViews workfile…**, *Get the export program*), run in EViews on the open workfile, writes a *bundle*, which the
+same dialog's *Workfile bundle* reads, a dataset per page, with the series' labels, units and sources:
+
+```python
+quarterly = Dataset.read("C:/work/macro-export/macro.evbundle", page="quarterly")
+
+from pymetrix_eviews import compare_estimates, eviews_objects
+eviews_objects(quarterly)      # the page's groups, samples, scalars, strings, matrices and models
+compare_estimates(quarterly)   # least-squares equations refitted, beside EViews's estimates
+```
+
+The export program has never been run in EViews (the project has no licence); every point to check is marked
+`(verify)` in it. Replaying a bundle's read needs the plugin; **Save the data as Parquet** in the dialog reads the
+pages from Parquet copies instead, so the script needs only pymetrix. The plugin's README lists what each EViews
+object becomes and what is refused.
+
 ## Reports
 
 ```python

@@ -9,6 +9,23 @@
   pymetrix-labbook and pymetrix-seasonal (`pip install --pre pymetrix-seasonal`, say). The finance plugin's README
   links to the repository with full addresses, so they work on its PyPI page.
 
+- **A new first-party plugin, `pymetrix-eviews`: EViews workfiles through a bundle** (`packages/pymetrix-eviews`, data
+  route 1 of `docs/design/eviews-plugin.md`). An export program, `pymetrix_export.prg`, run once in the user's own
+  EViews, writes the open workfile as a bundle: each page's series as CSV and a JSON manifest (format version 1, with
+  a JSON Schema) with the labels, units and sources, groups, samples, scalars, strings, matrices, value maps,
+  equations with EViews's estimates, and models. `Dataset.read("macro.evbundle", page="quarterly")` reads a page,
+  recorded and replayed like any read: dated (annual, quarterly, monthly, weekly, five- and seven-day), panel
+  (balanced or not) and undated pages; NA and empty fields as missing; alpha series as text; value maps in
+  `Variable.extra`; the rest in `meta.extra["eviews"]`. `eviews_objects(data)` gives the groups as selections, the
+  samples, scalars, strings, matrices and models (read by `read_eviews`, their equations fitted to the page), and
+  `compare_estimates(data)` refits each least-squares equation and sets pymetrix's estimates beside EViews's. What
+  does not read is refused at its place: a folder without its manifest, a newer format version, a missing column,
+  semi-annual and other frequencies pandas has no period for (`undated=True` reads those pages undated). **File →
+  Import EViews workfile…** reads a bundle's pages (one `Dataset.read` line each; *Save the data as Parquet* reads them from
+  Parquet copies, so the script replays without the plugin) or saves a copy of the export program. **The export
+  program is experimental: it has never been run in EViews** (the project has no licence), and every point to check
+  is marked `(verify)` in it; saving the workfile from EViews as CSV or Excel stays the supported way in. Translating
+  EViews programs and running EViews through COM are later work.
 - **Assigning a series within a sample** (EViews' `smpl 2000q1 2010q4` then `y = ...`). `data.with_series(y="...",
   within=Sample(...))` assigns only the rows the sample selects and keeps the others' values; a new series is missing
   outside it. `within` takes a `Sample` (periods, a panel's entities, `where=` conditions, windows per entity), a

@@ -88,7 +88,7 @@ guessing at a cause. Where a crash report appears in a failed job:
 
 ## Releasing a plugin
 
-Each plugin in `packages/` (pymetrix-assistant, -finance, -guide, -labbook, -psets, -seasonal) is its own package on
+Each plugin in `packages/` (pymetrix-assistant, -eviews, -finance, -guide, -labbook, -psets, -seasonal) is its own package on
 PyPI, released when it changes, by the same `release` workflow:
 
 1. Set its version in `packages/<plugin>/src/<module>/_version.py`. If it needs a newer pymetrix, raise the floor in

@@ -3893,6 +3893,47 @@ only the draws by the arrays (two implementations to keep in step, and no `exog`
   and their environments for one test's default bandwidth, and a user's own arch would still decide. Instead the
   test's details record arch's version beside the bandwidth, and known-gaps says what changes.
 
+### The EViews plugin, data route 1 (24 November 2026)
+
+The bundle reader, the export program and File → Import EViews workfile… of [design/eviews-plugin.md](design/eviews-plugin.md)
+(sections 1, 3 and 4), in `packages/pymetrix-eviews`.
+
+- **One page, one Dataset, one call.** `Dataset.read(path, page=...)` through the `.evbundle` reader, so typed code
+  and the dialog record the same `pymetrix:dataset.read` call and nothing new is needed in core. With several pages
+  and no `page=`, the read is refused naming them: guessing the active page would make a script depend on how the
+  workfile was last left in EViews.
+- **What is not a column goes in `meta.extra["eviews"]`**, as JSON values, so Parquet files and projects keep it:
+  groups, samples, scalars, strings, matrices, equations with EViews's estimates and model texts. `eviews_objects`
+  turns them into `Selection`, `Sample`, `Matrix` and templates on demand. Putting them in the session as separate
+  objects from the dialog was rejected for now: one recorded call per page is what the design asks of the dialog,
+  and objects made outside a call would not replay.
+- **Models through the core reader.** A model's text, with its `:eq` links, becomes a program (`equation eq.ls ...`
+  on the equation's sample, `model m`, `m.merge`, `m.append`) that `read_eviews` reads with the page's data, so the
+  plugin adds no second model parser. The page's scalars that the text names are its parameters.
+- **Re-estimation is the core reader's fit.** `compare_estimates` refits only least-squares equations without options,
+  since the core reader ignores options such as `cov=white` and would compare a different estimator; the rest are
+  listed as not compared, with the reason. EViews's `c(i)` are matched to pymetrix's terms by the list's order
+  (`c` is `const`), or `c_i` in an expression.
+- **Strict, with places.** JSON with no NaN and no key given twice; a numeric field is a number, `NA` (the manifest's
+  `na`) or empty; a date must start a period of the page's frequency; files must be inside the bundle's folder. Unknown
+  keys are kept and noted, not refused, so a version 1 bundle from a later program still reads.
+- **Weekly anchors come from the dates**, not from what EViews says about them, which the design left to verify.
+- **Names.** Series are lower-cased and made valid Python names (`in` becomes `in_v`), with EViews's name kept in
+  `Variable.source_key` and, when changed, `extra["eviews_name"]`. The id and date columns the program adds lose
+  their `pmx_` prefix as axis names (`crossid`, `obs`); the time axis is `time`, as `Dataset.empty` names it.
+- **Save the data as Parquet** reads each page from a Parquet copy written next to the bundle (rewritten while the
+  bundle is there), so the script's lines are plain `Dataset.read("....parquet")`. The project still records the
+  plugin's step: making one dialog step record several core calls would need a change in the session, not wanted for
+  this.
+- **The plugin's dialog ID** (`eviews:import_eviews`) is fixed in the plugin's own `tests/fixtures/command_ids.json`,
+  as pymetrix's are in the core's. The plugin imports its dialogs outside its plugin context, because importing
+  `pymetrix.commands` inside it would register pymetrix's own dialogs as the plugin's; a test runs that import first
+  in a fresh interpreter.
+- **The menu line is File → Import EViews workfile…**, not the design's Import EViews…: the File menu already uses
+  every letter of "Import EViews" as an access key, and every menu line must have one; "workfile" brings the free k.
+- **No writer.** A bundle writer would exist only for a round-trip test; the hand-made fixtures already pin every
+  field, and the program, not pymetrix, is what writes bundles.
+
 ### Core additions for the EViews plugin (24 November 2026)
 
 Decisions 4 and 5 of [design/eviews-plugin.md](design/eviews-plugin.md), built before the plugin.

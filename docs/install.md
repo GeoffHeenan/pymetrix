@@ -71,6 +71,11 @@ package of its own, `pymetrix-finance`. From the repository: `python -m pip inst
 "pymetrix-finance @ git+https://github.com/GeoffHeenan/pymetrix#subdirectory=packages/pymetrix-finance"` (or, in a
 clone, `python -m pip install -e packages/pymetrix-finance`); once it is on the package index, `pymetrix[finance]`.
 
+**EViews workfiles** come in through the EViews plugin, `pymetrix-eviews`, a package of its own: in a clone,
+`python -m pip install -e packages/pymetrix-eviews` (or `"pymetrix-eviews @ git+https://github.com/GeoffHeenan/pymetrix#subdirectory=packages/pymetrix-eviews"`).
+Its export program, run in EViews, writes a bundle that File → Import EViews workfile… reads. The program is experimental (it
+has not been run in EViews); saving the workfile from EViews as CSV or Excel needs no plugin and is the supported way.
+
 **Or nothing to install:** open the repository in GitHub Codespaces (see the README), which runs the
 desktop app in your browser.
 

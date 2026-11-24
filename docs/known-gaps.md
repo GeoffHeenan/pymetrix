@@ -194,7 +194,16 @@ blocking you, say so: that is how priorities get set.
   measurement transforms are written only in pymetrix's syntax (reported series in pymetrix's and IRIS's). The model
   editor reads pymetrix's syntax, Dynare's, IRIS's and EViews's; not TROLL's.
 - **EViews workfiles (.wf1) and EViews databases are not read**: save the series as Excel or CSV and load those
-  (the Coming from EViews help page says so). Nor are IRIS databanks saved as .mat files; one saved as CSV loads
+  (the Coming from EViews help page says so). The `pymetrix-eviews` plugin reads a *bundle* that its export program
+  writes from EViews, but that program has never been run in EViews (the project has no licence; every point to
+  check is marked `(verify)` in it), so it is experimental and CSV or Excel stays the supported way in. Its reader
+  does not read: semi-annual, multi-year, intraday, bimonthly, fortnightly and ten-day pages with a time axis
+  (pandas has no such periods: they read as undated, `undated=True`); value maps as value labels (pymetrix has
+  none: the map is kept in `Variable.extra["value_map"]` and the codes stay as data); groups whose members are
+  expressions, and samples with conditions or several pairs of ends (kept as text in `meta.extra["eviews"]`); and a
+  project made with File → Import EViews workfile… reopens only with the plugin installed (Save the data as Parquet frees the
+  script, not the project). It refits only least-squares equations without options against EViews's estimates.
+  Translating EViews programs and running EViews through COM are not built yet. Nor are IRIS databanks saved as .mat files; one saved as CSV loads
   once the rows of classes and units under the names are left out (`skiprows=[1, 2]`), which Load data cannot do.
 - **EViews's syntax** is a subset, confirmed against Brillet's *Structural Econometric Modelling* (EViews) and the
   FRB/US packages, without EViews itself (the book's programs are copyright and not in the repository, so those tests

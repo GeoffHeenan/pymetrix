@@ -1,6 +1,6 @@
 # EViews work into pymetrix: the `pymetrix-eviews` plugin
 
-Design note, 5 November 2026, decided 24 November 2026 (see "Decisions") · the core additions (decisions 4 and 5) are built; the plugin is not · builds on the core EViews reader
+Design note, 5 November 2026, decided 24 November 2026 (see "Decisions") · the core additions (decisions 4 and 5) are built, and the plugin's data route 1 (the bundle reader, the experimental export program and File → Import EViews workfile…, named so that it has an access key, since the File menu uses every letter of "Import EViews": [`packages/pymetrix-eviews`](../../packages/pymetrix-eviews/README.md)); programs and route 2 are not · builds on the core EViews reader
 (`src/pymetrix/models/eviews.py`), the writers (`src/pymetrix/models/writers.py`) and the extension API
 ([plugins.md](plugins.md), `pymetrix.plugins.API` 1.10)
 
