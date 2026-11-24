@@ -167,3 +167,23 @@ def test_the_dialog_offscreen():
         assert [shock.itemText(i) for i in range(shock.count())] == ["e"]
     finally:
         dialog.close()
+
+
+def test_paths_label_each_response_and_shock():
+    """``IRF.paths``: a column "y <- shock" per response and shock, a row per horizon; every column equals the slice of
+    ``values`` it labels, and the AR(1)'s equals size * rho**h (the closed form)."""
+    s = _session()
+    ar = s["ar_sol"].irf(6, shock_sd={"e": 0.5})
+    assert list(ar.paths.columns) == ["y <- e"] and list(ar.paths.index) == list(range(7))
+    assert ar.paths.index.name == "horizon"
+    np.testing.assert_allclose(ar.paths["y <- e"].to_numpy(), [0.5 * 0.8**h for h in range(7)], rtol=1e-14)
+    nk = s["nk_sol"].irf(8)
+    paths = nk.paths
+    assert paths.shape == (9, len(nk.responses) * len(nk.shocks))
+    for i, r in enumerate(nk.responses):
+        for k, shock in enumerate(nk.shocks):
+            np.testing.assert_array_equal(paths[f"{r} <- {shock}"].to_numpy(), nk.values[:, i, k])
+            assert paths[f"{r} <- {shock}"][2] == nk.values[2, i, k]
+    one = s["nk_sol"].irf(4, shocks=["epi"])  # one shock chosen: its columns only
+    assert list(one.paths.columns) == [f"{r} <- epi" for r in one.responses]
+    np.testing.assert_array_equal(one.paths.to_numpy(), nk.paths[[f"{r} <- epi" for r in nk.responses]].to_numpy()[:5])

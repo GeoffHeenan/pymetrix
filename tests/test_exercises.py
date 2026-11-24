@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pymetrix import Dataset, Equation, OLS, exercises as ex, plugins
+from pymetrix import Dataset, Equation, OLS, exercises as ex, plugins, templates
 from pymetrix.commands import Session
 from pymetrix.errors import NotFoundError, PyMetrixError, SpecificationError
 from pymetrix.exercises.cli import main, new_pack, run_exercise
@@ -205,6 +205,27 @@ def test_values_are_read_by_attribute_and_key_only():
     with pytest.raises(NotFoundError, match="ok.a has no attribute or key 'b'"):
         ex.resolve(t, "ok.a.b")
     assert t.ran == []  # nothing was called
+
+
+def test_checks_read_impulse_responses_by_position_and_by_name(pack):
+    """A check reads a model's impulse responses as ``values.<horizon>.<response>.<shock>`` (positions) or as
+    ``paths.<response> <- <shock>.<horizon>`` (names): the same number, the fixture pack's NK model's own shocks."""
+    s = Session()
+    s.run(ex.model_command(pack, "nk"))
+    s.run_code("sol = nk.solve()\nirf = sol.irf(8)")
+    irf = s["irf"]
+    i, k = list(irf.responses).index("y"), list(irf.shocks).index("ei")
+    by_position = f"values.2.{i}.{k}"
+    assert ex.resolve(irf, by_position) == ex.resolve(irf, "paths.y <- ei.2") == irf.values[2, i, k] != 0
+    expected = float(irf.values[2, i, k])
+    checks = (ex.Check("by-name", 1, "irf", "paths.y <- ei.2", expected, None, 1e-12, ""),
+              ex.Check("by-position", 1, "irf", by_position, expected, None, 1e-12, ""),
+              ex.Check("wrong", 1, "irf", "paths.y <- ei.3", expected, None, 1e-12, ""),
+              ex.Check("no-such-shock", 1, "irf", "paths.y <- nothing.2", expected, None, 1e-12, ""))
+    exercise = ex.Exercise("01-x", "X", (ex.Step(1, "s", ""),), checks, Path("."))
+    results = {r.id: r for r in ex.check(exercise, s)}
+    assert results["by-name"].passed and results["by-position"].passed and not results["wrong"].passed
+    assert not results["no-such-shock"].passed and "has no attribute or key 'y <- nothing'" in results["no-such-shock"].detail
 
 
 def test_value_paths_into_estimates_and_tests():
@@ -566,10 +587,11 @@ def test_every_documented_path_resolves_on_real_results():
     sample_macro, nile = Dataset.example("sample_macro"), Dataset.example("nile")
     fit = Equation("c ~ y + g").fit(sample_macro, method=OLS(cov="white"))
     objects = {"fit": fit, "eg": sample_macro.test("engle_granger", "c, y"), "wald": fit.wald("y = 0.7"),
-               "adf": nile.test("adf", "volume"), "sample_macro": sample_macro, "mroz": Dataset.example("mroz")}
+               "adf": nile.test("adf", "volume"), "sample_macro": sample_macro, "mroz": Dataset.example("mroz"),
+               "irf": templates.new_keynesian().solve().irf(8)}
     spec = (Path(__file__).resolve().parents[1] / "docs" / "exercise-packs.md").read_text(encoding="utf-8")
     assert 'fit = Equation("c ~ y + g").fit(sample_macro, method=OLS(cov="white"))' in spec  # the objects as made here
-    assert 'mroz = Dataset.example("mroz")' in spec
+    assert 'mroz = Dataset.example("mroz")' in spec and "irf = templates.new_keynesian().solve().irf(8)" in spec
     table = spec.split("<!-- paths:start -->", 1)[1].split("<!-- paths:end -->", 1)[0]
     rows = [[c.strip() for c in line.strip("|").split("|")] for line in table.strip().splitlines()[2:]]
     assert len(rows) >= 20

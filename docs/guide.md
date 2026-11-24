@@ -98,6 +98,7 @@ test.statistic, test.p_value, test.df, test.critical_values, test.details
 test.reject(0.05)
 
 var.coefs, var.sigma, var.irf(20).to_frame(), var.fevd(20).table("y").to_frame()
+var.irf(20).paths                                 # the responses by name: columns "y <- shock", a row per horizon
 var.residual_correlogram(12).plot()               # residual auto- and cross-correlations, ±1.96/sqrt(T) bands (VECMs too)
 VAR(["oil", "y", "pi"], lags=2).fit(data, method=Restricted(block_exogenous=["oil"], zeros={"pi": ["y[-2]"]}))  # feasible GLS
 hd = var.historical_decomposition()                # each shock's contribution to each variable, and the baseline

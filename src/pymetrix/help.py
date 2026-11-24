@@ -1924,7 +1924,8 @@ add_topic("forward-looking-models", "Forward-looking models", """
     variables. Too few, and no stable solution exists; too many, and the solution is not
     unique (indeterminacy, e.g. a Taylor rule responding less than one for one to
     inflation). The solution gives impulse responses (Model > Analysis > Impulse responses:
-    one shock, its size and the horizon), stochastic simulations, and a state-space form
+    one shock, its size and the horizon; in code, irf.paths["y <- e"] is the response of y
+    to the shock e by horizon), stochastic simulations, and a state-space form
     for the Kalman filter, to estimate unobserved variables such as the output gap from
     observed data.
 

@@ -1396,6 +1396,15 @@ class IRF:
         i, k = list(self.responses).index(response), list(self.shocks).index(shock)
         return pd.Series(self.values[:, i, k], index=pd.RangeIndex(len(self.values), name="horizon"), name=f"{response} <- {shock}")
 
+    @property
+    def paths(self) -> pd.DataFrame:
+        """The responses as a table: a column per response and shock, labelled ``"y <- shock"`` (the response, then
+        the shock), shocks in order and the responses within each, and a row per horizon 0, 1, ... (``paths["y <-
+        e"][2]`` is ``values[2, i, k]``). The bands, if any, are in ``to_frame()``. Exercise checks read it by name:
+        ``value = "paths.y <- e.2"``."""
+        cols = {f"{r} <- {s}": self.values[:, i, k] for k, s in enumerate(self.shocks) for i, r in enumerate(self.responses)}
+        return pd.DataFrame(cols, index=pd.RangeIndex(len(self.values), name="horizon"))
+
     def to_frame(self, view: str | None = None) -> pd.DataFrame:
         """Every response (and band) by horizon; or one of its views by name ("Selected horizons")."""
         if view is not None:  # one of its views by name, as for every result (pymetrix.views)

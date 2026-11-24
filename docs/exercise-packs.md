@@ -223,6 +223,7 @@ eg = sample_macro.test("engle_granger", "c, y")                           # Test
 wald = fit.wald("y = 0.7")                                                # a Wald test of a restriction
 adf = nile.test("adf", "volume")                                          # Test → Run test…, adf
 mroz = Dataset.example("mroz")                                            # a cross-section indexed by woman: 1 ... 753
+irf = templates.new_keynesian().solve().irf(8)                            # Model → Analysis → Impulse responses…
 ```
 
 <!-- paths:start -->
@@ -254,6 +255,9 @@ mroz = Dataset.example("mroz")                                            # a cr
 | sample_macro | `y.2000Q1` | 244.735 | one value of a series, by its period |
 | mroz | `wage.2` | 1.3889 | one value of a series with an integer index, by its label (woman 2), not its position |
 | mroz | `hours.753` | 0 | the last woman's (label 753; there is no position 753) |
+| irf | `values.2.0.2` | -0.57588 | a response by position, `values[horizon, response, shock]`: `y` (the first response) to `ei` (the third shock) at horizon 2 |
+| irf | `paths.y <- ei.2` | -0.57588 | the same by name: the column `y <- ei` (response, then shock) of `paths`, at horizon 2 |
+| irf | `paths.pi <- ei.0` | -0.42391 | inflation's response to `ei` on impact |
 <!-- paths:end -->
 
 Test results generally have `statistic`, `p_value`, `df`, `null`, `name`, `critical_values.<level>` and

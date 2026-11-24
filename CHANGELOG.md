@@ -9,6 +9,13 @@
   pymetrix-labbook and pymetrix-seasonal (`pip install --pre pymetrix-seasonal`, say). The finance plugin's README
   links to the repository with full addresses, so they work on its PyPI page.
 
+- **Impulse responses by name: `irf.paths`.** Every impulse-response result (VARs, VECMs, local projections' and
+  solved models' `irf(...)`) has a `paths` attribute: a DataFrame with a column per response and shock labelled
+  `"y <- shock"` (the response, then the shock, the labels `to_frame()` and `irf["y", "shock"]` already used) and a
+  row per horizon, so `irf.paths["y <- ei"][2]` reads what `irf.values[2, 0, 2]` reads by position. The bands stay in
+  `to_frame()`; `values` is unchanged. Exercise checks can use it by name, `value = "paths.y <- ei.2"`, as well as
+  `values.2.0.2` (docs/exercise-packs.md lists both, checked against the New Keynesian template).
+
 ### Removed (breaking)
 
 - **`bandwidth_rule="legacy"` of cointegrating regressions is gone**, as 0.1.0a19 announced: it reproduced
