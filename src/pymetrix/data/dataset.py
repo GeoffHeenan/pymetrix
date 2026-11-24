@@ -1054,10 +1054,10 @@ class Dataset:
         return Dataset(frame.sort_index(), (EntityAxis(entity), *self.axes), variables, meta=self.meta)
 
     def xs(self, **levels: Any) -> Dataset:
-        """One value of some axes, dropping them: ``xs(country="WSM")`` is Samoa's time series,
+        """One value of some axes, dropping them: ``xs(country="FJI")`` is Fiji's time series,
         ``xs(time="2020Q1")`` a cross-section."""
         if not levels:
-            raise DataError("give axis=value, e.g. xs(country='WSM')")
+            raise DataError("give axis=value, e.g. xs(country='FJI')")
         if len(levels) >= len(self.axes):
             raise DataError("at least one axis must remain")
         frame, flags = self.frame, self.flags

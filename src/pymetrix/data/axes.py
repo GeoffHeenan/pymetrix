@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class CodeList:
-    codes: Mapping[str, str]  # "WSM" -> "Samoa"
+    codes: Mapping[str, str]  # "FJI" -> "Fiji"
     groups: Mapping[str, frozenset[str]] = field(default_factory=dict)  # "Pacific" -> {...}
 
 

@@ -14,7 +14,7 @@ def panel():
     rows = [{"country": c, "t": p, "y": 10.0 * j + i + rng.normal(), "c": 5.0 * j + i, "region": "Oceania" if c == "AUS" else "Pacific"}
             for j, c in enumerate(["AUS", "NZL", "WSM"]) for i, p in enumerate(pd.period_range("2018", periods=5, freq="Y"))]
     frame = pd.DataFrame(rows)
-    frame = frame[~((frame.country == "WSM") & (frame.t == pd.Period("2018", "Y")))]  # Samoa starts a year later
+    frame = frame[~((frame.country == "WSM") & (frame.t == pd.Period("2018", "Y")))]  # WSM starts a year later
     return Dataset.from_frame(frame, time="t", entity="country")
 
 
@@ -78,8 +78,8 @@ def test_wide_and_long(panel):
 
 
 def test_slices(panel):
-    samoa = panel.entity("WSM")
-    assert samoa.kind == "time_series" and len(samoa) == 4 and "index" not in samoa.names
+    one = panel.entity("WSM")
+    assert one.kind == "time_series" and len(one) == 4 and "index" not in one.names
     section = panel.cross_section("2020")
     assert section.kind == "cross_section" and list(section.frame.index) == ["AUS", "NZL", "WSM"]
     assert len(panel.xs(country="AUS")) == 5
@@ -116,15 +116,15 @@ def test_dialogs_record_and_replay(panel, tmp_path):
     s.run(PivotTable(rows="region", columns="t", values="y", agg="mean, count", margins=True))
     s.run(ToWide(series="y"))
     s.run(ToLong("wide", entity="country", name="back"))
-    s.run(Slice(entity="WSM", name="samoa"))
+    s.run(Slice(entity="WSM", name="one"))
     s.run(BalancePanel(keep="entities"))
     s.run(PanelStatistics(show="variation", series="y"))
     script = s.script()
     for line in ("pivot = data.pivot('region', columns='t', values='y', agg=['mean', 'count'], margins=True)",
-                 "wide = data.wide('y')", "back = wide.long('country')", "samoa = data.entity('WSM')",
+                 "wide = data.wide('y')", "back = wide.long('country')", "one = data.entity('WSM')",
                  "balanced = data.balance(keep='entities')", "panel_stats = data.describe_panel('y')"):
         assert line in script
     assert Slice().validate(s) == ["choose either an entity or a period"]
     assert PivotTable().validate(s) == ["choose at least one row"]
     reopened = load_project(save_project(s, tmp_path / "panel.pymx"))
-    assert reopened["samoa"].kind == "time_series" and reopened["pivot"].to_frame().shape == s["pivot"].to_frame().shape
+    assert reopened["one"].kind == "time_series" and reopened["pivot"].to_frame().shape == s["pivot"].to_frame().shape
