@@ -1,4 +1,5 @@
-"""The plugin in the app: File → Import EViews workfile… and its help topic, registered through the extension API."""
+"""The plugin in the app: File → Import EViews workfile…, File → Translate EViews program…, the EViews translation
+panel (``panel.py``) and the help topics, registered through the extension API."""
 
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ from pymetrix.extension import Command, Widget, add_help_topic, command, plugin_
 
 from . import PLUGIN
 from .bundle import SUFFIX, _py_name, bundle_pages, save_export_program
+from .panel import create_panel
 
 if TYPE_CHECKING:
     from pymetrix.commands import Session
@@ -119,6 +121,126 @@ with plugin_context(PLUGIN):
             return "\n".join(call.to_code() for call in self._calls())
 
 
+PROGRAMS = "EViews programs (*.prg);;All files (*)"
+DATA = "Workfile data (*.evbundle *.csv *.xlsx *.xls);;All files (*)"
+
+
+with plugin_context(PLUGIN):
+    @command(menu="File/Translate EViews program...", id="eviews:translate_program")
+    @dataclass(frozen=True)
+    class TranslateEViewsProgram(Command):
+        """Translate an EViews program (.prg) into a readable pymetrix script and a report on every line.
+
+        The translation opens in the EViews translation panel: each line of the program with its status (translated,
+        translated with a note, left out, error) and the reason, the program and the script side by side, and Run as
+        steps, which makes the program's work steps of this session, each recorded and undoable. The step itself
+        only translates: it reads the program, keeps it, its script and its report in the project, and changes no
+        data.
+
+        Workfile data is what the program's wfopen opens: the bundle the export program wrote, or a CSV or Excel file
+        saved from the workfile in EViews (give its date column and frequency). The program's arguments are what
+        follows its name in EViews's exec (exec macro.prg us 2020q1): they become %0, %1, ..., the script's
+        parameters.
+        """
+
+        topics: ClassVar[tuple[str, ...]] = ("eviews-programs",)
+
+        path: Annotated[str, Widget("file", source=PROGRAMS, label="Program", help="the EViews program to translate (.prg); "
+                                    "programs it includes are read from its folder")] = ""
+        data: Annotated[str, Widget("file", source=DATA, label="Workfile data",
+                                    help="what the program's wfopen opens: the bundle the export program wrote, or a CSV or "
+                                         "Excel file saved from the workfile in EViews; empty for a program that makes its "
+                                         "own pages (wfcreate)")] = ""
+        time: Annotated[str, Widget("text", label="Date column", help="a CSV or Excel file's column of dates (obs, say); "
+                                                                      "empty: as Load data finds it")] = ""
+        freq: Annotated[Literal["", "Y", "Q", "M", "W", "D"], Widget("choice", label="Frequency",
+                                                                     help="the dates' frequency in a CSV or Excel file: Y "
+                                                                          "annual, Q quarterly, M monthly, W weekly, D "
+                                                                          "daily; empty: as Load data finds it")] = ""
+        args: Annotated[str, Widget("text", label="Program arguments",
+                                    help="what follows the program's name in EViews's exec, separated by spaces: %0, %1, "
+                                         "..., the script's parameters (arg0, arg1)")] = ""
+
+        def options(self) -> dict[str, Any]:
+            """translate_program's keyword arguments."""
+            out: dict[str, Any] = {}
+            if self.data.strip():
+                out["bundle"] = self.data.strip()
+                read = {k: v for k, v in (("time", self.time.strip()), ("freq", self.freq)) if v}
+                if read and not self.data.strip().lower().endswith(".evbundle"):
+                    out["read_options"] = read
+            if self.args.strip():
+                out["args"] = " ".join(self.args.split())
+            return out
+
+        def validate(self, session: Session) -> list[str]:
+            if not self.path.strip():
+                return ["choose the EViews program (.prg) to translate"]
+            if not Path(self.path).is_file():
+                return [f"there is no program {self.path}"]
+            if self.data.strip() and not Path(self.data.strip()).is_file():
+                return [f"there is no file {self.data.strip()}: the bundle the export program wrote, or a CSV or Excel file"]
+            return []
+
+        def translate(self) -> Any:
+            from .program import translate_program
+
+            return translate_program(self.path, **self.options())
+
+        def run(self, session: Session) -> Any:
+            translation = self.translate()
+            _TRANSLATIONS[_key(self)] = translation
+            files = session.attachments.setdefault("pymetrix-eviews", {})
+            stem = Path(self.path).stem
+            for name, text in translation.sources.items():
+                files[f"{stem}/{name}"] = text.encode("utf-8")  # the program as translated: the panel's copy if it moves
+            files[f"{stem}.py"] = translation.script.encode("utf-8")
+            files[f"{stem}.txt"] = translation.report.to_text().encode("utf-8")
+            return translation
+
+        def to_code(self) -> str:
+            options = "".join(f", {k}={v!r}" for k, v in self.options().items())
+            return (f"from pymetrix_eviews import translate_program\n"
+                    f"{_py_name(Path(self.path).stem)}_translation = translate_program({self.path!r}{options})")
+
+
+_TRANSLATIONS: dict[tuple[Any, ...], Any] = {}  # the translations made, by their step's fields (the panel's)
+
+
+def _key(cmd: Any) -> tuple[Any, ...]:
+    return (cmd.path, cmd.data, cmd.time, cmd.freq, cmd.args)
+
+
+def translation_of(session: Any, cmd: Any) -> Any:
+    """The translation a step made: kept from the step, or made again (from the program the project keeps, when the
+    file is no longer there)."""
+    key = _key(cmd)
+    if key not in _TRANSLATIONS:
+        from .program import translate_program
+
+        if Path(cmd.path).is_file():
+            _TRANSLATIONS[key] = cmd.translate()
+        else:
+            kept = session.attachments.get("pymetrix-eviews", {}).get(f"{Path(cmd.path).stem}/{Path(cmd.path).name}")
+            if kept is None:
+                return None
+            options = cmd.options()
+            _TRANSLATIONS[key] = translate_program(kept.decode("utf-8"), folder=Path(cmd.path).parent, **options)
+    return _TRANSLATIONS[key]
+
+
+def translations(session: Any) -> list[tuple[Any, Any]]:
+    """The session's translations, from its History's Translate EViews program steps: (step, translation)."""
+    out = []
+    for record in getattr(session, "history", []):
+        cmd = getattr(record, "command", None)
+        if isinstance(cmd, TranslateEViewsProgram):
+            t = translation_of(session, cmd)
+            if t is not None:
+                out.append((cmd, t))
+    return out
+
+
 def _help() -> None:
     add_help_topic("eviews-import", "EViews workfiles (the pymetrix-eviews plugin)", """
         pymetrix does not read EViews's binary workfiles (.wf1): their format is not published, and a misread column
@@ -148,10 +270,19 @@ def _help() -> None:
         pandas has no period for (semi-annual, multi-year, intraday): those read as undated. Value maps are kept in
         each series' metadata (Variable.extra) but are not labels of its values: pymetrix has no value labels yet.
 
-        EViews programs (.prg) are translated in code, with translate_program: see the topic on EViews programs.
+        EViews programs (.prg) are translated with File > Translate EViews program, or in code with
+        translate_program: see the topic on EViews programs.
         """, see_also=("eviews-programs",))
     add_help_topic("eviews-programs", "EViews programs (the pymetrix-eviews plugin)", """
-        translate_program turns an EViews program (.prg) into three things, from one reading of it:
+        File > Translate EViews program asks for the program, the workfile data its wfopen opens (the bundle, or a
+        CSV or Excel file saved from EViews, with its date column and frequency) and the program's arguments (%0,
+        %1). The translation opens in the EViews translation panel (View > EViews translation): a row for each line,
+        its status in words and in colour, the reason; the program and the script side by side, both following the
+        row selected; a filter for each status, with its count; Copy (the selected rows, or the whole report) and
+        Copy script; and Run as steps, which runs the program's work in this session one step at a time, each
+        recorded and undoable, stopping at the first step that fails and marking its row.
+
+        In code, translate_program turns an EViews program (.prg) into three things, from one reading of it:
 
             from pymetrix_eviews import translate_program
             t = translate_program("macro.prg", bundle="macro-export/macro.evbundle")
@@ -224,3 +355,6 @@ def _help() -> None:
 
 with plugin_context(PLUGIN):
     _help()
+    from pymetrix.extension import AppPanel, register as _add
+
+    _add("panels", AppPanel("EViews translation", create_panel, area="bottom"), name="eviews_translation")  # View → EViews translation

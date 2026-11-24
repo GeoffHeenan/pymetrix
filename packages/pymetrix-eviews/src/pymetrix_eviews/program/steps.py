@@ -217,7 +217,11 @@ def run_steps(translation: Any, session: Any = None, attach: bool = True, *, arg
             placed = type(cause)(str(exc)) if cause is not None else PyMetrixError(str(exc))
         except Exception:  # noqa: BLE001 - an error class that takes other arguments
             placed = PyMetrixError(str(exc))
-        placed.line, placed.file = exc.line, exc.file  # type: ignore[attr-defined]
+        try:
+            placed.line, placed.file = exc.line, exc.file  # type: ignore[attr-defined]
+        except AttributeError:  # an error class that takes no attributes
+            placed = PyMetrixError(str(exc))
+            placed.line, placed.file = exc.line, exc.file  # type: ignore[attr-defined]
         raise placed from cause
     if attach:
         stem = translation.program.rsplit(".", 1)[0] if translation.program else "program"

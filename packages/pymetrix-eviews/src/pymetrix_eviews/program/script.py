@@ -66,9 +66,21 @@ def body_lines(body: tuple[Any, ...], indent: int, returns: tuple[str, ...] = ()
     return out
 
 
-def _comment(o: Any) -> str:
+class _Line(str):
+    """A line of the script that stands for a line of a program: ``key`` is (file, line)."""
+
+    key: tuple[str, int] | None = None
+
+
+def _mark(text: str, file: str, line: int) -> str:
+    out = _Line(text)
+    out.key = (file, line)
+    return out
+
+
+def _comment(o: Any, pad: str = "") -> str:
     eviews = " ".join(o.statement.text.split())
-    return f"# {o.statement.line}: {eviews}"
+    return _mark(f"{pad}# {o.statement.line}: {eviews}", o.file, o.statement.line)
 
 
 class _Writer:
@@ -106,7 +118,7 @@ class _Writer:
                 if blank and blanks and out and out[-1] != "":
                     out.append("")
                 blank = False
-                out.append(pad + f"# {p.comments[number]}")
+                out.append(_mark(pad + f"# {p.comments[number]}", file, number))
                 self.used.add((file, number))
         if blank and blanks:
             out.append("")
@@ -130,7 +142,7 @@ class _Writer:
         pad = _PAD * indent
         out: list[str] = self.pending(o.file, o.statement.line, pad, blanks=indent == 0)
         out += self._own_comment(o, pad)
-        out.append(pad + _comment(o))
+        out.append(_comment(o, pad))
         self.cursor[o.file] = max(self.cursor.get(o.file, 0), o.statement.last_line)
         kind = getattr(o, "kind", "")
         if kind == "include":
@@ -171,14 +183,14 @@ class _Writer:
                 inner = []
                 if o.else_outcome is not None:
                     inner += self.pending(o.file, o.else_outcome.statement.line, pad + _PAD, blanks=False)
-                    inner.append(pad + _PAD + _comment(o.else_outcome))
+                    inner.append(_comment(o.else_outcome, pad + _PAD))
                     self.cursor[o.file] = max(self.cursor.get(o.file, 0), o.else_outcome.statement.line)
                 for c in o.orelse:
                     inner += self.outcome(c, indent + 1, returns)
                 out += inner + ([] if _has_code(inner) else [pad + _PAD + "pass"])
         if getattr(o, "closer", None) is not None:
             out += self.pending(o.file, o.closer.statement.line, pad + _PAD, blanks=False)
-            out.append(pad + _comment(o.closer))
+            out.append(_comment(o.closer, pad))
         self._end(o)
         return out
 
@@ -188,7 +200,7 @@ class _Writer:
         where = f" ({o.file})" if o.file else ""
         self.cursor[o.file] = o.statement.last_line
         out += self._own_comment(o, "")
-        out.append(_comment(o) + where)
+        out.append(_mark(_comment(o) + where, o.file, o.statement.line))
         if o.reason:
             out.append(f"#   note: {o.reason}")
         out.append(op_code(d))
@@ -205,7 +217,7 @@ class _Writer:
         elif not _has_code(inner):
             out.append(_PAD + "pass")
         if getattr(o, "closer", None) is not None:
-            out.append(_PAD + _comment(o.closer))
+            out.append(_comment(o.closer, _PAD))
             for n in range(o.statement.line, o.closer.statement.line + 1):
                 self.used.add((o.file, n))
         self.cursor[o.file] = 0
@@ -216,8 +228,9 @@ def _has_code(lines: list[str]) -> bool:
     return any(line.strip() and not line.lstrip().startswith("#") for line in lines)
 
 
-def render(outcomes: list[Any], functions: list[tuple[Any, Def]], programs: dict[str, Any], top: list[str]) -> str:
-    """The script's body: ``top`` (the arguments), the functions, then the program."""
+def render(outcomes: list[Any], functions: list[tuple[Any, Def]], programs: dict[str, Any], top: list[str]) -> tuple[str, dict[tuple[str, int], int]]:
+    """The script's body: ``top`` (the arguments), the functions, then the program; and the line of the body (from 0)
+    that stands for each line of a program, by (file, line)."""
     w = _Writer(programs)
     body: list[str] = list(top)
     if top:
@@ -229,7 +242,17 @@ def render(outcomes: list[Any], functions: list[tuple[Any, Def]], programs: dict
     for o in outcomes:
         body += w.outcome(o, 0, ())
     body += w.pending("", 10 ** 9, "", blanks=False)
-    text = "\n".join(body).strip("\n")
-    import re
-
-    return re.sub(r"\n{3,}", "\n\n", text)
+    lines: list[str] = []
+    for item in body:  # one blank line at most between parts, none at the ends
+        for piece in (item.split("\n") if not isinstance(item, _Line) else [item]):
+            piece = piece if isinstance(piece, _Line) else piece
+            if piece == "" and (not lines or lines[-1] == ""):
+                continue
+            lines.append(piece)
+    while lines and lines[-1] == "":
+        lines.pop()
+    where: dict[tuple[str, int], int] = {}
+    for i, line in enumerate(lines):
+        if isinstance(line, _Line) and line.key is not None:
+            where.setdefault(line.key, i)
+    return "\n".join(lines), where

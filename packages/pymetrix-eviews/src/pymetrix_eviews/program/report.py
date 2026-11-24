@@ -112,6 +112,18 @@ class ProgramTranslation:
     functions: Sequence[Any] = field(default=(), repr=False)  # the subroutines: (line, Def, file)
     objects: Mapping[str, Any] = field(default_factory=dict, repr=False)  # given to the translation (objects=)
     arguments: Mapping[str, str] = field(default_factory=dict)  # the program's arguments: arg0 -> value
+    sources: Mapping[str, str] = field(default_factory=dict, repr=False)  # the text of the program and each included one, by name
+    script_lines: Mapping[Any, int] = field(default_factory=dict, repr=False)  # (file, line) -> the script's line (from 1)
+
+    def script_line(self, line: int, file: str | None = None) -> int | None:
+        """The script's line (from 1) of a program's line, or of the nearest one before it with a line of its own;
+        None before the first."""
+        file = self.program if file is None else file
+        best = None
+        for (f, n), at in self.script_lines.items():
+            if f == file and n <= line and (best is None or n > best[0]):
+                best = (n, at)
+        return None if best is None else best[1]
 
     def run(self, session: Any = None, attach: bool = True, *, args: Any = None, while_cap: int | None = None,
             run: Any = None) -> dict[str, Any]:

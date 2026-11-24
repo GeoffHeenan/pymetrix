@@ -162,4 +162,4 @@ def test_importing_the_plugin_first_leaves_pymetrix_own_dialogs_as_they_are():
             "print(sorted(c for c, i in COMMAND_IDS.items() if i.plugin == 'pymetrix-eviews'))\n"
             "print(COMMAND_IDS['pymetrix:fit_equation'].plugin)\n")
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True, timeout=300).stdout.split("\n")
-    assert out[:2] == ["['eviews:import_eviews']", "pymetrix"]
+    assert out[:2] == ["['eviews:import_eviews', 'eviews:translate_program']", "pymetrix"]

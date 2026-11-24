@@ -28,8 +28,9 @@ programs, the program's arguments); what has no pymetrix equivalent is left out 
     t = translate_program("C:/work/macro.prg", bundle="C:/work/macro-export/macro.evbundle")
     print(t.script); t.report.summary(); t.run(session)
 
-In the app: **File → Import EViews workfile…** (a workfile bundle, or a copy of the export program). Translating
-programs in the app and running EViews through COM are later work.
+In the app: **File → Import EViews workfile…** (a workfile bundle, or a copy of the export program), **File → Translate
+EViews program…** and the **EViews translation** panel (the report, the program beside the script, Run as steps).
+Running EViews through COM is later work.
 """
 
 from __future__ import annotations

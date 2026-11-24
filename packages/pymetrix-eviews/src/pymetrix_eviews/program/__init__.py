@@ -76,10 +76,15 @@ def translate_program(source: Any, bundle: Any = None, *, read_options: dict[str
     rows = _rows(program, outcomes, name)
     ops = tuple((0, op, "") for op in top) + ops_of(outcomes)
     functions = functions_of(flow)
-    script = _script(program, outcomes, functions, flow, name, translator.uses_bundle, top, given)
+    script, where = _script(program, outcomes, functions, flow, name, translator.uses_bundle, top, given)
+    where = {(name if not f else f, line): n for (f, line), n in where.items()}
     pages = {p.eviews: p.var for p in translator.pages.values()}
+    sources = {name: program.source}
+    for o in _flat(outcomes):
+        if o.kind == "include" and getattr(o, "program", None) is not None:
+            sources.setdefault(o.included_file, o.program.source)
     return ProgramTranslation(script, TranslationReport(tuple(rows), name), name, ops, pages, tuple(functions), dict(given),
-                              arguments)
+                              arguments, sources, where)
 
 
 def _given(translator: Translator, objects: Any) -> dict[str, Any]:
@@ -253,7 +258,7 @@ def _imports(text: str) -> list[str]:
 
 
 def _script(program: Program, outcomes: list[Any], functions: list[Any], flow: Flow, name: str, uses_bundle: bool,
-            top: list[Any], given: dict[str, Any]) -> str:
+            top: list[Any], given: dict[str, Any]) -> tuple[str, dict[tuple[str, int], int]]:
     programs: dict[str, Program] = {"": program}
     for o in _flat(outcomes):
         if o.kind == "include" and getattr(o, "program", None) is not None:
@@ -264,7 +269,7 @@ def _script(program: Program, outcomes: list[Any], functions: list[Any], flow: F
         sub = next((x for x in flow.subs.values() if x.var == d.name and x.outcome is not None), None)
         if sub is not None:
             pairs.append((sub.outcome, d))
-    text = render(outcomes, pairs, programs, [op.code for op in top])
+    text, where = render(outcomes, pairs, programs, [op.code for op in top])
     used = _imports(text)
     title = f"{name}: an EViews program" if name else "An EViews program"
     head = [f'"""{title}, translated by pymetrix-eviews (translate_program).',
@@ -279,4 +284,5 @@ def _script(program: Program, outcomes: list[Any], functions: list[Any], flow: F
         kinds = ", ".join(f"{k} (a {type(v).__name__})" for k, v in given.items())
         head += ["", "# The objects the program uses but does not make (in EViews an add-in, a database or another program makes",
                  f"# them): give them before running this script, under these names: {kinds}"]
-    return "\n".join(head) + "\n\n" + text + "\n"
+    first = len(head) + 2  # the body starts after the head and a blank line (lines counted from 1)
+    return "\n".join(head) + "\n\n" + text + "\n", {k: first + i for k, i in where.items()}
