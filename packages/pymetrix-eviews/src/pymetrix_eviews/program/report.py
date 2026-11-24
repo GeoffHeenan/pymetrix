@@ -48,10 +48,10 @@ class TranslationReport:
     def __getitem__(self, i: int) -> ReportRow:
         return self.rows[i]
 
-    def line(self, number: int) -> ReportRow:
-        """The row of a line (from 1)."""
+    def line(self, number: int, file: str | None = None) -> ReportRow:
+        """The row of a line (from 1) of the program, or of an included one (``file``, as the report names it)."""
         for r in self.rows:
-            if r.line == number:
+            if r.line == number and (r.file == self.program if file is None else r.file == file):
                 return r
         from pymetrix.errors import NotFoundError
 
@@ -63,16 +63,29 @@ class TranslationReport:
 
         counts = self.counts()
         notes = ["; ".join(f"{n} {s}" for s, n in counts.items()),
-                 "Every line with text has a row: nothing is dropped silently. Left out: phase 3 is control flow; an "
-                 "option not mapped is named; the rest has no pymetrix equivalent or is display only."]
-        rows = [[r.line, r.status, r.eviews, r.python, r.reason] for r in self.rows]
-        return Table(["line", "status", "EViews", "Python", "reason"], rows,
+                 "Every line with text has a row, an included program's under its name: nothing is dropped silently. "
+                 "Left out: an option not mapped is named; the rest has no pymetrix equivalent or is display only."]
+        rows = [[r.file if r.file != self.program else "", r.line, r.status, r.eviews, r.python, r.reason] for r in self.rows]
+        return Table(["file", "line", "status", "EViews", "Python", "reason"], rows,
                      title=f"Translation of {self.program}" if self.program else "Translation", notes=notes)
 
-    def to_text(self) -> str:
-        """The report as plain text, a line per row."""
-        out = []
+    def files(self) -> list[str]:
+        """The program's name and the included programs', in the order their rows come."""
+        out: list[str] = []
         for r in self.rows:
+            if r.file not in out:
+                out.append(r.file)
+        return out
+
+    def to_text(self, rows: Any = None) -> str:
+        """The report (or some of its ``rows``) as plain text, a line per row; an included program's rows under a
+        line naming it."""
+        out = []
+        file = self.program
+        for r in (self.rows if rows is None else rows):
+            if r.file != file:
+                file = r.file
+                out.append(f"  -- {file or 'the program'}")
             tail = f"  [{r.reason}]" if r.reason else ""
             out.append(f"{r.line:>5}  {r.status:<22}  {r.eviews.strip()}{tail}")
         return "\n".join(out)
@@ -96,17 +109,27 @@ class ProgramTranslation:
     program: str = ""
     ops: Sequence[Any] = field(default=(), repr=False)
     pages: Mapping[str, str] = field(default_factory=dict)
+    functions: Sequence[Any] = field(default=(), repr=False)  # the subroutines: (line, Def, file)
+    objects: Mapping[str, Any] = field(default_factory=dict, repr=False)  # given to the translation (objects=)
+    arguments: Mapping[str, str] = field(default_factory=dict)  # the program's arguments: arg0 -> value
 
-    def run(self, session: Any = None, attach: bool = True) -> dict[str, Any]:
+    def run(self, session: Any = None, attach: bool = True, *, args: Any = None, while_cap: int | None = None,
+            run: Any = None) -> dict[str, Any]:
         """Run the translation as steps (steps mode) in ``session`` (a new ``Session`` when None): each data
         statement a recorded call (``make_call``), so History and the session's script hold it as if typed or made
-        in a dialog; scalars, strings and matrices are Python values, not steps, and are returned (name -> value),
+        in a dialog; loops, ``if`` blocks and subroutines run in Python, a condition decided by the results made
+        before it; scalars, strings and matrices are Python values, not steps, and are returned (name -> value),
         with the session under ``"session"``. With ``attach``, the readable script and the report are kept in the
-        project (``session.attachments["pymetrix-eviews"]["<program>.py"]`` and ``"<program>.txt"``). Stops at the first step that fails,
-        raising its error with the line."""
+        project (``session.attachments["pymetrix-eviews"]["<program>.py"]`` and ``"<program>.txt"``). Stops at the
+        first step that fails, raising its error with the line.
+
+        ``args`` replaces the program's arguments (``%0``, ``%1``: strings, or one string of words); ``while_cap`` is
+        how many passes a ``while`` loop may make before it stops with an error (default 10,000); ``run`` runs each
+        step instead of ``session.run`` (the app's ``AppInterface.run``, which records it and lets it be undone).
+        The objects given to the translation (``objects=``) are put in the session when it has none of that name."""
         from .steps import run_steps
 
-        return run_steps(self, session, attach)
+        return run_steps(self, session, attach, args=args, while_cap=while_cap, runner=run)
 
     def summary(self) -> Any:
         return self.report.summary()

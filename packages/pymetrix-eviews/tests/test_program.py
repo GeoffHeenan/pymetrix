@@ -109,6 +109,9 @@ def test_hand_program_values_by_hand():
     np.testing.assert_array_equal(out["b"].values, [[1.0], [2.0]])  # fill by column
     np.testing.assert_array_equal(out["mm"].values, [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])  # fill(b=r): by row
     assert (out["s"], out["x"], out["half"], out["two"]) == ("abc", "abcd", 0.5, 2)
+    np.testing.assert_array_equal(f["a1"], [1.0] * 8)  # for !i = 1 to 2: series a{!i} = !i, over all rows
+    np.testing.assert_array_equal(f["a2"], [2.0] * 8)
+    assert out["i"] == 2
     assert q.sample is None  # smpl @all last
 
 
@@ -118,20 +121,22 @@ def test_hand_program_report():
     rows = {r.line: r for r in t.report}
     assert sorted(rows) == [i for i, text in enumerate(lines, start=1) if text.strip()]  # a row per line with text
     assert all(r.status in STATUSES for r in t.report)
-    assert t.report.counts() == {"translated": 30, "translated with a note": 7, "left out": 6, "error": 0}
+    assert t.report.counts() == {"translated": 32, "translated with a note": 8, "left out": 3, "error": 0}
     assert rows[6].status == "translated with a note" and "period by period" in rows[6].reason
     assert rows[32].reason == "continues line 31" and rows[36].reason == "continues line 35"
     assert rows[37].status == "left out" and "graphs are not translated" in rows[37].reason
     assert rows[38].status == "translated" and rows[38].python == 'eq = Equation("y ~ t", name="eq").fit(q)'
     assert "@year" in rows[39].reason and "gap" in rows[39].reason
-    assert rows[40].reason == "a for loop: phase 3 (control flow)"
-    assert rows[41].reason == "inside a for loop (line 40): phase 3 (control flow)"
+    assert rows[40].status == "translated" and rows[40].python == "for i in range(1, 3):"
+    assert rows[41].status == "translated with a note" and "made from a value known when the program runs" in rows[41].reason
+    assert rows[41].python == 'q = q.with_series(**{f"a{i}": f"({i})"}, within=q.sample)'
+    assert rows[42].reason == "the end of the for loop at line 40"
     assert rows[43].status == "left out" and "File → Save" in rows[43].reason
     assert rows[8].python == 'q = q.with_series(y="2*t + 1")'
     assert rows[11].python == 'q = q.with_series(z=f"y*({half}) - ({two})")'
     table = t.report.summary()
-    assert list(table.columns) == ["line", "status", "EViews", "Python", "reason"] and len(table.rows) == len(t.report)
-    assert "30 translated" in table.notes[0]
+    assert list(table.columns) == ["file", "line", "status", "EViews", "Python", "reason"] and len(table.rows) == len(t.report)
+    assert "32 translated" in table.notes[0]
     # the script keeps every EViews line as a comment
     assert "# 37: graph gr.line y z" in t.script and "#   left out: graphs are not translated" in t.script
     assert t.script.splitlines()[5] == "from pymetrix import Dataset, Matrix, Sample, Equation"
@@ -256,13 +261,12 @@ def test_the_audit_gaps_are_left_out_by_name(expression, name):
 
 
 @pytest.mark.parametrize("line, words", [
-    ("for !i = 1 to 3", ("phase 3",)), ("call f(1)", ("phase 3",)), ("include lib", ("phase 3",)), ("stop", ("phase 3",)),
     ("graph g.line x", ("graphs",)), ("x.line", ("graphs",)), ("freeze(t1) x.stats", ("view",)),
     ("table(2,2) t", ("tables",)), ("spool sp", ("output",)), ("show x", ("display",)), ("logmode all", ("setting",)),
     ("shell dir", ("external",)), ("fetch(d=db) x", ("database",)), ("dbopen db", ("database",)),
     ("copy(c=a) q\\x a\\x", ("to_freq",)), ("import a.csv", ("Dataset.read",)), ("pagestruct(freq=a)", ("page",)),
     ("myaddin(x=1) y", ("add-in",)), ("series s = @mean(x) + 1", ("scalar m = @mean",)),
-    ("series s = x.@count", ("phase 3",)), ("series s = @str(x)", ("phase 3",)),
+    ("series s = x.@count", ("data member", "scalar")), ("series s = @str(x)", ("program's value", "%w = @word")),
     ("alpha a = \"x\"", ("text",)), ("series s = c(1)*x", ("scalar b = c(1)",)),
 ])
 def test_lines_left_out_give_a_reason(line, words):
@@ -273,11 +277,15 @@ def test_lines_left_out_give_a_reason(line, words):
         assert w in row.reason
 
 
-def test_values_set_inside_blocks_or_by_lines_left_out_are_not_guessed():
+def test_values_set_inside_blocks_are_used_when_the_program_runs_and_lines_left_out_are_not_guessed():
     t = translate_program("wfcreate q 2000q1 2000q4\n%s = \"a\"\nif 1 then\n  %s = \"b\"\nendif\nseries x{%s} = 1\n"
-                          "scalar n = @obssmpl\nscalar k = n + 1\n")
-    assert t.report.line(6).status == "left out" and "phase 3" in t.report.line(6).reason
-    assert t.report.line(8).reason == "n is set by line 7, which is left out"
+                          "scalar n = @obssmpl\nscalar k = n + 1\nscalar u = @elem(x, 1)\nscalar v = u + 1\n")
+    # %s is "b" only when the if block runs: the name is made then (an f-string), never guessed before
+    assert t.report.line(6).status == "translated with a note" and 'f"x{s}"' in t.report.line(6).python
+    assert t.report.line(7).python == "n = int(untitled.sample_mask().sum())"
+    namespace, out = _both(t)
+    assert list(out["session"]["untitled"].frame.columns) == ["xb"] and (out["n"], out["k"]) == (4, 5)
+    assert t.report.line(9).status == "left out" and t.report.line(10).reason == "u is set by line 9, which is left out"
 
 
 def test_statistics_and_samples_with_conditions():

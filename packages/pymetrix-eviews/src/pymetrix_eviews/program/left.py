@@ -1,6 +1,6 @@
-"""What the translation leaves out, and why: the report's reasons for the commands of the later phases (design note,
-section 2: phase 3, control flow; phase 4, what stays in the report), and the expression functions pymetrix has no
-equivalent of (the audit, docs/known-gaps.md). Phase 2's own refusals (an estimator's option not mapped, testadd, the
+"""What the translation leaves out, and why: the report's reasons for what stays in the report (design note, section
+2, phase 4), and the expression functions pymetrix has no equivalent of (the audit, docs/known-gaps.md); the words
+of control flow (phase 3, ``control.py``), named in the report when one is out of place. Phase 2's own refusals (an estimator's option not mapped, testadd, the
 extreme-value link) are given where they are met, in ``estimation.py`` and ``models.py``.
 
 Every statement is either translated or left out with one of these reasons: nothing is dropped silently.
@@ -8,15 +8,13 @@ Every statement is either translated or left out with one of these reasons: noth
 
 from __future__ import annotations
 
-__all__ = ["GAP_FUNCTIONS", "PROGRAM_FUNCTIONS", "PHASE2_COMMANDS", "PHASE3", "PHASE3_WORDS", "PHASE4_COMMANDS", "PHASE4_METHODS",
+__all__ = ["GAP_FUNCTIONS", "PROGRAM_FUNCTIONS", "PHASE2_COMMANDS", "PHASE3_WORDS", "PHASE4_COMMANDS", "PHASE4_METHODS",
            "STATISTICS", "left_reason"]
-
-PHASE3 = "phase 3 (control flow)"
 
 # state-space objects: read whole by the core reader, not line by line
 PHASE2_COMMANDS = {"sspace": "read_eviews_sspace(text)"}
 
-# phase 3: control flow, subroutines and included files
+# phase 3: control flow, subroutines and included files (control.py translates them)
 PHASE3_WORDS = {
     "for": "a for loop", "next": "the end of a for loop", "while": "a while loop", "wend": "the end of a while loop",
     "if": "an if block", "else": "an else branch", "endif": "the end of an if block", "subroutine": "a subroutine",
@@ -74,7 +72,8 @@ GAP_FUNCTIONS = {
 }
 
 
-# EViews's programming-language functions (strings, dates as numbers, objects, matrices): phase 3
+# EViews's programming-language functions (strings, dates as numbers, objects, matrices): program values, not series;
+# control.py translates the string and word functions and a group's members, the rest are gaps
 PROGRAM_FUNCTIONS = frozenset({
     "@val", "@str", "@word", "@wcount", "@replace", "@isobject", "@wfind", "@wfindnc", "@right", "@left", "@mid", "@lower",
     "@upper", "@len", "@length", "@instr", "@trim", "@ltrim", "@rtrim", "@dateval", "@datestr", "@dateadd", "@datediff",

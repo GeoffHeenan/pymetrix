@@ -1,12 +1,12 @@
 """Phase 1: data work, and the translator. Each statement becomes ``Op``s (``ir.py``) with a status and a reason, or is
 left out with one; estimation and tests (``estimation.py``) and models (``models.py``) are phase 2's handlers.
 
-The translator walks the program in order, as EViews runs it, keeping what a straight-line program needs: the pages
+The translator walks the program in order, as EViews runs it, keeping what the program's text tells: the pages
 (each a Dataset variable, the current one, their frequencies, series and samples) and the program's own variables
 (scalars, ``!`` numbers, ``%`` strings, groups, samples, matrices), with their values where they are known before
-the program runs, so ``{%s}`` and ``{!i}`` in a line can be put in. Loops, ``if`` blocks and subroutines are
-phase 3: they and the lines inside them are left out with that reason, as is a line that needs a value only a
-subroutine or a loop gives.
+the program runs, so ``{%s}`` and ``{!i}`` in a line can be put in. A value known only when the program runs (set
+in a loop, a subroutine or from the data) is used by name, and a name made from it is made as the program runs
+(phase 3, ``control.py``, which walks loops, ``if`` blocks and subroutines).
 """
 
 from __future__ import annotations
@@ -24,8 +24,9 @@ from pymetrix.extension import walk_eviews_expression
 
 from ..bundle import _py_name
 from .estimation import ESTIMATORS, LEFT_ESTIMATORS, Estimation
-from .ir import Arg, Code, Op, SampleSpec, Step, Text, Var, quote
-from .left import (GAP_FUNCTIONS, PROGRAM_FUNCTIONS, PHASE2_COMMANDS, PHASE3, PHASE3_WORDS, PHASE4_COMMANDS, PHASE4_METHODS,
+from .control import PLACEHOLDER, ProgramValues, dynamic_ops
+from .ir import Arg, Code, Op, Py, SampleSpec, Spread, Step, Text, Var, quote
+from .left import (GAP_FUNCTIONS, PROGRAM_FUNCTIONS, PHASE2_COMMANDS, PHASE3_WORDS, PHASE4_COMMANDS, PHASE4_METHODS,
                    STATISTICS, left_reason)
 from .models import Models
 from .parse import Statement, _statement
@@ -80,12 +81,19 @@ class _Py:
 
 @dataclass
 class Outcome:
-    """One statement translated: its status, reason and ops."""
+    """One statement translated: its status, reason and ops; a block's also its body (``children``), its else branch
+    (``orelse``, after ``else_outcome``) and its end (``closer``); ``file`` the included program it is in."""
 
     statement: Statement
     status: str
     reason: str = ""
     ops: list[Op] = field(default_factory=list)
+    file: str = ""
+    kind: str = ""
+    children: list[Any] = field(default_factory=list)
+    orelse: list[Any] = field(default_factory=list)
+    else_outcome: Any = None
+    closer: Any = None
 
 
 def _public_names() -> set[str]:
@@ -129,9 +137,9 @@ def _shifted(period: str, freq: str, n: int) -> str:
     return str(pd.Period(period, freq=freq) + n)
 
 
-class Translator(Estimation, Models):
+class Translator(Estimation, Models, ProgramValues):
     """Translates a program's statements in order (see the module's docstring); estimation and tests
-    (``estimation.py``) and models (``models.py``) are phase 2's."""
+    (``estimation.py``) and models (``models.py``) are phase 2's, the program's own values (``control.py``) phase 3's."""
 
     def __init__(self, bundle: str | None = None, read_options: dict[str, Any] | None = None) -> None:
         self.bundle = bundle
@@ -156,6 +164,11 @@ class Translator(Estimation, Models):
         self._declared: dict[str, int] = {}  # scalars -> the line that made them
         self._fit_line: dict[str, int] = {}  # estimated objects -> the line that estimated them last
         self.line = 0  # the line being translated
+        self.runtime = 0  # > 0 inside a loop, an if block or a subroutine: values are known when the program runs
+        self.dynamic: dict[int, str] = {}  # placeholder number -> the Python variable whose value it stands for
+        self.sample_unknown: set[str] = set()  # pages whose sample depends on the branch an if block takes
+        self._made_names = False  # the statement being translated makes a name from a value known when it runs
+        self._dated_note = False  # the sample being read has dates known when the program runs
 
     # -- names ------------------------------------------------------------------------------------------------------
 
@@ -181,6 +194,9 @@ class Translator(Estimation, Models):
         return page
 
     def _page(self) -> _Page:
+        if self.current is None and self.runtime:
+            raise _left("no page is open where this line is translated: a subroutine works on the page selected when it is "
+                        "called (translate the program that opens the workfile and calls it)")
         if self.current is None:
             raise _error("no workfile is open yet: wfopen or wfcreate comes first")
         return self.current
@@ -191,31 +207,47 @@ class Translator(Estimation, Models):
         v = self.py.get(key.lower())
         return _UNKNOWN if v is None else v.value
 
+    def _value_text(self, key: str, braces: bool, notes: list[str]) -> str:
+        """A program variable's value as text, for ``{key}`` (or ``%key`` in a command); a value known only when the
+        program runs is a placeholder, made into a name made as it runs (``control.dynamic_ops``)."""
+        low = key.lower()
+        value = self._known(key)
+        v = self.py.get(low)
+        if v is None:
+            v = self.runtime_variable(low) if low[:1] in "!%" else None
+        if value is _UNKNOWN and v is not None and v.kind in ("scalar", "control", "string"):
+            self._made_names = True
+            return self.placeholder(low)
+        if value is _UNKNOWN:
+            kind = (f"set by line {self.unset[low]}, which is left out" if low in self.unset else
+                    "a line left out may set it" if self.lost else "never set")
+            raise _left(f"{'{' + key + '}' if braces else key} has no value ({kind})")
+        text = _number_text(value) if isinstance(value, (int, float)) else str(value)
+        shown = "{" + key + "}" if braces else key
+        if f"{shown} is {text!r}" not in notes and not self.runtime:
+            notes.append(f"{shown} is {text!r}")
+        return text
+
+    def _braces(self, text: str, notes: list[str] | None = None) -> tuple[str, list[str]]:
+        """``{%s}``, ``{!i}`` and ``{s}`` in ``text`` put in."""
+        notes = [] if notes is None else notes
+        if "{" in text:
+            text = re.sub(r"\{\s*([!%]?\w+)\s*\}", lambda m: self._value_text(m.group(1), True, notes), text)
+            if "{" in text:
+                raise _left("a name made from an expression in braces ({!i+1}) is not translated: give a variable its value "
+                            "first (!j = !i + 1), then use {!j}")
+        return text, notes
+
     def _substitute(self, st: Statement) -> tuple[Statement, list[str]]:
-        """``{%s}``, ``{!i}`` and ``{s}`` put in with their values, and ``%s`` in a command's arguments; a value not
-        known before the program runs is phase 3."""
+        """``{%s}``, ``{!i}`` and ``{s}`` put in with their values, and ``%s`` in a command's arguments; a value known
+        only when the program runs makes the name as it runs."""
         notes: list[str] = []
-
-        def value_text(key: str, braces: bool) -> str:
-            value = self._known(key)
-            if value is _UNKNOWN:
-                kind = (f"set by line {self.unset[key.lower()]}, which is left out" if key.lower() in self.unset else
-                        "set by a subroutine, a loop or the data" if key.lower() in self.py or self.lost else "never set")
-                raise _left(f"{'{' + key + '}' if braces else key} has no value before the program runs ({kind}): {PHASE3}")
-            text = _number_text(value) if isinstance(value, (int, float)) else str(value)
-            shown = "{" + key + "}" if braces else key
-            if f"{shown} is {text!r}" not in notes:
-                notes.append(f"{shown} is {text!r}")
-            return text
-
         text = st.text
         if "{" in text:
-            text = re.sub(r"\{\s*([!%]?\w+)\s*\}", lambda m: value_text(m.group(1), True), text)
-            if "{" in text:
-                raise _left(f"a name made from an expression in braces: {PHASE3}")
+            text, _ = self._braces(text, notes)
         if st.kind != "assign" and st.word not in ("string",) and "%" in text:
             pieces = re.split(r'("[^"]*")', text)
-            text = "".join(p if p.startswith('"') else re.sub(r"%(\w+)", lambda m: value_text("%" + m.group(1), False), p)
+            text = "".join(p if p.startswith('"') else re.sub(r"%(\w+)", lambda m: self._value_text("%" + m.group(1), False, notes), p)
                            for p in pieces)
         if text == st.text:
             return st, []
@@ -228,9 +260,8 @@ class Translator(Estimation, Models):
     def _scan(self, text: str) -> None:
         """Functions pymetrix's expressions have no equivalent of (the audit), and statistics: left out by name."""
         if re.search(r"\w\.@?\w", re.sub(r'"[^"]*"|\d+\.\d*', "", text)):
-            raise _left("an object's data member (eq.@coefs(2), x.@count) in a series expression is not translated: an "
-                        "equation's is, as a scalar's value (scalar b = eq.@coefs(2)), then use the scalar; the others are "
-                        f"EViews's programming language: {PHASE3}")
+            raise _left("an object's data member (eq.@coefs(2), g.@count) in a series expression is not translated: give a "
+                        "scalar its value first (scalar b = eq.@coefs(2)), then use the scalar")
         for m in re.finditer(r'"[^"]*"|(?<![\w@!%])(@?[A-Za-z_]\w*)(\s*\()?', text):
             if m.group(1) is None:
                 continue
@@ -239,7 +270,8 @@ class Translator(Estimation, Models):
                 raise _left(f"{name} is the sample's {STATISTICS[name].replace('std', 'standard deviation').replace('count', 'number of observations')}, "
                             f"a number: give a scalar its value first (scalar m = {name}(x)), then use the scalar")
             if name in PROGRAM_FUNCTIONS:
-                raise _left(f"{name} is part of EViews's programming language (strings, objects, matrices): {PHASE3}")
+                raise _left(f"{name} is part of EViews's programming language (strings, objects, matrices): it makes a "
+                            "program's value, not a series; give a string or a scalar its value first (%w = @word(%s, 1))")
             if name in GAP_FUNCTIONS:
                 raise _left(f"{name} ({GAP_FUNCTIONS[name]}) has no equivalent in pymetrix's expressions: a gap "
                             "(docs/known-gaps.md)")
@@ -260,12 +292,17 @@ class Translator(Estimation, Models):
     def _tree(self, text: str, at: int, comparison: bool = False, coefs: bool = False) -> Any:
         self._scan(text)
         if re.search(r'%\w', re.sub(r'"[^"]*"', "", text)):
-            raise _left(f"a string variable in an expression: {PHASE3}")
+            raise _left("a string variable in a series expression: put it in a name with braces ({%s}), or compare it "
+                        "in an if block")
         work = re.sub(r"!(?=[A-Za-z_])", "_", text)
         vectors = {"c"} | {k for k, v in self.types.items() if v == "coef"}
         try:
             tree = parse_eviews_expression(work, at, vectors, comparison)
         except EViewsExpressionError as exc:
+            group = re.search(r"([A-Za-z_]\w*)\(\.\.\.\) is neither", exc.message)
+            if group and (PLACEHOLDER.fullmatch(group.group(1).lower()) or self.py.get(group.group(1).lower(), _Py("", "")).kind == "group"):
+                raise _left("a group's i-th series (g(i)) in an expression is not translated: name the series "
+                            "(%s = {%g}.@seriesname(!i), then {%s})") from None
             if "is not read here" in exc.message:
                 raise _left(exc.message.split(";")[0] + ": not in pymetrix's expressions, nor in the audit (docs/known-gaps.md)") from None
             raise _error(exc.message or "this does not read as an EViews expression") from None
@@ -294,7 +331,7 @@ class Translator(Estimation, Models):
             if name in allowed:
                 continue
             series = _py_name(name)
-            if page is not None and page.series is not None and series not in page.series:
+            if page is not None and not _has_series(page, series):
                 if series == "resid":
                     raise _left("resid, EViews's series of the last residuals, is not translated: eq.makeresids r makes them "
                                 "a series of the page")
@@ -389,6 +426,9 @@ class Translator(Estimation, Models):
         if isinstance(node, EViewsName):
             key = "!" + node.name[1:] if node.name.startswith("_") and ("!" + node.name[1:]) in self.py else node.name
             v = self.py.get(key)
+            if v is None and node.name.startswith("_") and self.runtime:
+                key = "!" + node.name[1:]
+                v = self.runtime_variable(key)
             if v is None or v.kind not in ("scalar", "control"):
                 if key in self.py:
                     raise _error(f"{node.name} is a {self.py[key].kind}, not a number")
@@ -456,18 +496,20 @@ class Translator(Estimation, Models):
                     codes.append(quote(tok[1:-1]))
                     values.append(tok[1:-1])
                 elif tok.startswith("%") or tok.lower() in self.py and self.py[tok.lower()].kind == "string" or tok.lower() in self.unset:
-                    v = self.py.get(tok.lower())
+                    v = self.py.get(tok.lower()) or self.runtime_variable(tok.lower())
                     if v is None:
                         raise self._missing(tok)
                     codes.append(v.name)
                     values.append(v.value)
                 elif tok.startswith("@"):
-                    raise _left(f"string functions ({tok}) are part of EViews's programming language: {PHASE3}")
+                    raise _left(f"{tok} does not read here")
                 elif self.lost:
                     raise self._missing(tok)
                 else:
                     raise _error(f"{tok} is not a string or a string variable")
             elif tok != "+":
+                if '""' in text:
+                    raise _left('a quote inside a string ("" in EViews) is not translated')
                 raise _error(f"expected + between strings, not {tok!r}")
             expect_value = not expect_value
         if expect_value:
@@ -479,17 +521,27 @@ class Translator(Estimation, Models):
 
     def statement(self, st: Statement) -> Outcome:
         self.line = st.line
+        self._made_names = False
+        original = st
         try:
+            if "$" in re.sub(r'"[^"]*"', "", st.text):
+                from .control import _DOLLAR
+
+                raise _left(_DOLLAR)
             st, notes = self._substitute(st)
             ops, note = self._dispatch(st)
             notes = [*notes, *([note] if note else [])]
-            return Outcome(st, NOTE if notes else TRANSLATED, "; ".join(notes), ops)
+            if self._made_names or any(PLACEHOLDER.search(repr(op)) for op in ops):
+                ops = dynamic_ops(ops, self.dynamic)
+                if _makes_names(ops):
+                    notes.append("a name made from a value known when the program runs: an f-string in the script")
+            return Outcome(original, NOTE if notes else TRANSLATED, "; ".join(notes), ops)
         except _Out as out:
             self._unset(st)
             if not (st.kind == "command" and st.word in _HARMLESS or st.kind == "method" and st.word in PHASE4_METHODS
                     or self.types.get(st.obj.lower()) in ("graph", "table", "spool", "text")):
                 self.forget()
-            return Outcome(st, out.status, out.reason)
+            return Outcome(original, out.status, out.reason)
 
     def inside_block(self, st: Statement) -> None:
         """A line inside a loop, an if block or a subroutine: not translated, but what it sets is no longer known."""
@@ -512,8 +564,21 @@ class Translator(Estimation, Models):
         if key in self.unset:
             return _left(f"{name} is set by line {self.unset[key]}, which is left out")
         if self.lost:
-            return _left(f"{name} is not set by a line translated so far (a loop, a subroutine or a line left out may set it): {PHASE3}")
+            return _left(f"{name} is not set by a line translated so far (a line left out may set it)")
         return _error(f"{name} is not set before this line")
+
+    def _made_series(self, page: _Page, series: str) -> None:
+        """A series the line makes: added to the page's known series, or, for a name made as the program runs, which
+        series the pages have is no longer known."""
+        if PLACEHOLDER.search(series):
+            self._unchecked()
+        elif page.series is not None:
+            page.series.add(series)
+
+    def _unchecked(self) -> None:
+        """After a name made as the program runs: which series each page has is no longer known."""
+        for page in self.pages.values():
+            page.series = None
 
     def forget(self) -> None:
         """After a line left out that may have made series (a loop, a subroutine, a fetch, an add-in), which series
@@ -529,7 +594,7 @@ class Translator(Estimation, Models):
             return self._method(st)
         word = st.word
         if word in PHASE3_WORDS:
-            raise _left(f"{PHASE3_WORDS[word]}: {PHASE3}")
+            raise _error(f"{PHASE3_WORDS[word]} out of place")
         handler = getattr(self, f"_cmd_{word}", None)
         if handler is not None:
             return handler(st)
@@ -703,6 +768,14 @@ class Translator(Estimation, Models):
         ops, n = self._new_page(st, name, *args)
         return ops, "; ".join(x for x in (note, n) if x)
 
+    def _list_names(self, member: str) -> bool:
+        """Whether a group's member is a string variable's value (its words are the series' names)."""
+        ph = PLACEHOLDER.fullmatch(member.lower())
+        if ph is None:
+            return False
+        name = self.dynamic[int(ph.group(1))]
+        return any(v.name == name and v.kind == "string" for v in self.py.values())
+
     def _cmd_pageselect(self, st: Statement) -> tuple[list[Op], str]:
         args = _arguments(st.rest)
         if len(args) != 1:
@@ -768,10 +841,20 @@ class Translator(Estimation, Models):
             ends.append(self._end(tok, page, i == 0))
         if ends == [None, None] and where is None:
             return None
+        if any(isinstance(e, str) and PLACEHOLDER.search(e) for e in ends):
+            self._dated_note = True
         return SampleSpec(ends[0], ends[1], where)
 
-    def _end(self, token: str, page: _Page, first: bool) -> str | None:
+    def _end(self, token: str, page: _Page, first: bool) -> Any:
         t = token.lower()
+        if PLACEHOLDER.search(t):
+            if not PLACEHOLDER.fullmatch(t):
+                raise _left(f"{token}: a date with a variable's value in it, and more, is not translated; a variable "
+                            "holding the whole date is")
+            if page.freq not in ("Y", "Q"):
+                raise _left("a date known only when the program runs is translated for annual and quarterly pages, "
+                            "whose EViews dates (1990, 1990q1) Sample reads as they are")
+            return t
         m = re.fullmatch(r"(@first|@last|[^+\-]+)((?:[+-](?:\d+|!\w+))*)", t)
         if m is None:
             raise _error(f"{token} is not a date")
@@ -805,9 +888,13 @@ class Translator(Estimation, Models):
 
     def _cmd_smpl(self, st: Statement) -> tuple[list[Op], str]:
         page = self._page()
+        self._dated_note = False
         spec = self._sample_spec(st.rest, st.rest_at, page)
         page.sample = spec
-        return [self._with_sample(page, spec)], ""
+        self.sample_unknown.discard(page.var)
+        note = ("the dates are known when the program runs: Sample reads them as EViews writes them (1990q1, 1990)"
+                if self._dated_note else "")
+        return [self._with_sample(page, spec)], note
 
     def _cmd_sample(self, st: Statement) -> tuple[list[Op], str]:
         name = _first_word(st.rest)
@@ -841,15 +928,19 @@ class Translator(Estimation, Models):
         args: list[Arg] = [Arg("exprs", {series: value}, "varkw")]
         own = value is not None and _uses(str(value), series)
         within = page.sample
-        if own and within is None:
+        if self.runtime or page.var in self.sample_unknown:
+            # inside a block or a subroutine, the sample is the one the page has when the line runs
+            within = Py(f"{page.var}.sample or Sample()") if own else Py(f"{page.var}.sample")
+            if own:
+                notes.append("it uses its own values: worked out period by period within the sample, as EViews does")
+        elif own and within is None:
             within = SampleSpec()
             notes.append("it uses its own values, so it is worked out period by period, as EViews does")
         elif own:
             notes.append("it uses its own values: worked out period by period within the sample, as EViews does")
         if within is not None:
             args.append(Arg("within", within))
-        if page.series is not None:
-            page.series.add(series)
+        self._made_series(page, series)
         return [Step("pymetrix:dataset.with_series", page.var, page.var, f"{page.var}.with_series", tuple(args))], "; ".join(notes)
 
     def _cmd_series(self, st: Statement) -> tuple[list[Op], str]:
@@ -872,8 +963,7 @@ class Translator(Estimation, Models):
         page = self._page()
         series = _py_name(m.group(1))
         value = self.expression(m.group(2), st.rest_at + m.start(2), page)
-        if page.series is not None:
-            page.series.add(series)
+        self._made_series(page, series)
         return [Step("pymetrix:dataset.derive", page.var, page.var, f"{page.var}.derive", (Arg("recipes", {series: value}, "varkw"),))], \
             "a derived series: it follows its inputs (Keep updated), over all rows, as a formula series ignores the sample"
 
@@ -891,9 +981,17 @@ class Translator(Estimation, Models):
         for m in members:
             if not re.fullmatch(r"[A-Za-z_][\w*?]*|[*?][\w*?]*", m):
                 raise _left(f"{m}: a group of expressions is not translated: a Selection holds series; make the series first")
-        series = [_py_name(m) if "*" not in m and "?" not in m else m.lower() for m in members]
+        series: list[Any] = []
+        for m in members:
+            ph = PLACEHOLDER.fullmatch(m.lower())
+            if ph and self._list_names(m):  # a string of names, as EViews puts it in: its words
+                series.append(Spread(self.dynamic[int(ph.group(1))]))
+            else:
+                series.append(_py_name(m) if "*" not in m and "?" not in m else m.lower())
+        if any(isinstance(m, Spread) for m in series):
+            note = "; ".join(x for x in (note, "the group's series are the words of a string known when the program runs") if x)
         if page.series is not None:
-            missing = [m for m in series if "*" not in m and "?" not in m and m not in page.series]
+            missing = [m for m in series if isinstance(m, str) and "*" not in m and "?" not in m and not _has_series(page, m)]
             if missing:
                 raise _error(f"{', '.join(missing)} {'is' if len(missing) == 1 else 'are'} not series of page {page.eviews}")
         key = name.lower()
@@ -911,11 +1009,11 @@ class Translator(Estimation, Models):
         if old.lower() in self.py:
             raise _left(f"{old} is a {self.py[old.lower()].kind}: renaming the program's variables is not translated")
         o, n = _py_name(old), _py_name(new)
+        if not _has_series(page, o):
+            raise _error(f"{old} is not a series of page {page.eviews}")
         if page.series is not None:
-            if o not in page.series:
-                raise _error(f"{old} is not a series of page {page.eviews}")
             page.series.discard(o)
-            page.series.add(n)
+        self._made_series(page, n)
         return [Step("pymetrix:dataset.rename", page.var, page.var, f"{page.var}.rename", (Arg("names", {o: n}, "varkw"),))], ""
 
     def _cmd_delete(self, st: Statement) -> tuple[list[Op], str]:
@@ -933,7 +1031,7 @@ class Translator(Estimation, Models):
                 gone.append(key)
             else:
                 s = _py_name(a)
-                if page.series is not None and s not in page.series:
+                if not _has_series(page, s):
                     raise _error(f"{a} is not a series of page {page.eviews}, nor an object of the program")
                 series.append(s)
         ops: list[Op] = []
@@ -957,6 +1055,16 @@ class Translator(Estimation, Models):
                 self._declared[key] = self.line
             self.py[key] = _Py(var, kind, math.nan)
             return [Code(f"{var} = {_NAN}", (var,))], "; ".join(x for x in (note, "a new scalar has no value: NA (verify)") if x)
+        if _program_text(rhs):
+            code, value, kind_, notes = self.program_value(rhs, at)
+            if kind_ == "str":
+                raise _error(f"{name} is a number: {rhs.strip()} is a string")
+            if kind_ == "bool":
+                code = f"float({code})"
+            if old is None:
+                self._declared[key] = self.line
+            self.py[key] = _Py(var, kind, value if not self.runtime else _UNKNOWN)
+            return [Code(f"{var} = {code}", (var,))], "; ".join(x for x in (note, *notes) if x)
         stat = re.fullmatch(r"\s*(@\w+)\s*\((.*)\)\s*", rhs, re.S)
         if stat and stat.group(1).lower() in STATISTICS and _balanced(stat.group(2)):
             page = self._page()
@@ -979,7 +1087,7 @@ class Translator(Estimation, Models):
             code = f"float({code})"
         if old is None:
             self._declared[key] = self.line
-        self.py[key] = _Py(var, kind, value)
+        self.py[key] = _Py(var, kind, value if not self.runtime else _UNKNOWN)
         why = f"worked out: {rhs.strip()}" if worked else ""
         return [Code(f"{var} = {code}", (var,))], "; ".join(x for x in (note, why, *member_notes) if x)
 
@@ -997,9 +1105,15 @@ class Translator(Estimation, Models):
         if rhs is None:
             self.py[key] = _Py(var, "string", "")
             return [Code(f'{var} = ""', (var,))], note
-        code, value = self.string(rhs)
-        self.py[key] = _Py(var, "string", value)
-        return [Code(f"{var} = {code}", (var,))], note
+        notes: list[str] = []
+        if _program_text(rhs, string=True):
+            code, value, kind, notes = self.program_value(rhs)
+            if kind == "num":
+                raise _left(f"{name} is a string: {rhs.strip()} is a number (@str(...) makes it text)")
+        else:
+            code, value = self.string(rhs)
+        self.py[key] = _Py(var, "string", value if not self.runtime else _UNKNOWN)
+        return [Code(f"{var} = {code}", (var,))], "; ".join(x for x in (note, *notes) if x)
 
     def _cmd_string(self, st: Statement) -> tuple[list[Op], str]:
         m = re.fullmatch(r"\s*([A-Za-z_]\w*)\s*(?:=(.*))?", st.rest, re.S)
@@ -1017,7 +1131,8 @@ class Translator(Estimation, Models):
         try:
             dims = [int(self._static_int(s)) for s in size]
         except ValueError:
-            raise _left(f"{kind}'s size is known only when the program runs: {PHASE3}") from None
+            raise _left(f"{kind}'s size is known only when the program runs: not translated (Matrix.zeros(rows, cols) with "
+                        "the numbers)") from None
         if kind == "matrix":
             rows, cols = (dims + [1, 1])[:2] if dims else (1, 1)
         elif kind == "sym":
@@ -1121,14 +1236,14 @@ class Translator(Estimation, Models):
         if method in _OBJECT_METHODS and not kind:
             if self.lost:
                 raise _left(f"{obj} is not made by a line translated so far (a subroutine, an add-in or a line left out may make "
-                            f"it): {PHASE3}")
+                            "it)")
             raise _error(f"{obj} is not an object of the program: {obj}.{method} needs a model, an equation or a system")
         raise _left(f"{obj}.{method} is not translated" + (f" (a {kind})" if kind else ""))
 
     def _label(self, st: Statement) -> tuple[list[Op], str]:
         page = self._page()
         series = _py_name(st.obj)
-        if page.series is not None and series not in page.series:
+        if not _has_series(page, series):
             raise _error(f"{st.obj} is not a series of page {page.eviews}")
         text = st.rest.strip()
         if text.startswith('"') and text.endswith('"') and len(text) > 1:
@@ -1159,7 +1274,7 @@ class Translator(Estimation, Models):
     def _series_fill(self, st: Statement) -> tuple[list[Op], str]:
         page = self._page()
         series = _py_name(st.obj)
-        if page.series is not None and series not in page.series:
+        if not _has_series(page, series):
             raise _error(f"{st.obj} is not a series of page {page.eviews}")
         options = _option_map(st.options)
         flags = [o.strip().lower() for o in (st.options or "").split(",") if o.strip() and "=" not in o]
@@ -1175,6 +1290,8 @@ class Translator(Estimation, Models):
             first = self._end(start, page, True)
             if first is None:
                 raise _error(f"o={start} is not a date")
+            if PLACEHOLDER.search(str(first)):
+                raise _left("fill from a date known only when the program runs is not translated: write the date")
         values: dict[str, Any] = {}
         for i, tok in enumerate(t.strip() for t in st.rest.split(",")):
             try:
@@ -1217,6 +1334,42 @@ _OBJECT_METHODS = frozenset({"solve", "solveopt", "addassign", "addinit", "scena
                              "makegroup", "wald", "auto", "hettest", "archtest", "reset", "chow", "hist", "rls", "testdrop",
                              "testadd", "forecast", "fit", "makeresids", "ec", "sur", "3sls", "fiml", "makemodel", "results", "spec",
                              "output"})
+
+
+def _has_series(page: _Page, name: str) -> bool:
+    """Whether the page may have the series: its series known and the name among them, or a name made as the program
+    runs (not checked)."""
+    return page.series is None or PLACEHOLDER.search(name) is not None or name in page.series
+
+
+def _makes_names(ops: list[Any]) -> bool:
+    """Whether ops make an object or a series whose name is made as the program runs."""
+    from .ir import Cmd, Text
+
+    for op in ops:
+        if isinstance(op, Step) and (isinstance(op.output, Text) and op.output.names
+                                     or any(a.how == "varkw" and any(isinstance(k, Text) for k in a.value) for a in op.args)):
+            return True
+        if isinstance(op, Code) and any(isinstance(n, Text) for n in op.names):
+            return True
+        if isinstance(op, Cmd) and op.fields:
+            return True
+    return False
+
+
+_PROGRAM_WORDS = re.compile(r"(?i)@(?:lower|upper|trim|ltrim|rtrim|len|length|replace|left|right|mid|instr|str|val|wcount|word|wfind"
+                            r"|wfindnc|wlookup|isobject|obssmpl|dateval|dateadd|datestr|datediff|uiprompt)\b|\.@(?:count|seriesname|members)\b")
+
+
+def _program_text(text: str, string: bool = False) -> bool:
+    """Whether a scalar's or a string's right-hand side is a program expression (strings, the programming language's
+    functions, a group's members, a comparison of strings) rather than phase 1's numbers and joined strings."""
+    bare = re.sub(r'"[^"]*"', '""', text)
+    if _PROGRAM_WORDS.search(bare) or PLACEHOLDER.search(bare.lower()):
+        return True
+    if string:
+        return bool(re.search(r"[-*/^=<>(]|@", bare))
+    return bool(re.search(r'%\w|""', bare))
 
 
 def _top_level(text: str, ch: str) -> list[int]:
@@ -1269,4 +1422,5 @@ def is_opener(st: Statement) -> str:
 
 def is_closer(st: Statement) -> bool:
     return st.kind == "command" and st.word in _CLOSERS
+
 

@@ -195,11 +195,26 @@ def _help() -> None:
         default solver), the line is translated with a note saying what to check. An option that is not mapped
         leaves the line out, naming it: an estimate that ran without it would differ without saying so.
 
-        **What is left out, for now.** Loops, if blocks, subroutines and include (phase 3), with the lines inside
-        them, and the objects they make; stepls, breakls, threshold, switchreg, glm and nls (each naming pymetrix's
+        **What is translated (phase 3, control flow).** for !i = 1 to n step k, for %s a b c, while ... wend, and
+        if ... else ... endif stay loops and ifs in the script; exitloop, return and stop become break, return and
+        the end of the program. Subroutines become functions, defined at the top of the script, with string and
+        scalar parameters; EViews passes arguments by reference, so a parameter the subroutine assigns goes back to
+        the caller's variable; a local subroutine shares none of the program's names (its data and estimation
+        lines are left out, as EViews deletes what it makes). include translates the included program in line,
+        its rows under its name. {%s} and {!i} with a value known only as the program runs make the name then (an
+        f-string in the script). Conditions read the program's strings and numbers, @word, @wcount, @wfind,
+        @wlookup, @isobject, @lower, @replace, @mid and the other string functions, a group's @count and
+        @seriesname, the sample's statistics, and an equation's @r2 and other values, so "if eq.@r2 > 0.5" is
+        decided by the equation just estimated. The program's arguments (%0, %1) are the script's parameters
+        (arg0, arg1). Run as steps, the loops and conditions run in Python and only the steps are recorded, each
+        one undoable; a while loop stops after 10,000 passes.
+
+        **What is left out.** stepls, breakls, threshold, switchreg, glm and nls (each naming pymetrix's
         equivalent); testadd and the extreme-value link (gaps); graphs, tables, spools and display; EViews
-        databases (fetch and store); add-ins; and the expression functions pymetrix has no equivalent of, such as
-        @year, @round, @nan, @iif and nrnd (docs/known-gaps.md in pymetrix lists them).
+        databases (fetch and store); add-ins (what they make can be given to translate_program as objects=);
+        EViews's date numbers (@dateval, @dateadd, @datestr); subroutine parameters that are objects; names with $
+        in them; and the expression functions pymetrix has no equivalent of, such as @year, @round, @nan, @iif and
+        nrnd (docs/known-gaps.md in pymetrix lists them).
 
         A program's wfopen needs the workfile's data: export it with the export program (experimental), or save it
         from EViews as CSV or Excel and pass that file, with read_options={"time": "obs", "freq": "Q"} for

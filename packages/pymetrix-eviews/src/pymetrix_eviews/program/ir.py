@@ -9,8 +9,14 @@
 - ``Cmd``: a recorded command that is not a call (``AddToDataset``: a fit's residuals or a forecast added to a page).
 
 A step's values may also be ``New`` (a pymetrix object made from its arguments: ``Equation("y ~ x")``, ``OLS(cov="white")``),
-``Attr`` (an attribute of a variable's value: ``m.model``) and ``RefTo`` (an object of the session by its name, kept by
-reference in the record: ``Scenario(adjust=af)``).
+``Attr`` (an attribute of a variable's value: ``m.model``), ``RefTo`` (an object of the session by its name, kept by
+reference in the record: ``Scenario(adjust=af)``), ``Py`` (a Python expression worked out when the step runs:
+``main.sample``) and ``Spread`` (a string variable's words, spread over a list: ``*names.split()``).
+
+Phase 3's control flow (``For``, ``While``, ``If``, ``Def``, ``Invoke``, ``Jump``) holds bodies of the same ops: the
+script writes them as Python blocks, and steps mode runs them in Python, each statement inside a step. A name made
+from the program's variables (``y_{%s}``) is a ``Text`` wherever a name goes: an f-string in the script, the name
+made when the step runs. An object so named is ``globals()[f"eq_{c}"]`` in the script.
 """
 
 from __future__ import annotations
@@ -19,8 +25,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-__all__ = ["Arg", "Attr", "Cmd", "Code", "New", "Op", "RefTo", "SampleSpec", "Step", "Text", "Var", "literal", "quote", "resolved",
-           "step_code"]
+__all__ = ["Arg", "Attr", "Cmd", "Code", "Def", "For", "If", "Invoke", "Jump", "New", "Op", "Py", "RefTo", "SampleSpec", "Spread",
+           "Step", "Text", "Var", "While", "literal", "name_code", "quote", "resolved", "step_code"]
 
 
 @dataclass(frozen=True)
@@ -75,11 +81,11 @@ class SampleSpec:
     def code(self) -> str:
         args = []
         if self.start is not None and self.end is not None:
-            args.append(f"({quote(self.start)}, {quote(self.end)})")
+            args.append(f"({literal(self.start)}, {literal(self.end)})")
         elif self.start is not None:
-            args.append(f"start={quote(self.start)}")
+            args.append(f"start={literal(self.start)}")
         elif self.end is not None:
-            args.append(f"end={quote(self.end)}")
+            args.append(f"end={literal(self.end)}")
         if self.where is not None:
             args.append(f"where={self.where.code()}")
         return f"Sample({', '.join(args)})"
@@ -87,11 +93,12 @@ class SampleSpec:
     def value(self, env: Mapping[str, Any]) -> Any:
         from pymetrix import Sample
 
-        return Sample(start=self.start, end=self.end, where=self.where.value(env) if self.where is not None else None)
+        start, end = (x.value(env) if isinstance(x, Text) else x for x in (self.start, self.end))
+        return Sample(start=start, end=end, where=self.where.value(env) if self.where is not None else None)
 
     @property
     def names(self) -> tuple[str, ...]:
-        return self.where.names if self.where is not None else ()
+        return tuple(n for x in (self.start, self.end, self.where) if isinstance(x, Text) for n in x.names)
 
 
 class Op:
@@ -139,17 +146,34 @@ class Attr:
 
 @dataclass(frozen=True)
 class RefTo:
-    """An object of the session by its name, recorded by reference (``Ref``), as the script names it."""
+    """An object of the session by its name, recorded by reference (``Ref``), as the script names it (a ``Text`` for a
+    name made when the program runs)."""
+
+    name: Any
+
+
+@dataclass(frozen=True)
+class Py:
+    """A Python expression worked out when the step runs (``main.sample``), with the program's variables and the
+    session's objects; the script has it as it is."""
+
+    code: str
+
+
+@dataclass(frozen=True)
+class Spread:
+    """The words of a string variable, spread over a list (``*names.split()``): EViews's ``group g {%names}``."""
 
     name: str
 
 
 @dataclass(frozen=True)
 class Code(Op):
-    """Python that is not a step (a scalar, a string, a matrix): ``code`` sets ``names``."""
+    """Python that is not a step (a scalar, a string, a matrix): ``code`` sets ``names`` (a ``Text`` for a name made
+    when the program runs)."""
 
     code: str
-    names: tuple[str, ...] = ()
+    names: tuple[Any, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -170,6 +194,8 @@ class Cmd(Op):
 
     command: Any
     uses: tuple[str, ...] = ()
+    fields: Any = None  # {field: Text}: the command's names made when the program runs
+    script: str = ""  # its line of the script, when it is not command.to_code()
 
 
 @dataclass(frozen=True)
@@ -180,8 +206,8 @@ class Step(Op):
     or a ``Var`` (a Python variable's value: a named sample)."""
 
     function: str
-    receiver: Any  # a variable's name (str), None, or a value: New, Attr, Var
-    output: str
+    receiver: Any  # a variable's name (str or Text), None, or a value: New, Attr, Var
+    output: Any  # a variable's name (str, or Text when it is made as the program runs)
     callee: str
     args: tuple[Arg, ...] = ()
 
@@ -191,8 +217,10 @@ class Step(Op):
         out: list[str] = []
 
         def walk(v: Any) -> None:
-            if isinstance(v, (Var, RefTo)):
+            if isinstance(v, Var):
                 out.append(v.name)
+            elif isinstance(v, RefTo):
+                out.extend(v.name.names if isinstance(v.name, Text) else (v.name,))
             elif isinstance(v, Attr):
                 out.append(v.base)
             elif isinstance(v, New):
@@ -208,6 +236,8 @@ class Step(Op):
                     walk(x)
         if isinstance(self.receiver, str):
             out.append(self.receiver)
+        elif isinstance(self.receiver, Text):
+            out.extend(self.receiver.names)
         elif self.receiver is not None:
             walk(self.receiver)
         for a in self.args:
@@ -219,8 +249,14 @@ def literal(value: Any) -> str:
     """A value as Python, in the script."""
     if isinstance(value, (Text, SampleSpec, New, Attr)):
         return value.code()
-    if isinstance(value, (Var, RefTo)):
+    if isinstance(value, Var):
         return value.name
+    if isinstance(value, RefTo):
+        return name_code(value.name)
+    if isinstance(value, Py):
+        return value.code
+    if isinstance(value, Spread):
+        return f"*{value.name}.split()"
     if isinstance(value, str):
         return quote(value)
     if value is None or isinstance(value, (bool, int, float)):
@@ -246,19 +282,34 @@ def resolved(value: Any, env: Mapping[str, Any]) -> Any:
     if isinstance(value, RefTo):
         from pymetrix.extension import Ref
 
-        return Ref(value.name)
+        return Ref(value.name.value(env) if isinstance(value.name, Text) else value.name)
+    if isinstance(value, Py):
+        import pymetrix
+
+        return eval(value.code, {n: getattr(pymetrix, n) for n in pymetrix.__all__ if hasattr(pymetrix, n)}, dict(env))  # noqa: S307
     if isinstance(value, Mapping):
-        return {k: resolved(v, env) for k, v in value.items()}
+        return {resolved(k, env): resolved(v, env) for k, v in value.items()}
     if isinstance(value, list):
         return [resolved(v, env) for v in value]
     if isinstance(value, tuple):
-        return tuple(resolved(v, env) for v in value)
+        out: list[Any] = []
+        for v in value:
+            if isinstance(v, Spread):
+                out.extend(str(env[v.name]).split())
+            else:
+                out.append(resolved(v, env))
+        return tuple(out)
     return value
+
+
+def name_code(name: Any) -> str:
+    """A variable's name in the script: as it is, or ``globals()[f"eq_{c}"]`` for a name made as the program runs."""
+    return f"globals()[{name.code()}]" if isinstance(name, Text) else name
 
 
 def step_code(step: Step) -> str:
     """A step as one line of the script: ``output = callee(arguments)``."""
-    return f"{step.output} = {step.callee}({_arguments(step.args)})"
+    return f"{name_code(step.output)} = {step.callee}({_arguments(step.args)})"
 
 
 def _arguments(args: tuple[Any, ...]) -> str:
@@ -269,13 +320,76 @@ def _arguments(args: tuple[Any, ...]) -> str:
         if a.how == "pos":
             parts.append(literal(a.value))
         elif a.how == "star":
-            parts.extend(literal(v) for v in a.value)
+            if isinstance(a.value, (Attr, Py)):
+                parts.append(f"*{literal(a.value)}")
+            else:
+                parts.extend(literal(v) for v in a.value)
         elif a.how == "varkw":
             for k, v in a.value.items():
-                if k.isidentifier() and not keyword.iskeyword(k):
+                if isinstance(k, str) and k.isidentifier() and not keyword.iskeyword(k):
                     parts.append(f"{k}={literal(v)}")
                 else:
                     parts.append(f"**{{{literal(k)}: {literal(v)}}}")
         else:
             parts.append(f"{a.name}={literal(a.value)}")
     return ", ".join(parts)
+
+
+# -- phase 3: control flow ---------------------------------------------------------------------------------------------
+# A body is a tuple of (line, op, file) entries, as ProgramTranslation.ops is.
+
+
+@dataclass(frozen=True)
+class For(Op):
+    """``for var in iterable:`` (``range(1, n + 1)``, ``["a", "b"]``, ``names.split()``)."""
+
+    var: str
+    iterable: str
+    body: tuple[Any, ...] = ()
+
+
+@dataclass(frozen=True)
+class While(Op):
+    """``while cond:``; steps mode stops after a number of passes the user can change."""
+
+    cond: str
+    body: tuple[Any, ...] = ()
+
+
+@dataclass(frozen=True)
+class If(Op):
+    """``if cond: ... else: ...``, decided when it runs."""
+
+    cond: str
+    body: tuple[Any, ...] = ()
+    orelse: tuple[Any, ...] = ()
+
+
+@dataclass(frozen=True)
+class Def(Op):
+    """A subroutine as a function: its parameters, those it assigns (returned, as EViews passes arguments by
+    reference), the names it assigns at the program's level (``global``; none for a local subroutine)."""
+
+    name: str
+    params: tuple[str, ...]
+    returns: tuple[str, ...] = ()
+    shared: tuple[str, ...] = ()
+    local: bool = False
+    body: tuple[Any, ...] = ()
+
+
+@dataclass(frozen=True)
+class Invoke(Op):
+    """``call f(...)``: the arguments as Python, and for each parameter the subroutine assigns, the caller's variable
+    that takes its value back (None where the argument is not a variable)."""
+
+    name: str
+    args: tuple[str, ...] = ()
+    targets: tuple[Any, ...] = ()
+
+
+@dataclass(frozen=True)
+class Jump(Op):
+    """``exitloop`` (break), ``return`` and ``stop`` (the program ends)."""
+
+    kind: str

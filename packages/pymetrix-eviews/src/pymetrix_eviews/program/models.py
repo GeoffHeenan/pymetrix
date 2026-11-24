@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .estimation import _commas, _options, _value
-from .ir import Arg, Cmd, New, Op, RefTo, SampleSpec, Step, Var
+from .ir import Arg, Attr, Cmd, New, Op, RefTo, SampleSpec, Step, Var
 
 __all__ = ["Models"]
 
@@ -49,6 +49,7 @@ class _Model:
     solving: str = ""  # the variable holding the Model read (m_model = m.model), which solves
     assigned: bool = False
     building: list[Any] = field(default_factory=list)  # the outcomes of the lines that build it (set by the translator)
+    given: bool = False  # given to the translation (objects=), not built by the program
 
 
 class Models:
@@ -76,6 +77,8 @@ class Models:
 
         model = self.models[key]
         word = st.word
+        if model.given and word in ("append", "merge"):
+            raise _left(f"{model.eviews} is given to the translation (objects=): its equations are not changed here")
         if model.refused and word not in ("append", "merge"):
             raise _left(f"the model {model.eviews} is not read: {model.refused}")
         if word == "append":
@@ -141,9 +144,34 @@ class Models:
                     kept.append(n)
             return [], f"{', '.join(names)} {'take their values from the alias series' if word == 'override' else 'held at their data values'} in the scenario {scen.name} (no step)"
         if word == "makegroup":
-            raise _left("makegroup: a group of the model's variables; in pymetrix: " + f"{model.var}.model.endogenous or .exogenous")
+            return self._makegroup(st, model)
         raise _left(f"{model.eviews}.{word} is not translated: append, merge, solve, solveopt, addassign, addinit, scenario, "
                     "override and exclude are")
+
+    def _makegroup(self, st: Any, model: _Model) -> tuple[list[Op], str]:
+        """``m.makegroup(a,n) g @endog``: a group (a ``Selection`` of the page) of the model's endogenous or exogenous
+        variables."""
+        from .data import _Py, _left
+
+        named, flags = _options(st.options)
+        unknown = [f for f in flags if f.lower() not in ("a", "n")] + sorted(named)
+        if unknown:
+            raise _left(f"makegroup({st.options}) is not translated: the options a and n are")
+        words = st.rest.split()
+        if len(words) != 2 or words[1].lower() not in ("@endog", "@exog"):
+            raise _left("makegroup is translated for one group of all the endogenous or all the exogenous variables: "
+                        "m.makegroup g @endog")
+        page = self._page()
+        ops = self._ensure_read(model)
+        which = "endogenous" if words[1].lower() == "@endog" else "exogenous"
+        var, note = self._name(words[0], f"group {words[0].lower()}")
+        self.py[words[0].lower()] = _Py(var, "group", members=list(model.endogenous) if which == "endogenous" else [], page=page.var)
+        ops.append(Step("pymetrix:dataset.series", page.var, var, f"{page.var}.series",
+                        (Arg("patterns", Attr(model.solving, which), "star"),)))
+        notes = [f"the model's {which} variables, by their names in the data (the baseline's series)"]
+        if flags:
+            notes.append(f"makegroup's options {', '.join(flags)}: the group holds the baseline's names (verify what a and n do)")
+        return ops, "; ".join(x for x in (note, *notes) if x)
 
     def _model_scalars(self, model: _Model, text: str) -> None:
         for name in re.findall(r"(?<![\w.@!%])([A-Za-z_]\w*)(?!\w)(?!\s*\()", text):

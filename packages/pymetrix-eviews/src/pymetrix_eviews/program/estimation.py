@@ -952,8 +952,7 @@ class Estimation:
         if not re.fullmatch(r"[A-Za-z_]\w*", word):
             raise _left(f"{word}: a series name is needed")
         series = _py_name(word)
-        if page.series is not None:
-            page.series.add(series)
+        self._made_series(page, series)
         return series
 
     def _span(self, page: Any, what: str) -> tuple[str, str]:
@@ -976,7 +975,9 @@ class Estimation:
 
         page = self._page()
         series = _py_name(st.obj)
-        if page.series is not None and series not in page.series:
+        from .data import _has_series
+
+        if not _has_series(page, series):
             raise _error(f"{st.obj} is not a series of page {page.eviews}")
         named, flags = _options(st.options)
         tests = {"adf": "adf", "pp": "phillips_perron", "kpss": "kpss", "dfgls": "dfgls", "ers": "ers_point_optimal",

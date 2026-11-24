@@ -21,7 +21,8 @@ saving the workfile from EViews as CSV or Excel, which pymetrix reads with File 
 in. The reader is tested against bundles written by hand to the format, and the manifest's JSON Schema.
 
 EViews programs (``.prg``) are translated into a readable script, a report with a row per line, and the same work as
-recorded steps; this is phase 1, data work (estimation, control flow and the rest are left out with the reason):
+recorded steps: data work, estimation, tests and models, and control flow (loops, ``if`` blocks, subroutines, included
+programs, the program's arguments); what has no pymetrix equivalent is left out with the reason:
 
     from pymetrix_eviews import translate_program
     t = translate_program("C:/work/macro.prg", bundle="C:/work/macro-export/macro.evbundle")
