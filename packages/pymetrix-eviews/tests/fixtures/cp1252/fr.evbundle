@@ -1,0 +1,5 @@
+{"format": "pymetrix-eviews-bundle", "format_version": 1, "exporter": {"program_version": "1.0"},
+ "workfile": {"name": "fr"},
+ "pages": [{"name": "m", "structure": "dated", "frequency": "M", "file": "pages/m.csv", "date_column": "pmx_date",
+   "series": [{"name": "prix", "kind": "numeric", "description": "Prix à la consommation", "units": "€ de 2015"},
+              {"name": "ville", "kind": "alpha"}]}]}

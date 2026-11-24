@@ -1,0 +1,4 @@
+{
+  "_note": "The plugin's commands' stable IDs and schema versions, as tests/fixtures/command_ids.json is for pymetrix's own. Projects store these, so an ID must never change or disappear; when a schema version rises, add a migration from the old version and update the number here.",
+  "eviews:import_eviews": 1
+}

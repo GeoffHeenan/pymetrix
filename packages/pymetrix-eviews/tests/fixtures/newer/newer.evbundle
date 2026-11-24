@@ -1,0 +1,4 @@
+{"format": "pymetrix-eviews-bundle", "format_version": 2,
+ "exporter": {"program_version": "2.0"}, "workfile": {"name": "newer"},
+ "pages": [{"name": "q", "structure": "dated", "frequency": "Q", "file": "pages/q.csv", "date_column": "pmx_date",
+            "series": [{"name": "gdp", "kind": "numeric"}]}]}

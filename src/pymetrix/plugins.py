@@ -355,7 +355,7 @@ _SKIPPED: set[str] = set()  # new plugins the app was told to leave out for now 
 _WARNED: set[str] = set()
 FIRST_PARTY = ("pymetrix", "pymetrix-arch", "pymetrix-linearmodels", "pymetrix-sklearn", "pymetrix-connectors", "pymetrix-finance",
                "pymetrix-labbook", "pymetrix-psets", "pymetrix-guide",
-               "pymetrix-assistant", "pymetrix-seasonal")
+               "pymetrix-assistant", "pymetrix-seasonal", "pymetrix-eviews")
 
 
 def _state_path() -> str:

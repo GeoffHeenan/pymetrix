@@ -1,0 +1,4 @@
+{"format": "pymetrix-eviews-bundle", "format_version": 1,
+ "exporter": {"program_version": "1.0"}, "workfile": {"name": "semi"},
+ "pages": [{"name": "halves", "structure": "dated", "frequency": "S", "file": "pages/s.csv", "date_column": "pmx_date",
+            "series": [{"name": "gdp", "kind": "numeric", "units": "bn"}]}]}

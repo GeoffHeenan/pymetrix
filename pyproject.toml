@@ -85,7 +85,7 @@ packages = ["src/pymetrix", "src/pymetrix_app"]
 only-include = ["src/pymetrix", "src/pymetrix_app", "PYPI.md", "CHANGELOG.md", "LICENSE", "THIRD-PARTY-NOTICES.md"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "packages/pymetrix-finance/tests", "packages/pymetrix-labbook/tests", "packages/pymetrix-guide/tests", "packages/pymetrix-assistant/tests", "packages/pymetrix-psets/tests", "packages/pymetrix-seasonal/tests"]
+testpaths = ["tests", "packages/pymetrix-finance/tests", "packages/pymetrix-labbook/tests", "packages/pymetrix-guide/tests", "packages/pymetrix-assistant/tests", "packages/pymetrix-psets/tests", "packages/pymetrix-seasonal/tests", "packages/pymetrix-eviews/tests"]
 pythonpath = ["src"]
 filterwarnings = ["ignore:.*returns a plain tuple:FutureWarning", "ignore:For consistency across implementations:PendingDeprecationWarning"]
 markers = ["timing: a wall-clock check, with generous slack (best of three runs) so a loaded machine does not fail it"]

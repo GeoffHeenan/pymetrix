@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymetrix-eviews"
+dynamic = ["version"]
+description = "EViews workfiles into pymetrix: a bundle written by an (experimental) export program, read with its metadata, equations and models"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Geoffrey Heenan" }]
+dependencies = ["pymetrix>=0.1.0a20"]  # uses extension API 1.10, after 0.1.0a20: raise the floor to the release that has it before releasing this
+
+[project.urls]
+Homepage = "https://github.com/GeoffHeenan/pymetrix"
+Source = "https://github.com/GeoffHeenan/pymetrix/tree/main/packages/pymetrix-eviews"
+Issues = "https://github.com/GeoffHeenan/pymetrix/issues"
+Changelog = "https://github.com/GeoffHeenan/pymetrix/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest>=9.0.3", "jsonschema>=4.18"]  # the fixtures are checked against the manifest's JSON Schema
+
+# importing the package registers the .evbundle reader, the File > Import EViews workfile... dialog and its help topic
+[project.entry-points."pymetrix.plugins"]
+eviews = "pymetrix_eviews:register"
+[project.entry-points."pymetrix.io"]
+eviews = "pymetrix_eviews:register"
+[project.entry-points."pymetrix.commands"]
+eviews = "pymetrix_eviews:register"
+
+[tool.hatch.version]
+path = "src/pymetrix_eviews/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymetrix_eviews"]

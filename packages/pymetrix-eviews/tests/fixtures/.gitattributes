@@ -1,0 +1,2 @@
+# the bundles are byte-exact on purpose (line ends, Windows-1252): never convert them
+* -text

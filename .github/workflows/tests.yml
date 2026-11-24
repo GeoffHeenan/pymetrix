@@ -54,7 +54,7 @@ jobs:
           distribution: temurin
           java-version: "21"
       - name: Install with every optional library
-        run: python -m pip install -e ".[dev,qt,jupyter,excel]" -e packages/pymetrix-finance -e packages/pymetrix-labbook -e packages/pymetrix-guide -e packages/pymetrix-assistant -e packages/pymetrix-psets -e "packages/pymetrix-seasonal[jdemetra]"
+        run: python -m pip install -e ".[dev,qt,jupyter,excel]" -e packages/pymetrix-finance -e packages/pymetrix-labbook -e packages/pymetrix-guide -e packages/pymetrix-assistant -e packages/pymetrix-psets -e "packages/pymetrix-seasonal[jdemetra]" -e packages/pymetrix-eviews
       - uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/jdemetra
@@ -251,7 +251,7 @@ jobs:
       - name: Qt system libraries
         run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
       - name: Install with every dependency at its floor
-        run: python -m pip install -e ".[all]" -e packages/pymetrix-finance -e packages/pymetrix-labbook -e packages/pymetrix-guide -e packages/pymetrix-assistant -e packages/pymetrix-psets -e packages/pymetrix-seasonal "pytest>=9.0.3" "pytest-xdist>=3.5" -c .github/oldest-supported.txt
+        run: python -m pip install -e ".[all]" -e packages/pymetrix-finance -e packages/pymetrix-labbook -e packages/pymetrix-guide -e packages/pymetrix-assistant -e packages/pymetrix-psets -e packages/pymetrix-seasonal -e packages/pymetrix-eviews "pytest>=9.0.3" "pytest-xdist>=3.5" -c .github/oldest-supported.txt
       - name: Show what was installed
         run: python -m pip list
       - name: Tests

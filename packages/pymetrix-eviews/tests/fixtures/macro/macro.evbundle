@@ -1,0 +1,81 @@
+{
+  "format": "pymetrix-eviews-bundle",
+  "format_version": 1,
+  "exporter": {"program_version": "1.0", "eviews_version": "13.0", "exported": "2026-11-05T14:03:00"},
+  "workfile": {"name": "macro", "path": "C:\\work\\macro.wf1", "active_page": "quarterly"},
+  "na": "NA",
+  "pages": [
+    {
+      "name": "quarterly",
+      "structure": "dated",
+      "frequency": "Q",
+      "range": ["1980Q1", "1982Q4"],
+      "sample": "1980q1 1982q2",
+      "file": "pages/quarterly.csv",
+      "date_column": "pmx_date",
+      "id_columns": [],
+      "series": [
+        {"name": "gdp", "kind": "numeric", "display_name": "", "description": "Real GDP, \"chained\" at C:\\data",
+         "units": "bn 2017 prices", "source": "Statistics Office", "remarks": "seasonally adjusted",
+         "attributes": {"base_year": "2017"}, "value_map": null},
+        {"name": "cons", "kind": "numeric", "display_name": "Consumption", "description": "Household consumption",
+         "units": "bn", "source": "", "remarks": "", "attributes": {}, "value_map": null},
+        {"name": "inc", "kind": "numeric", "display_name": "", "description": "", "units": "", "source": "", "remarks": "",
+         "attributes": {}, "value_map": null},
+        {"name": "inv", "kind": "numeric"},
+        {"name": "sector", "kind": "numeric", "display_name": "Sector", "description": "", "units": "", "source": "",
+         "remarks": "", "attributes": {}, "value_map": "VM_SECTOR"},
+        {"name": "region", "kind": "alpha", "display_name": "", "description": "Region (\u00e9tat)", "units": "",
+         "source": "", "remarks": "line one\nline two", "attributes": {}, "value_map": null}
+      ],
+      "groups": [{"name": "g1", "members": ["gdp", "cons"]}, {"name": "g2", "members": ["gdp", "log(cons)"]}],
+      "samples": [{"name": "pre", "text": "1980q1 1981q4"}, {"name": "whole", "text": "@all"},
+                  {"name": "late", "text": "1981:3 @last"}, {"name": "rich", "text": "1980q1 1982q4 if inc > 105"}],
+      "scalars": [{"name": "alpha", "value": 0.3}, {"name": "unset", "value": null}],
+      "strings": [{"name": "region_s", "value": "north"}],
+      "arrays": [{"name": "w", "type": "vector", "rows": 3, "cols": 1, "file": "objects/quarterly/w.csv"},
+                 {"name": "m2", "type": "matrix", "rows": 2, "cols": 3, "file": "objects/quarterly/m2.csv"}],
+      "value_maps": [{"name": "vm_sector", "file": "valmaps/quarterly/vm_sector.csv"}],
+      "equations": [
+        {"name": "eq_cons", "command": "ls cons c inc", "method": "LS", "sample": "1980q1 1982q4", "ncoef": 2,
+         "estimates": "objects/quarterly/eq_cons_est.csv"},
+        {"name": "eq_rev", "command": "ls cons inc c", "method": "LS", "sample": "1980q1 1982q4", "ncoef": 2,
+         "estimates": "objects/quarterly/eq_rev_est.csv"},
+        {"name": "eq_white", "command": "ls(cov=white) cons c inc", "method": "LS", "sample": "1980q1 1982q4", "ncoef": 2,
+         "estimates": "objects/quarterly/eq_white_est.csv"},
+        {"name": "eq_iv", "command": "tsls cons c inc @ c inv", "method": "TSLS", "sample": "1980q1 1982q4"}
+      ],
+      "models": [{"name": "m", "text": "text/quarterly/m.txt"}],
+      "skipped": [{"name": "gr1", "type": "graph", "reason": "objects of this type are not exported"}]
+    },
+    {
+      "name": "Annual",
+      "structure": "dated",
+      "frequency": "A",
+      "range": ["1980", "1983"],
+      "sample": "@all",
+      "file": "pages/annual.csv",
+      "date_column": "pmx_date",
+      "id_columns": [],
+      "series": [{"name": "gdp_a", "kind": "numeric", "units": "bn"}, {"name": "pop", "kind": "numeric", "units": "million"}]
+    },
+    {
+      "name": "panel",
+      "structure": "panel",
+      "frequency": "A",
+      "file": "pages/panel.csv",
+      "date_column": "pmx_date",
+      "id_columns": ["pmx_crossid"],
+      "series": [{"name": "y", "kind": "numeric"}, {"name": "x", "kind": "numeric"}]
+    },
+    {
+      "name": "cross",
+      "structure": "undated",
+      "file": "pages/cross.csv",
+      "date_column": null,
+      "id_columns": [],
+      "series": [{"name": "wage", "kind": "numeric"}, {"name": "in", "kind": "numeric"},
+                 {"name": "Lambda", "kind": "numeric"}, {"name": "sex", "kind": "alpha"}]
+    }
+  ]
+}
