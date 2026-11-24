@@ -6,6 +6,11 @@
 - ``Code``: Python that is not a step: a scalar, a string, a matrix. The script has it as it is; steps mode runs the
   same text.
 - ``Step``: a recorded call of pymetrix's API (``make_call``), with the variable it is made on and the one it makes.
+- ``Cmd``: a recorded command that is not a call (``AddToDataset``: a fit's residuals or a forecast added to a page).
+
+A step's values may also be ``New`` (a pymetrix object made from its arguments: ``Equation("y ~ x")``, ``OLS(cov="white")``),
+``Attr`` (an attribute of a variable's value: ``m.model``) and ``RefTo`` (an object of the session by its name, kept by
+reference in the record: ``Scenario(adjust=af)``).
 """
 
 from __future__ import annotations
@@ -14,7 +19,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-__all__ = ["Arg", "Code", "Op", "SampleSpec", "Step", "Text", "Var", "literal", "quote", "resolved", "step_code"]
+__all__ = ["Arg", "Attr", "Cmd", "Code", "New", "Op", "RefTo", "SampleSpec", "Step", "Text", "Var", "literal", "quote", "resolved",
+           "step_code"]
 
 
 @dataclass(frozen=True)
@@ -93,6 +99,52 @@ class Op:
 
 
 @dataclass(frozen=True)
+class New:
+    """A pymetrix object made from its arguments: ``callee`` is its class or function as the script names it
+    (``Equation``, ``OLS``, ``Scenario``), found in ``pymetrix``; ``args`` as a ``Step``'s."""
+
+    callee: str
+    args: tuple[Any, ...] = ()
+
+    def code(self) -> str:
+        return f"{self.callee}({_arguments(self.args)})"
+
+    def value(self, env: Mapping[str, Any]) -> Any:
+        import pymetrix
+
+        positional, named = [], {}
+        for a in self.args:
+            v = resolved(a.value, env)
+            if a.how == "pos":
+                positional.append(v)
+            elif a.how == "star":
+                positional.extend(v)
+            elif a.how == "varkw":
+                named.update(v)
+            else:
+                named[a.name] = v
+        return getattr(pymetrix, self.callee)(*positional, **named)
+
+
+@dataclass(frozen=True)
+class Attr:
+    """An attribute of a variable's value: ``m.model``."""
+
+    base: str
+    attr: str
+
+    def code(self) -> str:
+        return f"{self.base}.{self.attr}"
+
+
+@dataclass(frozen=True)
+class RefTo:
+    """An object of the session by its name, recorded by reference (``Ref``), as the script names it."""
+
+    name: str
+
+
+@dataclass(frozen=True)
 class Code(Op):
     """Python that is not a step (a scalar, a string, a matrix): ``code`` sets ``names``."""
 
@@ -112,6 +164,15 @@ class Arg:
 
 
 @dataclass(frozen=True)
+class Cmd(Op):
+    """A recorded command that is not a call: ``command`` (an ``AddToDataset``, say), whose ``to_code()`` is its line
+    of the script, and the variables it ``uses``."""
+
+    command: Any
+    uses: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class Step(Op):
     """A call of pymetrix's API, recorded in steps mode: ``function`` (its stable ID, ``pymetrix:dataset.with_series``)
     on the variable ``receiver`` (None for a class method), making ``output``; ``callee`` is how the script calls it
@@ -119,7 +180,7 @@ class Step(Op):
     or a ``Var`` (a Python variable's value: a named sample)."""
 
     function: str
-    receiver: str | None
+    receiver: Any  # a variable's name (str), None, or a value: New, Attr, Var
     output: str
     callee: str
     args: tuple[Arg, ...] = ()
@@ -130,8 +191,13 @@ class Step(Op):
         out: list[str] = []
 
         def walk(v: Any) -> None:
-            if isinstance(v, Var):
+            if isinstance(v, (Var, RefTo)):
                 out.append(v.name)
+            elif isinstance(v, Attr):
+                out.append(v.base)
+            elif isinstance(v, New):
+                for a in v.args:
+                    walk(a.value)
             elif isinstance(v, (Text, SampleSpec)):
                 out.extend(v.names)
             elif isinstance(v, (list, tuple)):
@@ -140,6 +206,10 @@ class Step(Op):
             elif isinstance(v, Mapping):
                 for x in v.values():
                     walk(x)
+        if isinstance(self.receiver, str):
+            out.append(self.receiver)
+        elif self.receiver is not None:
+            walk(self.receiver)
         for a in self.args:
             walk(a.value)
         return tuple(out)
@@ -147,9 +217,9 @@ class Step(Op):
 
 def literal(value: Any) -> str:
     """A value as Python, in the script."""
-    if isinstance(value, (Text, SampleSpec)):
+    if isinstance(value, (Text, SampleSpec, New, Attr)):
         return value.code()
-    if isinstance(value, Var):
+    if isinstance(value, (Var, RefTo)):
         return value.name
     if isinstance(value, str):
         return quote(value)
@@ -169,6 +239,14 @@ def resolved(value: Any, env: Mapping[str, Any]) -> Any:
         return value.value(env)
     if isinstance(value, Var):
         return env[value.name]
+    if isinstance(value, New):
+        return value.value(env)
+    if isinstance(value, Attr):
+        return getattr(env[value.base], value.attr)
+    if isinstance(value, RefTo):
+        from pymetrix.extension import Ref
+
+        return Ref(value.name)
     if isinstance(value, Mapping):
         return {k: resolved(v, env) for k, v in value.items()}
     if isinstance(value, list):
@@ -180,10 +258,14 @@ def resolved(value: Any, env: Mapping[str, Any]) -> Any:
 
 def step_code(step: Step) -> str:
     """A step as one line of the script: ``output = callee(arguments)``."""
+    return f"{step.output} = {step.callee}({_arguments(step.args)})"
+
+
+def _arguments(args: tuple[Any, ...]) -> str:
     import keyword
 
     parts: list[str] = []
-    for a in step.args:
+    for a in args:
         if a.how == "pos":
             parts.append(literal(a.value))
         elif a.how == "star":
@@ -196,4 +278,4 @@ def step_code(step: Step) -> str:
                     parts.append(f"**{{{literal(k)}: {literal(v)}}}")
         else:
             parts.append(f"{a.name}={literal(a.value)}")
-    return f"{step.output} = {step.callee}({', '.join(parts)})"
+    return ", ".join(parts)

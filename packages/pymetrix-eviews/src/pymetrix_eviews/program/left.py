@@ -1,65 +1,20 @@
-"""What phase 1 leaves out, and why: the report's reasons for the commands of the later phases (design note,
-section 2: phase 2, estimation, tests and models; phase 3, control flow; phase 4, what stays in the report), and the
-expression functions pymetrix has no equivalent of (the audit, docs/known-gaps.md).
+"""What the translation leaves out, and why: the report's reasons for the commands of the later phases (design note,
+section 2: phase 3, control flow; phase 4, what stays in the report), and the expression functions pymetrix has no
+equivalent of (the audit, docs/known-gaps.md). Phase 2's own refusals (an estimator's option not mapped, testadd, the
+extreme-value link) are given where they are met, in ``estimation.py`` and ``models.py``.
 
 Every statement is either translated or left out with one of these reasons: nothing is dropped silently.
 """
 
 from __future__ import annotations
 
-__all__ = ["GAP_FUNCTIONS", "PROGRAM_FUNCTIONS", "PHASE2", "PHASE2_COMMANDS", "PHASE2_METHODS", "PHASE3", "PHASE3_WORDS", "PHASE4_COMMANDS",
-           "PHASE4_METHODS", "STATISTICS", "left_reason"]
+__all__ = ["GAP_FUNCTIONS", "PROGRAM_FUNCTIONS", "PHASE2_COMMANDS", "PHASE3", "PHASE3_WORDS", "PHASE4_COMMANDS", "PHASE4_METHODS",
+           "STATISTICS", "left_reason"]
 
-PHASE2 = "phase 2 (estimation, tests and models)"
 PHASE3 = "phase 3 (control flow)"
 
-# phase 2: the estimation commands and what pymetrix calls them
-PHASE2_COMMANDS = {
-    "ls": "Equation(\"y ~ x\").fit(data) (Model → Estimate equation)",
-    "tsls": "Equation(...).fit(data, method=IV(endog=[...], instruments=[...]))",
-    "gmm": "Equation(...).fit(data, method=GMM(...))",
-    "liml": "Equation(...).fit(data, method=LIML(...))",
-    "arch": "Equation(..., variance=GARCH(arch=1, garch=1)).fit(data, method=ML())",
-    "binary": "Equation(..., family=Logit()) or Probit()",
-    "logit": "Equation(..., family=Logit())",
-    "probit": "Equation(..., family=Probit())",
-    "ordered": "OrderedProbit or OrderedLogit",
-    "censored": "Tobit",
-    "count": "Poisson or NegativeBinomial",
-    "qreg": "Quantile",
-    "heckit": "Heckman",
-    "ardl": "ARDL",
-    "nls": "Equation in explicit form",
-    "stepls": "none (stepwise least squares)",
-    "breakls": "bai_perron",
-    "threshold": "ThresholdAR",
-    "switchreg": "MarkovSwitching",
-    "glm": "Equation(..., family=...)",
-    "equation": "Equation(...) (Model → Define equation, Estimate equation)",
-    "var": "VAR([...], lags=..., exog=[...])",
-    "system": "System([...]) with SUR, ThreeSLS, FIML",
-    "model": "read_eviews(text, data=...)",
-    "sspace": "read_eviews_sspace(text)",
-    "coef": "",
-}
-
-PHASE2_METHODS = {
-    **{m: PHASE2_COMMANDS.get(m, "Equation(...).fit(data)") for m in
-       ("ls", "tsls", "gmm", "liml", "arch", "binary", "ordered", "censored", "count", "qreg", "heckit", "ardl", "nls",
-        "stepls", "breakls", "threshold", "switchreg", "glm", "logit", "probit")},
-    "ec": "VECM", "sur": "System(...) with SUR", "3sls": "System(...) with ThreeSLS", "fiml": "System(...) with FIML",
-    "wald": "eq.wald(\"x = 0\")", "auto": "eq.test(\"breusch_godfrey\", lags=...)", "hettest": "eq.test(\"breusch_pagan\") or \"white\"",
-    "archtest": "eq.test(\"arch\")", "reset": "eq.test(\"reset\")", "chow": "eq.test(\"chow\")", "hist": "eq.test(\"jarque_bera\")",
-    "rls": "eq.recursive_residuals()", "testdrop": "eq.wald(\"x = 0\")", "testadd": "none (omitted variables: a gap)",
-    "uroot": "data.test(\"adf\", \"x\", ...)", "coint": "data.johansen([...])", "forecast": "eq.forecast(data, span, dynamic=True)",
-    "fit": "eq.forecast(data, span, dynamic=False)", "makeresids": "data.with_series(r=eq.resid)",
-    "append": "read_eviews(text, data=...)", "merge": "read_eviews(text, data=...)",
-    "solve": "model.solve(data, span, solver=Newton())", "solveopt": "model.solve(..., solver=Newton() or GaussSeidel())",
-    "addassign": "Model.add_factors(data, span)", "addinit": "Model.add_factors(data, span)",
-    "scenario": "Scenario(set=..., fix=...)", "override": "Scenario(set=...)", "exclude": "Scenario(fix=...)",
-    "makegroup": "the model's endogenous variables (model.endogenous)", "makemodel": "read_eviews(text, data=...)",
-    "results": "eq.summary()", "output": "eq.summary()", "spec": "the equation's text",
-}
+# state-space objects: read whole by the core reader, not line by line
+PHASE2_COMMANDS = {"sspace": "read_eviews_sspace(text)"}
 
 # phase 3: control flow, subroutines and included files
 PHASE3_WORDS = {

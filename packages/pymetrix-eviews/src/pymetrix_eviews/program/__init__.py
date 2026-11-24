@@ -8,9 +8,11 @@ work as recorded steps (design note, docs/design/eviews-plugin.md, section 2).
     t.report.summary()           # a Table: line, status, EViews, Python, reason
     out = t.run(session)         # steps mode: each data statement a recorded step in the session
 
-This is phase 1, data work: workfiles and pages, samples, series, formulas, groups, labels, renaming and deleting,
-scalars, strings and matrices. Estimation, tests and models (phase 2) and control flow (phase 3) are left out with
-that reason, and so is what has no pymetrix equivalent (graphs, tables, display): every line has a row.
+Phase 1 is data work: workfiles and pages, samples, series, formulas, groups, labels, renaming and deleting, scalars,
+strings and matrices. Phase 2 is estimation, tests and models: equations by the common methods, VARs and VECs,
+systems, tests, forecasts, the values read from results, and models collected, read by the core reader and solved.
+Control flow (phase 3) is left out with that reason, and so is what has no pymetrix equivalent (graphs, tables,
+display): every line has a row.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from .data import Outcome, Translator, is_closer, is_opener
-from .ir import Code, Step, step_code
+from .ir import Cmd, Code, step_code
 from .left import PHASE3, PHASE3_WORDS
 from .parse import Program, parse_program
 from .report import ERROR, LEFT, NOTE, STATUSES, TRANSLATED, ProgramTranslation, ReportRow, TranslationReport
@@ -52,6 +54,7 @@ def translate_program(source: Any, bundle: Any = None, *, read_options: dict[str
     program = parse_program(text)
     translator = Translator(None if bundle is None else str(bundle), read_options)
     outcomes = _translate(program, translator)
+    _finish(translator, outcomes)
     rows = _rows(program, outcomes, name)
     ops = [(o.statement.line, op) for o in outcomes for op in o.ops]
     script = _script(program, outcomes, name, translator.uses_bundle)
@@ -85,8 +88,35 @@ def _translate(program: Program, translator: Translator) -> list[Outcome]:
     return out
 
 
+def _finish(translator: Translator, outcomes: list[Outcome]) -> None:
+    """Models read at their last line when nothing used them; the model reader's problems at their lines; the lines
+    that build a model it refused, left out saying why."""
+    by_line = {o.statement.line: o for o in outcomes}
+
+    def add(o: Outcome, note: str) -> None:
+        o.reason = "; ".join(x for x in (o.reason, note) if x)
+
+    for line, ops, note in translator.finish_models():
+        o = by_line[line]
+        o.ops.extend(ops)
+        add(o, note)
+    for key, line in translator.building:
+        model = translator.models[key]
+        o = by_line[line]
+        if model.refused and o.status in (TRANSLATED, NOTE):
+            o.status, o.reason, o.ops = LEFT, f"the model {model.eviews} is not read: {model.refused}", []
+    for line, problems in translator.refusals.items():
+        o = by_line.get(line)
+        if o is None or o.status == LEFT and o.reason.startswith("the model"):
+            continue
+        add(o, "; ".join(problems))
+        if o.status == TRANSLATED:
+            o.status = NOTE
+
+
 def _python(outcome: Outcome) -> str:
-    return "\n".join(op.code if isinstance(op, Code) else step_code(op) for op in outcome.ops)
+    return "\n".join(op.code if isinstance(op, Code) else op.command.to_code() if isinstance(op, Cmd) else step_code(op)
+                     for op in outcome.ops)
 
 
 def _rows(program: Program, outcomes: list[Outcome], name: str) -> list[ReportRow]:
@@ -111,6 +141,20 @@ def _rows(program: Program, outcomes: list[Outcome], name: str) -> list[ReportRo
         else:
             rows.append(ReportRow(number, o.status, raw, "", f"continues line {o.statement.line}", name))
     return rows
+
+
+def _imports(text: str) -> list[str]:
+    """pymetrix's names the script's code uses (``Equation(``, ``Dataset.read``, ``read_eviews(``), outside comments."""
+    import re
+
+    import pymetrix
+
+    public = set(pymetrix.__all__)
+    code = "\n".join(line for line in text.split("\n") if not line.lstrip().startswith("#"))
+    code = re.sub(r'"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'', '""', code)
+    found = {m.group(1) for m in re.finditer(r"(?<![\w.])([A-Za-z_]\w*)\s*[.(]", code)}
+    order = ["Dataset", "Matrix", "Sample"]
+    return [n for n in order if n in found and n in public] + sorted(n for n in found if n in public and n not in order)
 
 
 def _script(program: Program, outcomes: list[Outcome], name: str, uses_bundle: bool) -> str:
@@ -139,14 +183,7 @@ def _script(program: Program, outcomes: list[Outcome], name: str, uses_bundle: b
             if body and body[-1] != "":
                 body.append("")
     text = "\n".join(body).strip("\n")
-    used = []
-    ops = [op for o in outcomes for op in o.ops]
-    if any(isinstance(op, Step) and op.callee.startswith("Dataset.") for op in ops):
-        used.append("Dataset")
-    if any(isinstance(op, Code) and "Matrix" in op.code for op in ops):
-        used.append("Matrix")
-    if "Sample(" in text:
-        used.append("Sample")
+    used = _imports(text)
     title = f"{name}: an EViews program" if name else "An EViews program"
     head = [f'"""{title}, translated by pymetrix-eviews (translate_program).',
             "",

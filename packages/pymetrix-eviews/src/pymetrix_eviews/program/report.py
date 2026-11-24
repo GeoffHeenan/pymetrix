@@ -63,8 +63,8 @@ class TranslationReport:
 
         counts = self.counts()
         notes = ["; ".join(f"{n} {s}" for s, n in counts.items()),
-                 "Every line with text has a row: nothing is dropped silently. Left out: phase 2 is estimation, tests "
-                 "and models; phase 3 control flow; the rest has no pymetrix equivalent or is display only."]
+                 "Every line with text has a row: nothing is dropped silently. Left out: phase 3 is control flow; an "
+                 "option not mapped is named; the rest has no pymetrix equivalent or is display only."]
         rows = [[r.line, r.status, r.eviews, r.python, r.reason] for r in self.rows]
         return Table(["line", "status", "EViews", "Python", "reason"], rows,
                      title=f"Translation of {self.program}" if self.program else "Translation", notes=notes)

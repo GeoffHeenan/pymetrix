@@ -1,12 +1,15 @@
-"""Steps mode: a translation run in a session, each data statement a recorded call (``make_call``), as a dialog's step
-is. Scalars, strings and matrices are Python values, made by running the script's own code for them."""
+"""Steps mode: a translation run in a session, each data or estimation statement a recorded call (``make_call``) or
+command, as a dialog's step is. Scalars, strings and matrices, and the values read from results (``eq.@coefs(2)``),
+are Python values, made by running the script's own code for them."""
 
 from __future__ import annotations
 
 import dataclasses
 from typing import Any
 
-from .ir import Code, Step, resolved
+from collections import ChainMap
+
+from .ir import Cmd, Code, Step, resolved
 
 __all__ = ["ATTACHMENTS", "run_steps", "step_call"]
 
@@ -39,7 +42,10 @@ def step_call(step: Step, env: dict[str, Any]) -> Any:
                 kwargs[placeholder] = v
             else:
                 kwargs[key] = v
-    receiver = Ref(step.receiver) if step.receiver else None
+    if isinstance(step.receiver, str):
+        receiver = Ref(step.receiver)
+    else:
+        receiver = resolved(step.receiver, env) if step.receiver is not None else None
     call = make_call(step.function, receiver, output=step.output, recorded_by=RECORDED_BY, **kwargs)
     if late:
         args = dict(call.arguments)
@@ -52,9 +58,9 @@ def step_call(step: Step, env: dict[str, Any]) -> Any:
 
 
 def _namespace(session: Any, env: dict[str, Any]) -> dict[str, Any]:
-    from pymetrix import Dataset, Matrix, Sample
+    import pymetrix
 
-    return {"Dataset": Dataset, "Matrix": Matrix, "Sample": Sample, **session.objects, **env}
+    return {**{n: getattr(pymetrix, n) for n in pymetrix.__all__ if hasattr(pymetrix, n)}, **session.objects, **env}
 
 
 def run_steps(translation: Any, session: Any = None, attach: bool = True) -> dict[str, Any]:
@@ -71,7 +77,9 @@ def run_steps(translation: Any, session: Any = None, attach: bool = True) -> dic
                 for name in op.names:
                     env[name] = namespace[name]
             elif isinstance(op, Step):
-                session.run(step_call(op, env))
+                session.run(step_call(op, ChainMap(env, session.objects)))
+            elif isinstance(op, Cmd):
+                session.run(op.command)
         except Exception as exc:
             message = f"line {line} of {translation.program or 'the program'}: {exc}"
             try:

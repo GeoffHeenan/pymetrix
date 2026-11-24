@@ -1,5 +1,5 @@
 """EViews programs translated (phase 1, data work): the parser, the report, the script, steps mode, and the two
-giving equal objects.
+giving equal objects. Phase 2 (estimation, tests and models) is test_program_estimation.py's.
 
 The expected values are worked out by hand from the programs' text (fixtures/programs/*.prg), not by running the
 translator: each array below says how it was made.
@@ -37,6 +37,8 @@ def _equal_values(a, b):
         assert isinstance(b, float) and math.isnan(b)
     elif hasattr(a, "names") and hasattr(a, "data"):  # a Selection
         assert list(a.names) == list(b.names)
+    elif hasattr(a, "params") and hasattr(a, "equation"):  # a fitted equation (phase 2)
+        np.testing.assert_array_equal(a.params.values, b.params.values)
     else:
         assert a == b
 
@@ -116,11 +118,11 @@ def test_hand_program_report():
     rows = {r.line: r for r in t.report}
     assert sorted(rows) == [i for i, text in enumerate(lines, start=1) if text.strip()]  # a row per line with text
     assert all(r.status in STATUSES for r in t.report)
-    assert t.report.counts() == {"translated": 29, "translated with a note": 7, "left out": 7, "error": 0}
+    assert t.report.counts() == {"translated": 30, "translated with a note": 7, "left out": 6, "error": 0}
     assert rows[6].status == "translated with a note" and "period by period" in rows[6].reason
     assert rows[32].reason == "continues line 31" and rows[36].reason == "continues line 35"
     assert rows[37].status == "left out" and "graphs are not translated" in rows[37].reason
-    assert rows[38].reason.startswith("phase 2") and "Equation" in rows[38].reason
+    assert rows[38].status == "translated" and rows[38].python == 'eq = Equation("y ~ t", name="eq").fit(q)'
     assert "@year" in rows[39].reason and "gap" in rows[39].reason
     assert rows[40].reason == "a for loop: phase 3 (control flow)"
     assert rows[41].reason == "inside a for loop (line 40): phase 3 (control flow)"
@@ -129,10 +131,10 @@ def test_hand_program_report():
     assert rows[11].python == 'q = q.with_series(z=f"y*({half}) - ({two})")'
     table = t.report.summary()
     assert list(table.columns) == ["line", "status", "EViews", "Python", "reason"] and len(table.rows) == len(t.report)
-    assert "29 translated" in table.notes[0]
+    assert "30 translated" in table.notes[0]
     # the script keeps every EViews line as a comment
     assert "# 37: graph gr.line y z" in t.script and "#   left out: graphs are not translated" in t.script
-    assert t.script.splitlines()[5] == "from pymetrix import Dataset, Matrix, Sample"
+    assert t.script.splitlines()[5] == "from pymetrix import Dataset, Matrix, Sample, Equation"
 
 
 def test_two_pages_offsets_named_sample_and_fill():
@@ -254,9 +256,6 @@ def test_the_audit_gaps_are_left_out_by_name(expression, name):
 
 
 @pytest.mark.parametrize("line, words", [
-    ("ls y c x", ("phase 2", "Equation")), ("equation eq.ls y c x", ("phase 2",)), ("model m", ("phase 2", "read_eviews")),
-    ("eq.forecast yf", ("phase 2", "forecast")), ("m.solve", ("phase 2", "solve")), ("var v.ls 1 4 y x", ("phase 2", "VAR")),
-    ("x.uroot(adf)", ("phase 2", "adf")),
     ("for !i = 1 to 3", ("phase 3",)), ("call f(1)", ("phase 3",)), ("include lib", ("phase 3",)), ("stop", ("phase 3",)),
     ("graph g.line x", ("graphs",)), ("x.line", ("graphs",)), ("freeze(t1) x.stats", ("view",)),
     ("table(2,2) t", ("tables",)), ("spool sp", ("output",)), ("show x", ("display",)), ("logmode all", ("setting",)),
@@ -264,7 +263,7 @@ def test_the_audit_gaps_are_left_out_by_name(expression, name):
     ("copy(c=a) q\\x a\\x", ("to_freq",)), ("import a.csv", ("Dataset.read",)), ("pagestruct(freq=a)", ("page",)),
     ("myaddin(x=1) y", ("add-in",)), ("series s = @mean(x) + 1", ("scalar m = @mean",)),
     ("series s = x.@count", ("phase 3",)), ("series s = @str(x)", ("phase 3",)),
-    ("alpha a = \"x\"", ("text",)), ("series s = c(1)*x", ("phase 2",)),
+    ("alpha a = \"x\"", ("text",)), ("series s = c(1)*x", ("scalar b = c(1)",)),
 ])
 def test_lines_left_out_give_a_reason(line, words):
     t = translate_program(f"wfcreate q 2000q1 2000q4\nseries x = 1\n{line}\n")

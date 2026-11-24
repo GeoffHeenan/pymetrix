@@ -177,8 +177,27 @@ def _help() -> None:
         their value is known before the program runs; @mean, @sum, @min, @max, @stdev, @median and @obs as a
         scalar's value over the sample; vectors and matrices.
 
-        **What is left out, for now.** Estimation, tests, forecasts and models (phase 2); loops, if blocks,
-        subroutines and include (phase 3), with the lines inside them; graphs, tables, spools and display; EViews
+        **What is translated (phase 2, estimation, tests and models).** Equations by ls (with cov=white or hac, and
+        ar and ma terms), tsls, gmm, liml, arch, binary, ordered, censored, count, qreg, heckit and ardl, each a
+        fitted Equation (or ARDL), with the options that map; list specifications (y c x y(-1) becomes y ~ x +
+        y[-1]) and expression specifications (y = c(1) + c(2)*x, with parameters c_1, c_2). Each estimate keeps
+        its coefficient map, EViews's c(i) against pymetrix's coefficient, which later lines use: eq.@coefs(2),
+        @stderrs, @tstats, @r2, @se, @dw, @regobs, @aic (per observation, as EViews), and c(2) after an
+        estimation. VARs (var v.ls 1 4 y1 y2 @ c) and VECs (v.ec); systems (sur, 3sls, fiml, tsls); wald,
+        testdrop, auto, hettest, archtest, reset, chow, hist and rls; uroot (adf, pp, kpss, dfgls, ers, np) and
+        coint; forecast, fit and makeresids, the series added to the page. Models: model, append, merge,
+        @identity, @add and @innov collected into one text, read by read_eviews before the model is used (its
+        refusals in the report at their lines); solve and solveopt, addassign and addinit (Model.add_factors),
+        scenarios, override and exclude, the solution's series added to the page under the scenario's alias
+        (y_0, y_1).
+
+        Where EViews's defaults differ from pymetrix's (the HAC bandwidth, the ARMA and GARCH estimators, the
+        default solver), the line is translated with a note saying what to check. An option that is not mapped
+        leaves the line out, naming it: an estimate that ran without it would differ without saying so.
+
+        **What is left out, for now.** Loops, if blocks, subroutines and include (phase 3), with the lines inside
+        them, and the objects they make; stepls, breakls, threshold, switchreg, glm and nls (each naming pymetrix's
+        equivalent); testadd and the extreme-value link (gaps); graphs, tables, spools and display; EViews
         databases (fetch and store); add-ins; and the expression functions pymetrix has no equivalent of, such as
         @year, @round, @nan, @iif and nrnd (docs/known-gaps.md in pymetrix lists them).
 

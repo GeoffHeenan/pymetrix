@@ -1,4 +1,5 @@
-"""Phase 1: data work. Each statement becomes ``Op``s (``ir.py``) with a status and a reason, or is left out with one.
+"""Phase 1: data work, and the translator. Each statement becomes ``Op``s (``ir.py``) with a status and a reason, or is
+left out with one; estimation and tests (``estimation.py``) and models (``models.py``) are phase 2's handlers.
 
 The translator walks the program in order, as EViews runs it, keeping what a straight-line program needs: the pages
 (each a Dataset variable, the current one, their frequencies, series and samples) and the program's own variables
@@ -22,9 +23,11 @@ from pymetrix.extension import EViewsNegative, EViewsNumber, parse_eviews_expres
 from pymetrix.extension import walk_eviews_expression
 
 from ..bundle import _py_name
+from .estimation import ESTIMATORS, LEFT_ESTIMATORS, Estimation
 from .ir import Arg, Code, Op, SampleSpec, Step, Text, Var, quote
-from .left import (GAP_FUNCTIONS, PHASE2, PROGRAM_FUNCTIONS, PHASE2_COMMANDS, PHASE2_METHODS, PHASE3, PHASE3_WORDS, PHASE4_COMMANDS,
-                   PHASE4_METHODS, STATISTICS, left_reason)
+from .left import (GAP_FUNCTIONS, PROGRAM_FUNCTIONS, PHASE2_COMMANDS, PHASE3, PHASE3_WORDS, PHASE4_COMMANDS, PHASE4_METHODS,
+                   STATISTICS, left_reason)
+from .models import Models
 from .parse import Statement, _statement
 from .report import ERROR, LEFT, NOTE, TRANSLATED
 
@@ -126,8 +129,9 @@ def _shifted(period: str, freq: str, n: int) -> str:
     return str(pd.Period(period, freq=freq) + n)
 
 
-class Translator:
-    """Translates a program's statements in order (see the module's docstring)."""
+class Translator(Estimation, Models):
+    """Translates a program's statements in order (see the module's docstring); estimation and tests
+    (``estimation.py``) and models (``models.py``) are phase 2's."""
 
     def __init__(self, bundle: str | None = None, read_options: dict[str, Any] | None = None) -> None:
         self.bundle = bundle
@@ -143,6 +147,15 @@ class Translator:
         self.workfile_frequency: str | None = None
         self.lost = False  # a line that may have set values was left out
         self.unset: dict[str, int] = {}  # variables a left-out line sets, by EViews name -> that line
+        self.fits: dict[str, Any] = {}  # estimated objects, by EViews name (estimation.Fit)
+        self.systems: dict[str, dict[str, Any]] = {}  # systems being collected
+        self.models: dict[str, Any] = {}  # models (models._Model)
+        self.last_fit: Any = None  # the estimation that last filled c
+        self.building: list[tuple[str, int]] = []  # (model, line) of each line that builds a model
+        self.refusals: dict[int, list[str]] = {}  # the model reader's problems, by the program's line
+        self._declared: dict[str, int] = {}  # scalars -> the line that made them
+        self._fit_line: dict[str, int] = {}  # estimated objects -> the line that estimated them last
+        self.line = 0  # the line being translated
 
     # -- names ------------------------------------------------------------------------------------------------------
 
@@ -215,7 +228,9 @@ class Translator:
     def _scan(self, text: str) -> None:
         """Functions pymetrix's expressions have no equivalent of (the audit), and statistics: left out by name."""
         if re.search(r"\w\.@?\w", re.sub(r'"[^"]*"|\d+\.\d*', "", text)):
-            raise _left(f"an object's data member (x.@count, eq.@coefs) is part of EViews's programming language: {PHASE3}")
+            raise _left("an object's data member (eq.@coefs(2), x.@count) in a series expression is not translated: an "
+                        "equation's is, as a scalar's value (scalar b = eq.@coefs(2)), then use the scalar; the others are "
+                        f"EViews's programming language: {PHASE3}")
         for m in re.finditer(r'"[^"]*"|(?<![\w@!%])(@?[A-Za-z_]\w*)(\s*\()?', text):
             if m.group(1) is None:
                 continue
@@ -242,7 +257,7 @@ class Translator:
                 out["_" + key[1:] if key.startswith("!") else key] = v.name
         return out
 
-    def _tree(self, text: str, at: int, comparison: bool = False) -> Any:
+    def _tree(self, text: str, at: int, comparison: bool = False, coefs: bool = False) -> Any:
         self._scan(text)
         if re.search(r'%\w', re.sub(r'"[^"]*"', "", text)):
             raise _left(f"a string variable in an expression: {PHASE3}")
@@ -254,12 +269,14 @@ class Translator:
             if "is not read here" in exc.message:
                 raise _left(exc.message.split(";")[0] + ": not in pymetrix's expressions, nor in the audit (docs/known-gaps.md)") from None
             raise _error(exc.message or "this does not read as an EViews expression") from None
-        for node in walk_eviews_expression(tree):
-            if isinstance(node, EViewsCoefficient):
-                raise _left(f"{node.vector}({node.index}) is an estimated coefficient: {PHASE2}")
+        if not coefs:
+            for node in walk_eviews_expression(tree):
+                if isinstance(node, EViewsCoefficient):
+                    raise _left(f"{node.vector}({node.index}) is an estimated coefficient: in a series expression it is not "
+                                f"translated; give a scalar its value first (scalar b = {node.vector}({node.index})), then use the scalar")
         return tree
 
-    def _names_in(self, rendered: str, page: _Page | None, scalars: dict[str, str]) -> Text:
+    def _names_in(self, rendered: str, page: _Page | None, scalars: dict[str, str], allowed: frozenset[str] = frozenset()) -> Text:
         """The rendered pymetrix text with the program's numbers as variables (in brackets) and series renamed as
         the bundle reader names them; a name that is neither, where the page's series are known, is an error."""
         parts: list[Any] = []
@@ -274,8 +291,13 @@ class Translator:
                 parts += [rendered[pos:m.start()] + "(", Var(scalars[name]), ")"]
                 pos = m.end()
                 continue
+            if name in allowed:
+                continue
             series = _py_name(name)
             if page is not None and page.series is not None and series not in page.series:
+                if series == "resid":
+                    raise _left("resid, EViews's series of the last residuals, is not translated: eq.makeresids r makes them "
+                                "a series of the page")
                 raise _error(f"{name} is not a series of page {page.eviews}, nor a scalar of the program")
             if series != name:
                 parts.append(rendered[pos:m.start()] + series)
@@ -289,9 +311,10 @@ class Translator:
                 merged.append(p)
         return Text(tuple(merged))
 
-    def expression(self, text: str, at: int, page: _Page) -> Text:
-        """A series expression as pymetrix's text, with the program's numbers in it by name."""
-        tree = self._tree(text, at, comparison=True)  # EViews: series d = x > 3, 1 where it holds
+    def expression(self, text: str, at: int, page: _Page, coefs: bool = False) -> Text:
+        """A series expression as pymetrix's text, with the program's numbers in it by name; with ``coefs``, an
+        estimated equation's right-hand side, its coefficients ``c(i)`` as ``c_i``."""
+        tree = self._tree(text, at, comparison=True, coefs=coefs)  # EViews: series d = x > 3, 1 where it holds
         scalars = self._scalars()
         try:
             rendered = render_eviews_expression(tree, tuple(n for n in scalars), frequency="A" if page.freq == "Y" else page.freq)
@@ -299,7 +322,8 @@ class Translator:
             raise _error(exc.message) from None
         except Exception as exc:  # the frequency of @pchy and the like
             raise _error(str(exc)) from None
-        return self._names_in(rendered, page, scalars)
+        allowed = frozenset(f"{n.vector}_{n.index}" for n in walk_eviews_expression(tree) if isinstance(n, EViewsCoefficient)) if coefs else frozenset()
+        return self._names_in(rendered, page, scalars, allowed)
 
     def condition(self, text: str, at: int, page: _Page) -> Text:
         """A sample's condition (``if x > 0 and y < 3``) as a row condition on the page's columns (``Sample(where=)``)."""
@@ -454,6 +478,7 @@ class Translator:
     # -- statements -------------------------------------------------------------------------------------------------
 
     def statement(self, st: Statement) -> Outcome:
+        self.line = st.line
         try:
             st, notes = self._substitute(st)
             ops, note = self._dispatch(st)
@@ -509,9 +534,10 @@ class Translator:
         if handler is not None:
             return handler(st)
         if word in PHASE2_COMMANDS:
-            if word in ("equation", "model", "var", "system", "sspace"):
+            if word in ("sspace",):
                 self.types[_first_word(st.rest).split(".")[0].lower()] = word
-            return self._phase2(PHASE2_COMMANDS[word])
+            raise _left(left_reason("state-space objects are read by read_eviews_sspace, not translated line by line",
+                                    PHASE2_COMMANDS[word]))
         if word in PHASE4_COMMANDS:
             why, eq = PHASE4_COMMANDS[word]
             if word in ("graph", "table", "spool", "text"):
@@ -521,10 +547,6 @@ class Translator:
             raise _error("this does not read as an EViews statement")
         raise _left(f"{word} is not an EViews command this translator knows: an add-in or a user-defined command, "
                     "another program's code, is not translated")
-
-    @staticmethod
-    def _phase2(equivalent: str) -> tuple[list[Op], str]:
-        raise _left(left_reason(PHASE2, equivalent))
 
     # workfiles and pages
 
@@ -931,6 +953,8 @@ class Translator:
             raise _error(f"{name} is a {old.kind}, not a number")
         var, note = (old.name, "") if old is not None else self._name(name, f"{kind} {key}")
         if rhs is None:
+            if old is None:
+                self._declared[key] = self.line
             self.py[key] = _Py(var, kind, math.nan)
             return [Code(f"{var} = {_NAN}", (var,))], "; ".join(x for x in (note, "a new scalar has no value: NA (verify)") if x)
         stat = re.fullmatch(r"\s*(@\w+)\s*\((.*)\)\s*", rhs, re.S)
@@ -943,10 +967,21 @@ class Translator:
             why = (f"{stat.group(1).lower()} over the page's sample, missing values skipped"
                    + (" (the standard deviation with n - 1, as EViews's @stdev)" if fn == "std" else ""))
             return [Code(code, (var,))], "; ".join(x for x in (note, why) if x)
-        code, value, worked = self.number(rhs, at)
+        rhs, members, member_notes = self.members_in(rhs)
+        for placeholder, member in members.items():
+            self.py[placeholder] = _Py(member, "scalar", _UNKNOWN)
+        try:
+            code, value, worked = self.number(rhs, at)
+        finally:
+            for placeholder in members:
+                self.py.pop(placeholder, None)
+        if members:
+            code = f"float({code})"
+        if old is None:
+            self._declared[key] = self.line
         self.py[key] = _Py(var, kind, value)
         why = f"worked out: {rhs.strip()}" if worked else ""
-        return [Code(f"{var} = {code}", (var,))], "; ".join(x for x in (note, why) if x)
+        return [Code(f"{var} = {code}", (var,))], "; ".join(x for x in (note, why, *member_notes) if x)
 
     def _cmd_scalar(self, st: Statement) -> tuple[list[Op], str]:
         m = re.fullmatch(r"\s*([A-Za-z_]\w*)\s*(?:=(.*))?", st.rest, re.S)
@@ -991,7 +1026,7 @@ class Translator:
             rows, cols = (dims[0] if dims else 1), 1
         if kind == "coef":
             self.types[m.group(1).lower()] = "coef"
-            raise _left(f"coef vectors hold estimated coefficients: {PHASE2}")
+            return [], f"a coefficient vector: an expression specification's {m.group(1).lower()}(i) are its parameters {m.group(1).lower()}_i (no step)"
         key = m.group(1).lower()
         var, note = self._name(m.group(1), f"matrix {key}")
         self.py[key] = _Py(var, "matrix", shape=(rows, cols))
@@ -1037,7 +1072,7 @@ class Translator:
         if '"' in st.rest:  # a string object, as EViews makes one from a string's value
             return self._string(key, lhs, st.rest)
         if key in self.types:
-            raise _left(f"{lhs} is a {self.types[key]}: {PHASE2 if self.types[key] in PHASE2_COMMANDS else 'not translated'}")
+            raise _left(f"{lhs} is a {self.types[key]}: assigning to it is not translated")
         return self._assign_series(lhs, st.rest, st.rest_at)
 
     # methods
@@ -1070,13 +1105,24 @@ class Translator:
             return self._series_fill(st)
         if method in ("label", "displayname", "setattr") and not kind:
             return self._label(st)
+        if key in self.models:
+            return self._model_method(st, key)
+        if key in self.systems:
+            return self._system_method(st, key)
+        if kind == "group" and method == "coint":
+            return self._coint(st, self.py[key])
+        if method == "uroot" and not kind:
+            return self._uroot(st)
+        if kind in ("equation", "var") or (not kind and (method in ESTIMATORS or method in LEFT_ESTIMATORS)):
+            return self._fit_method(st, key)
         if kind in ("graph", "table", "spool", "text") or (method in PHASE4_METHODS and kind not in PHASE2_COMMANDS):
             why, eq = PHASE4_METHODS.get(method, PHASE4_COMMANDS.get(kind, ("not translated", "")))
             raise _left(left_reason(why, eq))
-        if method in PHASE2_METHODS or kind in PHASE2_COMMANDS:
-            if method in PHASE2_COMMANDS and method not in ("model",):
-                self.types[key] = "equation"
-            return self._phase2(PHASE2_METHODS.get(method, ""))
+        if method in _OBJECT_METHODS and not kind:
+            if self.lost:
+                raise _left(f"{obj} is not made by a line translated so far (a subroutine, an add-in or a line left out may make "
+                            f"it): {PHASE3}")
+            raise _error(f"{obj} is not an object of the program: {obj}.{method} needs a model, an equation or a system")
         raise _left(f"{obj}.{method} is not translated" + (f" (a {kind})" if kind else ""))
 
     def _label(self, st: Statement) -> tuple[list[Op], str]:
@@ -1164,6 +1210,23 @@ class Translator:
         text = "[" + ", ".join("[" + ", ".join(_number_text(x) if math.isfinite(x) else _NAN for x in row) + "]"
                                for row in grid) + "]"
         return [Code(f"{v.name} = Matrix({text})", (v.name,))], "" if by_row else "filled by column, as EViews does"
+
+
+# methods of models, equations and systems: on a name the program has not made, the object comes from a line left out
+_OBJECT_METHODS = frozenset({"solve", "solveopt", "addassign", "addinit", "scenario", "override", "exclude", "append", "merge",
+                             "makegroup", "wald", "auto", "hettest", "archtest", "reset", "chow", "hist", "rls", "testdrop",
+                             "testadd", "forecast", "fit", "makeresids", "ec", "sur", "3sls", "fiml", "makemodel", "results", "spec",
+                             "output"})
+
+
+def _top_level(text: str, ch: str) -> list[int]:
+    """Where ``ch`` is outside brackets (an ``=`` not part of ``<=``, ``>=`` or ``<>``)."""
+    out, depth = [], 0
+    for i, c in enumerate(text):
+        depth += (c == "(") - (c == ")")
+        if c == ch and depth == 0 and text[i - 1:i] not in ("<", ">") and text[i + 1:i + 2] not in (">",):
+            out.append(i)
+    return out
 
 
 def _uses(expr: str, name: str) -> bool:
