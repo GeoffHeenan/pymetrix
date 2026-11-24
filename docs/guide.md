@@ -1109,6 +1109,29 @@ The export program has never been run in EViews (the project has no licence); ev
 pages from Parquet copies instead, so the script needs only pymetrix. The plugin's README lists what each EViews
 object becomes and what is refused.
 
+### EViews programs
+
+The plugin also translates EViews programs (`.prg`). This first phase covers data work: workfiles and pages,
+samples, series and formulas, groups, labels, scalars, `!` and `%` variables, and matrices. A program's `wfopen`
+needs the workfile's data: the bundle, or a CSV or Excel file saved from it in EViews.
+
+```python
+from pymetrix_eviews import translate_program
+
+t = translate_program("C:/work/macro.prg", bundle="C:/work/macro-export/macro.evbundle")
+print(t.script)            # Python, each EViews line as a comment above what it became
+t.report.summary()         # one row per line: translated, translated with a note, left out or error, and why
+out = t.run(session)       # the same work as steps in a session, each recorded as a dialog's would be
+```
+
+For a CSV file, give `Dataset.read`'s options: `translate_program(prg, bundle="macro.csv", read_options={"time":
+"obs", "freq": "Q"})`. `smpl` becomes the dataset's active sample, and an assignment under it uses
+`with_series(..., within=Sample(...))`, so only the sample's rows change, period by period when the formula uses its
+own series, as in EViews. Scalars are Python variables: the script writes them into expressions as f-strings, and
+the steps write their values. Estimation and models (phase 2) and loops, `if` blocks and subroutines (phase 3) are
+left out with that reason; so are graphs, tables and the EViews functions pymetrix has no equivalent of
+([known gaps](known-gaps.md)). Nothing is dropped silently: every line with text has a row.
+
 ## Reports
 
 ```python

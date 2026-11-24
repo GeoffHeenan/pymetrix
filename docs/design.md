@@ -3893,6 +3893,48 @@ only the draws by the arrays (two implementations to keep in step, and no `exog`
   and their environments for one test's default bandwidth, and a user's own arch would still decide. Instead the
   test's details record arch's version beside the bandwidth, and known-gaps says what changes.
 
+### EViews programs, phase 1: data work (24 November 2026)
+
+Section 2 of [design/eviews-plugin.md](design/eviews-plugin.md) ("What comes out", "Names", the phase 1 table), in
+`packages/pymetrix-eviews/src/pymetrix_eviews/program`.
+
+- **One representation, two outputs.** Each statement becomes `Code` (Python that is not a step: a scalar, a string,
+  a matrix), `Step` (a call of the public API with its stable ID, receiver and output) or nothing, with a status and
+  a reason. The script writes the ops; steps mode runs the same `Code` text and turns each `Step` into
+  `make_call(...)` for `Session.run`. A test runs every fixture both ways and requires equal objects.
+- **Scalars are Python, their values go into expressions.** The program's numbers stay Python variables (design:
+  "code, not a step"). In the script an expression that uses one is an f-string, `f"y*({half})"`, the value in
+  brackets so a negative one reads; the step writes the value, as the f-string would. pymetrix's expressions cannot
+  name Python variables, and recording scalars as `pymetrix:value` steps would put objects in the session that EViews
+  keeps out of the workfile's series.
+- **Statistics over the sample** (`scalar m = @mean(x)`) are `float(data.eval("x")[data.sample_mask()].mean())`:
+  `data.eval("mean(x)")` would ignore the active sample. They translate only as a scalar's whole value; inside a
+  larger expression they are left out, saying to give a scalar the statistic first.
+- **Straight-line values are worked out.** `!i`, `%s` and scalars set from numbers and strings have their value
+  before the program runs, so `{%s}` and `{!i}` are put in (with a note) and `smpl %a %b` reads. A value a loop, a
+  subroutine or a left-out line sets is not guessed: the lines that need it are phase 3. Lines inside blocks mark
+  what they assign as unknown.
+- **Names are checked while they can be.** A page's series are known from `wfcreate` and the bundle, so an unknown
+  name is an error; after a line left out that may make series (a fetch, a subroutine, a loop, an add-in) the
+  check stops, so a later line is not wrongly called an error.
+- **A formula that uses its own series is worked out period by period even under `smpl @all`** (`within=Sample()`):
+  EViews assigns a series one observation at a time, so `y = y(-1)*1.02` compounds; `with_series` without `within`
+  would see the old values.
+- **Names.** Series follow the bundle reader (`_py_name`: lower case, `in` becomes `in_v`), so a translated program
+  and a bundle agree; Python variables also get `_v` after a pymetrix name or builtin (`data`, `lambda`), and a
+  number after one already taken. A series called `within` is left out: `with_series` takes `within=` for the sample.
+- **Where the phase 1 table was not followed.** `read`/`import` and `copy` between pages are left out naming
+  `Dataset.read` and `to_freq`: their options decide where series go and how, and a guess would be worse than the
+  reason. `@trend`, `@seas` and `@elem` are left out in data work: `eviews_series` makes them for a model's
+  exogenous variables only. The report has rows for lines with text; blank lines have none, and comments are
+  "translated" (kept as comments in the script).
+- **The audit added nothing to core.** `@round`, `@floor`, `@nan`, `@isna` and the date functions would each need
+  the parser, the evaluator, the compiled solvers, the derivatives and the model writers changed, not one table: not
+  trivially consistent, so they are listed as gaps.
+- **No app entry yet.** A Translate EViews program… dialog would need a result type for the translation (views,
+  the chart gallery, the results contract) and a decision on whether its steps run from the dialog or the panel;
+  both belong with the panel (section 3).
+
 ### The EViews plugin, data route 1 (24 November 2026)
 
 The bundle reader, the export program and File → Import EViews workfile… of [design/eviews-plugin.md](design/eviews-plugin.md)

@@ -203,8 +203,31 @@ blocking you, say so: that is how priorities get set.
   expressions, and samples with conditions or several pairs of ends (kept as text in `meta.extra["eviews"]`); and a
   project made with File → Import EViews workfile… reopens only with the plugin installed (Save the data as Parquet frees the
   script, not the project). It refits only least-squares equations without options against EViews's estimates.
-  Translating EViews programs and running EViews through COM are not built yet. Nor are IRIS databanks saved as .mat files; one saved as CSV loads
+  Running EViews through COM is not built yet. Nor are IRIS databanks saved as .mat files; one saved as CSV loads
   once the rows of classes and units under the names are left out (`skiprows=[1, 2]`), which Load data cannot do.
+- **EViews programs are translated for data work only (phase 1)** by `pymetrix-eviews` (`translate_program`).
+  Left out, each line with its reason in the report: estimation, tests, forecasts and models (phase 2: `ls`,
+  `equation`, `model`, `var`, `eq.wald`, `m.solve`...); loops, `if` blocks, subroutines and `include`, the lines
+  inside them, and lines that need a value only they give (phase 3); graphs, tables, spools, display and settings,
+  EViews databases (`fetch`, `store`, `dbopen`), add-ins and user commands, external programs. Within data work:
+  `read` and `import` (use `Dataset.read`), `copy` between pages (`to_freq`), page operations (`pagestruct`,
+  `pagedelete`...), alpha series, weekly, daily, undated and semi-annual new pages, samples of several pairs of
+  dates, conditions with lags or functions other than log, exp, abs and sqrt, groups of expressions, `rename` and
+  `delete` with patterns, element assignment in matrices and tables, `coef` vectors, `label(r)` remarks, `@trend`,
+  `@seas` and `@elem` in data work (`eviews_series` makes them only for a model), sample statistics inside a larger
+  expression (give a scalar the statistic first), EViews's object data members (`x.@count`) and string, date and
+  matrix functions (`@str`, `@val`, `@word`, `@dateval`, `@rows`...). A declared scalar starts as NA and `x.label`
+  without an option sets the description; both are marked to verify. Not in the app yet: no Translate EViews
+  program dialog or translation panel; translate in code.
+- **EViews expression functions pymetrix's expressions lack** (the audit of phase 1, over the functions in the
+  Brillet and FRB/US programs and those the design names): `@year`, `@quarter`, `@month`, `@day`, `@date`,
+  `@obsnum`/`@obsid` (the period and observation number), `@round`, `@floor`, `@ceiling`, `@nan` and `@isna`
+  (missing values: pymetrix's expressions have no missing-value constant, so `na` inside an expression is a gap too),
+  `@iif` (only `@recode`'s max and min forms map), `nrnd`, `rnd`, `@rnorm` and `@runif` (random numbers), `@cumsum`
+  over a sample, the by-group statistics `@sumsby`, `@meansby`, `@minsby` and `@maxsby`, `@obssmpl` and `@log10`.
+  The translator leaves a line that uses one out, naming the function. None was added to core: rounding and missing
+  values would need the function in the parser, the evaluator, the compiler, the derivatives and the model
+  writers, not one place.
 - **EViews's syntax** is a subset, confirmed against Brillet's *Structural Econometric Modelling* (EViews) and the
   FRB/US packages, without EViews itself (the book's programs are copyright and not in the repository, so those tests
   run only with `PYMETRIX_BRILLET` set to a folder with one's own copies; CI does not run them): EViews's programming

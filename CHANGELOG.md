@@ -24,8 +24,31 @@
   Import EViews workfile…** reads a bundle's pages (one `Dataset.read` line each; *Save the data as Parquet* reads them from
   Parquet copies, so the script replays without the plugin) or saves a copy of the export program. **The export
   program is experimental: it has never been run in EViews** (the project has no licence), and every point to check
-  is marked `(verify)` in it; saving the workfile from EViews as CSV or Excel stays the supported way in. Translating
-  EViews programs and running EViews through COM are later work.
+  is marked `(verify)` in it; saving the workfile from EViews as CSV or Excel stays the supported way in. Running
+  EViews through COM is later work.
+- **EViews programs translated, phase 1: data work** (`pymetrix-eviews`, section 2 of `docs/design/eviews-plugin.md`).
+  `translate_program("macro.prg", bundle="macro.evbundle")` reads a `.prg` and returns a `ProgramTranslation`: `.script`,
+  readable Python using pymetrix's public API with each EViews line above what it became; `.report`, a row per line
+  with text (translated, translated with a note, left out, error; the EViews text, the Python and the reason, with
+  pymetrix's equivalent), `report.summary()` a `Table`; and `.run(session)`, the same work as recorded steps
+  (`make_call`), with the script and the report kept in the project (`session.attachments["pymetrix-eviews"]`). Both
+  come from one intermediate representation, and the tests require the script and the steps to give equal objects.
+  Translated: `wfopen` (of the bundle, or of a CSV or Excel file saved from EViews, with `read_options`), `wfcreate`
+  and `pagecreate` (`Dataset.empty`), `pageselect`; `smpl` (dates, `@first`/`@last`, offsets, `if` conditions, named
+  samples) and `sample` (`Sample`, `with_sample`); `series`, `genr` and plain assignments through the core expression
+  converter, within the current sample (`with_series(within=)`), a formula that uses its own series worked out period
+  by period as EViews does; `series y` and `y = na`; `frml` (`derive`); `group` and `g.add`/`g.drop` (`data.series`);
+  `x.label`, `x.displayname`, `x.setattr` (`with_info`); `rename`, `delete`, `x.fill(o=...)` (`edit`); scalars,
+  `!` numbers and `%` strings as Python variables, worked out where they are known before the program runs, so
+  `{%s}` and `{!i}` in names are put in; `@mean`, `@sum`, `@min`, `@max`, `@stdev`, `@median` and `@obs` as a scalar's
+  value over the sample; `vector`, `matrix`, `sym` and `fill` (`Matrix`). Names follow the bundle reader's rules, and
+  a Python word or pymetrix name gets `_v`. Estimation, tests and models (phase 2) and loops, `if` blocks,
+  subroutines and `include` (phase 3) are left out with that reason, and so is what has no equivalent (graphs,
+  tables, spools, display, databases, add-ins), each with the pymetrix way where there is one: nothing is dropped
+  silently. The expression functions pymetrix lacks are listed in known gaps (`@year`, `@quarter`, `@month`,
+  `@date`, `@obsnum`, `@round`, `@floor`, `@ceiling`, `@nan`, `@isna`, `@iif`, `nrnd`, `rnd`, ...); none was added
+  to core. Checked on hand-written programs with every value worked out by hand, and on the Brillet and FRB/US
+  programs with the count of each status fixed. Not in the app yet: translate in code.
 - **Assigning a series within a sample** (EViews' `smpl 2000q1 2010q4` then `y = ...`). `data.with_series(y="...",
   within=Sample(...))` assigns only the rows the sample selects and keeps the others' values; a new series is missing
   outside it. `within` takes a `Sample` (periods, a panel's entities, `where=` conditions, windows per entity), a
