@@ -154,12 +154,17 @@ class _Refused(SpecificationError):
 
 @dataclass(frozen=True)
 class _Num:
+    """A number as written (``text``), at offset ``at``."""
+
     text: str
     at: int
 
 
 @dataclass(frozen=True)
 class _Ser:  # a series (or a scalar), at a lag
+    """A series or scalar ``name`` (lower case) at ``lag`` (negative: a lag, positive: a lead), spanning ``length``
+    characters from ``at``."""
+
     name: str
     lag: int
     at: int
@@ -168,6 +173,8 @@ class _Ser:  # a series (or a scalar), at a lag
 
 @dataclass(frozen=True)
 class _Coef:
+    """A coefficient ``vector(index)``, such as ``c(2)``."""
+
     vector: str
     index: int
     at: int
@@ -176,6 +183,8 @@ class _Coef:
 
 @dataclass(frozen=True)
 class _Call:
+    """A function call: ``fn`` as written in lower case (``"dlog"``, ``"@pch"``) and its argument nodes."""
+
     fn: str
     args: tuple[Any, ...]
     at: int
@@ -184,12 +193,16 @@ class _Call:
 
 @dataclass(frozen=True)
 class _Neg:
+    """A minus sign before ``x``."""
+
     x: Any
     at: int
 
 
 @dataclass(frozen=True)
 class _Bin:
+    """``left op right``: an arithmetic operator (``+ - * / ^``) or a comparison (``< > <= >= <> =``)."""
+
     op: str
     left: Any
     right: Any
@@ -198,6 +211,8 @@ class _Bin:
 
 @dataclass(frozen=True)
 class _Par:
+    """``x`` in brackets, as written."""
+
     x: Any
     at: int
 
@@ -470,6 +485,9 @@ def _trend_at(name: str, date: tuple[int, str, int]) -> int | None:
 
 
 def _parse(text: str, base: int, vectors: set[str], comparison: bool = False) -> Any:
+    """One EViews expression as a tree of nodes whose offsets are ``base`` plus the text's own; ``vectors`` are the
+    coefficient vectors (``{"c"}`` at least); ``comparison`` lets the whole be a comparison. ``_Refused`` where it does
+    not read."""
     return _Parser(text, base, vectors).whole(comparison)
 
 
@@ -483,7 +501,14 @@ def convert_expression(text: str, scalars: tuple[str, ...] = (), vectors: tuple[
         raise ModelError(f"column {exc.at + 1}: {exc.message}") from None
 
 
+def _render(node: Any, scalars: tuple[str, ...] = (), frequency: str | None = None) -> str:
+    """A parsed expression (``_parse``) as pymetrix's text, as ``convert_expression`` writes it; ``_Refused`` (with
+    the place) where it does not translate. Public as ``pymetrix.extension.render_eviews_expression``."""
+    return _Render({s.lower() for s in scalars}, _per_year(frequency))(node)
+
+
 def _walk(node: Any) -> list[Any]:
+    """A tree's nodes, the root first, then each child's in order."""
     out = [node]
     for child in _children(node):
         out += _walk(child)

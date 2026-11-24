@@ -33,13 +33,15 @@ from typing import Any
 from .errors import NotFoundError, PluginUnavailable
 from ._version import __version__
 
-API = "1.9"  # 1.1 (additive): the app's workspaces, menus and panels; results' stage and next steps; 1.2: report templates, example datasets;
+API = "1.10"  # 1.1 (additive): the app's workspaces, menus and panels; results' stage and next steps; 1.2: report templates, example datasets;
 # 1.3: session observers (pymetrix.commands.events) and project attachments; 1.4: migration, call_migration and
 # renamed_arguments, for renaming a call's arguments or a dialog's fields; 1.5: who acted (SessionEvent.actor, Actor); 1.6: report notes
 # (ReportNote: a line per reported result, under the plugin's heading); 1.7 (additive): AppInterface.open_demo(name), a panel
 # opens a demo project as File → Open demo project does
 # 1.8 (additive): build_mcp_server, pymetrix's MCP tools over a session that lives elsewhere (the app's)
 # 1.9 (additive): Session.proposing(command_cls, by) and CommandRecord.proposed_by: a step an assistant proposed and the user ran
+# 1.10 (additive): the core EViews reader's text helpers (eviews_statements, parse_eviews_expression, Diagnostic...), for
+# a plugin that translates EViews programs
 SUPPORTED_APIS = ("1",)  # the current major version and, once there is one, the previous
 GROUPS = ("methods", "systems", "models", "variances", "tests", "filters", "seasonal", "solvers", "io", "views", "commands", "courses",
           "workspaces", "menus", "panels", "report_templates", "datasets", "observers", "report_notes")

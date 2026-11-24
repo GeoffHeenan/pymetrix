@@ -161,7 +161,7 @@ def test_open_demo_is_part_of_the_panel_interface_with_a_default():
     from pymetrix.errors import NotSupportedError
     from pymetrix.extension import AppInterface
 
-    assert plugins.API >= "1.7" and callable(AppInterface.open_demo)
+    assert tuple(map(int, plugins.API.split("."))) >= (1, 7) and callable(AppInterface.open_demo)
     bare = AppInterface(lambda: None, lambda: None, lambda cls, initial: None, lambda c: None, lambda text: None)
     with pytest.raises(NotSupportedError, match="Open demo project"):
         bare.open_demo("forecast_round")

@@ -1,4 +1,4 @@
-"""The extension API (1.9): everything a plugin imports from pymetrix, besides the stable modules in ``STABLE``.
+"""The extension API (1.10): everything a plugin imports from pymetrix, besides the stable modules in ``STABLE``.
 
 A plugin registers its calls, dialogs, results' views, help, report templates, example datasets, workspace, menu and
 panels through this module alone, so pymetrix can change its internals without breaking plugins:
@@ -40,6 +40,19 @@ so they keep working as the app changes. A panel that proposes steps (an assista
 the app its stage
 (``stage = "forecast"``) and its next steps (``next_steps = (("Label…", "CommandClass", "field", "stage"), ...)``)
 as class attributes.
+
+A plugin that translates EViews programs uses the core EViews reader's text helpers (1.10): ``eviews_blank_comments``
+and ``eviews_statements`` split a program into statements with their offsets in the text; ``parse_eviews_expression``
+parses one expression into a tree of ``EViewsNumber``, ``EViewsName``, ``EViewsCoefficient``, ``EViewsCall``,
+``EViewsNegative``, ``EViewsBinary`` and ``EViewsBrackets`` nodes, each with its offset ``at``;
+``render_eviews_expression`` writes a tree as ``convert_expression`` does; text that does not read raises
+``EViewsExpressionError`` with its place; ``Diagnostic`` and ``line_and_column`` report a problem at a line and column.
+
+    clean = eviews_blank_comments(program)
+    for text, at in eviews_statements(clean):
+        lhs, _, rhs = text.partition("=")
+        tree = parse_eviews_expression(rhs, at + len(lhs) + 1, {"c"})   # offsets in the whole program
+        python = render_eviews_expression(tree, frequency="Q")
 """
 
 from __future__ import annotations
@@ -82,6 +95,22 @@ _PUBLIC = {
     "random_number_generator": ("pymetrix._random", "generator"),
     "build_mcp_server": ("pymetrix.mcp_server", "build_server"),  # 1.8: pymetrix's MCP tools over a session that lives elsewhere (the app's)
     "MCPPolicy": ("pymetrix.mcp_server", "Policy"),  # 1.8: what those tools may do (code, file writes, network; the root folder)  # a numpy Generator from a seed, with the bit generator the user chose
+    # 1.10: the core EViews reader's text helpers, for a plugin that translates EViews programs (offsets count from 0)
+    "eviews_blank_comments": ("pymetrix.models.eviews", "_blank"),  # comments as spaces: every offset stays
+    "eviews_statements": ("pymetrix.models.eviews", "_statements"),  # [(statement, offset)]; " _" joins lines
+    "parse_eviews_expression": ("pymetrix.models.eviews", "_parse"),  # (text, base, vectors, comparison=False) -> a tree
+    "render_eviews_expression": ("pymetrix.models.eviews", "_render"),  # a tree as convert_expression writes it
+    "walk_eviews_expression": ("pymetrix.models.eviews", "_walk"),  # a tree's nodes, the root first
+    "EViewsExpressionError": ("pymetrix.models.eviews", "_Refused"),  # a SpecificationError with .message, .at, .length
+    "EViewsNumber": ("pymetrix.models.eviews", "_Num"),  # the tree's nodes: frozen dataclasses, each with .at
+    "EViewsName": ("pymetrix.models.eviews", "_Ser"),  # a series or scalar at a lag: .name, .lag, .length
+    "EViewsCoefficient": ("pymetrix.models.eviews", "_Coef"),  # c(2): .vector, .index
+    "EViewsCall": ("pymetrix.models.eviews", "_Call"),  # .fn ("dlog", "@pch"), .args
+    "EViewsNegative": ("pymetrix.models.eviews", "_Neg"),  # .x
+    "EViewsBinary": ("pymetrix.models.eviews", "_Bin"),  # .op, .left, .right
+    "EViewsBrackets": ("pymetrix.models.eviews", "_Par"),  # .x
+    "Diagnostic": ("pymetrix.models.source", "Diagnostic"),  # a problem at a line and column (from 1), as check() reports
+    "line_and_column": ("pymetrix.models.source", "_place"),  # (text, offset) -> (line, column), both from 1
 }
 
 __all__ = ["STABLE", "AppInterface", "AppPanel", "ExampleDataset", "MenuLayout", "ReportNote", "Workspace", *_PUBLIC]

@@ -19,7 +19,7 @@ def reference(tmp_path_factory):
                           capture_output=True, text=True, timeout=600, check=False)
     assert done.returncode == 0, done.stderr[-2000:]
     return {name: list(csv.DictReader((out / f"{name}.csv").open(encoding="utf-8")))
-            for name in ("commands", "calls", "settings", "other", "library")} | {"md": (out / "reference.md").read_text("utf-8")}
+            for name in ("commands", "calls", "settings", "other", "library", "extension")} | {"md": (out / "reference.md").read_text("utf-8")}
 
 
 def test_everything_registered_is_listed(reference):
@@ -30,8 +30,14 @@ def test_everything_registered_is_listed(reference):
     calls = {r["id"] for r in reference["calls"]}
     assert {c for c, spec in _api.API_CALLS.items() if spec.plugin in first_party} <= calls
     assert {c for c, info in COMMANDS.items() if info.plugin in first_party} <= {r["id"] for r in reference["commands"]}
-    for section in ("## 1. Dialog commands", "## 2. API functions", "## 3. Methods, tests", "## 5. External library"):
+    for section in ("## 1. Dialog commands", "## 2. API functions", "## 3. Methods, tests", "## 5. External library",
+                    "## 6. Extension API"):
         assert section in reference["md"]
+    import pymetrix.extension as extension
+
+    assert {r["name"] for r in reference["extension"]} == set(extension.__all__) - {"STABLE"}  # every public name
+    rows = {r["name"]: r for r in reference["extension"]}
+    assert rows["eviews_statements"]["defined_in"] == "pymetrix.models.eviews._statements"
 
 
 def test_wrappers_name_the_library_function_they_call(reference):

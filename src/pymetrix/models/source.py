@@ -1125,6 +1125,7 @@ def _blank_comments(text: str) -> str:
 
 
 def _place(text: str, offset: int) -> tuple[int, int]:
+    """The line and column (both from 1) of an offset (from 0) in ``text``."""
     line = text.count("\n", 0, offset) + 1
     return line, offset - (text.rfind("\n", 0, offset) + 1) + 1
 

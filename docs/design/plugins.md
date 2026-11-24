@@ -54,6 +54,31 @@ The reference plugins (`pymetrix.ext.connectors`, `ext.linearmodels`, `ext.arch`
 written against this API only, and `tests/sample_plugin.py` is a minimal outside package. They are the
 worked examples.
 
+### What a plugin imports, and the API's versions
+
+A plugin imports pymetrix's inside only through `pymetrix.extension`, under names that stay put as pymetrix changes,
+and otherwise from the stable modules (`pymetrix.extension.STABLE`). The finance plugin's public-surface test, and
+the one `pymetrix-new-plugin` writes, hold a plugin to this. `pymetrix.plugins.API` is the extension API's version.
+Its major number is checked (`SUPPORTED_APIS`); a minor version only adds names, so a plugin written for 1.4 runs on
+1.10. The comment beside `API` in `plugins.py` and section 6 of the reference (`docs/reference/reference.md`,
+`scripts/make_api_reference.py`) list what each minor version added. Compare versions as numbers, never as text:
+`1.10` follows `1.9`.
+
+**1.10 (additive): the core EViews reader's text helpers**, for a plugin that translates EViews programs
+([eviews-plugin.md](eviews-plugin.md), decision 4). Each name is the reader's own helper, so the plugin reads a
+program exactly as `read_eviews` and `check_eviews` do; nothing in core changed.
+
+| Name | What it is |
+| --- | --- |
+| `eviews_blank_comments(text)` | the text with comments (`'` outside double quotes) as spaces: every offset stays |
+| `eviews_statements(clean)` | `[(statement, offset)]` of that text; a line ending in ` _` continues, with the same length |
+| `parse_eviews_expression(text, base, vectors, comparison=False)` | one expression as a tree; offsets are `base` plus the text's own; `vectors` the coefficient vectors, `{"c"}` at least |
+| `EViewsNumber`, `EViewsName`, `EViewsCoefficient`, `EViewsCall`, `EViewsNegative`, `EViewsBinary`, `EViewsBrackets` | the tree's nodes: frozen dataclasses, each with its offset `at` |
+| `walk_eviews_expression(node)` | the tree's nodes, the root first |
+| `render_eviews_expression(node, scalars=(), frequency=None)` | the tree as pymetrix text, as `convert_expression` writes it |
+| `EViewsExpressionError` | what does not read: a `SpecificationError` with `.message`, `.at` and `.length` |
+| `Diagnostic`, `line_and_column(text, offset)` | a problem at a line and column (both from 1), as `ModelSource.check` reports them |
+
 ## Case 1: an institutional data store (PSETS)
 
 pymetrix is not tied to any institution's data systems; the built-in PSETS reader stub was removed (decided 11

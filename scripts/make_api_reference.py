@@ -3,10 +3,10 @@
     python scripts/make_api_reference.py              # into docs/reference
     python scripts/make_api_reference.py <folder>     # elsewhere
 
-Writes reference.md (the readable reference) and five CSV files (commands, calls, settings, other, library), from:
+Writes reference.md (the readable reference) and six CSV files (commands, calls, settings, other, library, extension), from:
 the dialog registry (menus, settings), the @api call registry (signatures, return types), the plugin registries
 (methods, tests, filters, ...), the adapter specs (which library function each wrapper calls), the programs PyMetrix
-runs outside Python (``PROGRAMS``), and a scan of the source for calls into statsmodels, SciPy, linearmodels, arch
+runs outside Python (``PROGRAMS``), the extension API's public names (``pymetrix.extension``), and a scan of the source for calls into statsmodels, SciPy, linearmodels, arch
 and scikit-learn, followed two steps through PyMetrix's own functions and methods. Installed plugins' commands are
 included, so run it with the first-party plugins installed (as CI does). Rerun it when the API changes.
 """
@@ -398,6 +398,20 @@ for name in sorted(pymetrix.__all__, key=str.lower):
                        "implementation": impl[0], "library_function": impl[1], "library": impl[2],
                        "summary": first_line(obj) if kind != "value" else ""})
 
+# the extension API: what a plugin imports from pymetrix.extension, and where each name lives
+import pymetrix.extension as extension
+from pymetrix.plugins import API
+
+extension_rows = []
+for name in sorted(extension.__all__, key=str.lower):
+    if name == "STABLE":
+        continue
+    obj = getattr(extension, name)
+    module, attr = extension._PUBLIC.get(name, (extension.__name__, name))
+    kind = "class" if inspect.isclass(obj) else "function" if callable(obj) else "value"
+    extension_rows.append({"name": name, "kind": kind, "signature": f"{name}({sig(obj)})" if kind != "value" else name,
+                           "defined_in": f"{module}.{attr}", "summary": first_line(obj) if kind != "value" else ""})
+
 # the library side: each external function and the pymetrix code that calls it
 public_of = {}
 for row in call_rows:
@@ -454,7 +468,7 @@ library_rows = [{"library": lib_of.get(fn, fn.split(".")[0]), "function": fn, "u
 
 OUT.mkdir(parents=True, exist_ok=True)
 for name, rows in (("commands", command_rows), ("calls", call_rows), ("settings", settings_rows), ("other", other_rows),
-                   ("library", library_rows)):
+                   ("library", library_rows), ("extension", extension_rows)):
     with (OUT / f"{name}.csv").open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
@@ -517,6 +531,14 @@ for lib in sorted({r["library"] for r in library_rows}):
     md += [f"### {lib}\n", "| Function | Called by (PyMetrix) |", "|---|---|"]
     md += [f"| `{r['function']}` | {esc(r['used_by'])} |" for r in library_rows if r["library"] == lib]
     md.append("")
+md += [f"## 6. Extension API {API} (`pymetrix.extension`)\n",
+       ("What a plugin imports from pymetrix besides the stable modules (`pymetrix.extension.STABLE`), under names "
+       "that stay put as pymetrix changes (docs/design/plugins.md). *Defined in* is where each name lives now; a "
+       "plugin never imports it from there.\n"),
+       "| Name | Kind | Signature | Defined in | Summary |", "|---|---|---|---|---|"]
+md += [f"| `{r['name']}` | {r['kind']} | `{esc(r['signature'])}` | `{r['defined_in']}` | {esc(r['summary'])} |"
+       for r in extension_rows]
+md.append("")
 (OUT / "reference.md").write_text("\n".join(md), encoding="utf-8")
 print(f"{len(command_rows)} commands, {len(call_rows)} calls, {len(settings_rows)} settings, {len(other_rows)} other, "
       f"{len(library_rows)} library functions -> {OUT}")
