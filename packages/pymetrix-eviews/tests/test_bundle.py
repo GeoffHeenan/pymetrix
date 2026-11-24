@@ -297,8 +297,10 @@ def test_the_fixture_estimates_are_least_squares():
     resid = y - X @ b
     se = np.sqrt(np.diag(resid @ resid / (12 - 2) * np.linalg.inv(X.T @ X)))
     rows = (FIXTURES / "macro" / "objects" / "quarterly" / "eq_cons_est.csv").read_text().splitlines()[1:]
-    np.testing.assert_allclose([float(r.split(",")[1]) for r in rows], b, rtol=1e-12)
-    np.testing.assert_allclose([float(r.split(",")[2]) for r in rows], se, rtol=1e-12)
+    # X'X is ill-conditioned (income near 100), so the normal equations' last digits move with the NumPy and BLAS
+    # (1.7e-12 relative with the oldest supported NumPy): 1e-9 still pins every printed digit of the fixture
+    np.testing.assert_allclose([float(r.split(",")[1]) for r in rows], b, rtol=1e-9)
+    np.testing.assert_allclose([float(r.split(",")[2]) for r in rows], se, rtol=1e-9)
 
 
 def test_compare_estimates_refits_each_least_squares_equation():
