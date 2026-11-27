@@ -99,7 +99,8 @@ class STL:
     seasonal: Annotated[int, Widget("number", min=3, max=99, step=2, help="seasonal smoother length (odd); larger = more stable seasonal pattern")] = 7
     robust: Annotated[bool, Widget("checkbox", help="downweight outliers")] = True
     log: Annotated[bool | None, _LOG] = None
-    trend: Annotated[int | None, Widget("number", min=3, max=999, advanced=True, help="trend smoother length (odd); empty = automatic")] = None
+    trend: Annotated[int | None, Widget("number", min=3, max=999, advanced=True, label="Trend length",
+                                           help="trend smoother length (odd); empty = automatic")] = None
     low_pass: Annotated[int | None, Widget("number", min=3, max=999, advanced=True,
                                            help="low-pass filter length (odd, more than the period); empty = the next odd number above it")] = None
     seasonal_deg: Annotated[Literal[0, 1], Widget("choice", advanced=True, help="degree of the seasonal LOESS: 0 constant, 1 linear")] = 1

@@ -2,8 +2,9 @@
 
 A tour of pymetrix by topic, with short examples. The [README](../README.md) has the quick start;
 model builders can start with [building and estimating models](modelling-quickstart.md);
-the [course labs](../examples/course) work through complete exercises; the in-app help (F1) has a
-page for every dialog, method and test.
+the [course labs](../examples/course) work through complete exercises; the [How do I…](how-do-i/README.md) pages
+take one task from start to finish, in the app and in code; the in-app help (F1) has a page for every dialog,
+method and test.
 
 ## Example data and course material
 
@@ -592,6 +593,9 @@ mean(d_i d_m³)/mean(d_m⁴) (Kraus and Litzenberger 1976; Harvey and Siddique 2
 
 ## Forecast rounds and backtests
 
+Task pages: [Run a forecast round: baseline, judgement, scenarios, report](../src/pymetrix/howto/run-a-forecast-round.md) and [Check a forecast's record (backtest)](../src/pymetrix/howto/check-a-forecasts-record.md).
+
+
 ```python
 rnd = ForecastRound.from_forecast("2026Q3 baseline", var.forecast(data, ("2026Q4", "2028Q4")), data=data)
 rnd = rnd.adjust("gdp", {"2026Q4": -0.3}, reason="port strike")   # judgement, logged with the path before
@@ -1047,6 +1051,9 @@ one. `Theta` and `STLForecast` are simple, strong benchmarks. All three backtest
 
 ## Data from FRED, the World Bank and SDMX services
 
+Task page: [Load data with Browse series (FRED, IMF, ECB, Eurostat, World Bank)](../src/pymetrix/howto/load-data-with-browse-series.md).
+
+
 ```python
 Dataset.read("fred://GDPC1,GDP")                                   # ?vintage=2020-01-30 for ALFRED
 Dataset.read("fred://GDPC1?start=1990Q1&end=2019Q4")               # the periods between
@@ -1139,6 +1146,9 @@ object becomes and what is refused.
 
 ### EViews programs
 
+Task page: [Translate an EViews program](../src/pymetrix/howto/translate-an-eviews-program.md).
+
+
 The plugin also translates EViews programs (`.prg`). This first phase covers data work: workfiles and pages,
 samples, series and formulas, groups, labels, scalars, `!` and `%` variables, and matrices. A program's `wfopen`
 needs the workfile's data: the bundle, or a CSV or Excel file saved from it in EViews.
@@ -1218,6 +1228,9 @@ the first step that fails and marks that row.
 
 ## Reports
 
+Task page: [Make a report](../src/pymetrix/howto/make-a-report.md).
+
+
 ```python
 rep = Report("Quarterly forecast, 2026Q3", author="Forecasting team")
 rep.heading("Consumption").text("The consumption function is stable.")
@@ -1263,6 +1276,9 @@ printed text. The Export report dialog has a template, a theme and the dates for
 every dialog, it records code that writes the same report again.
 
 ## Temporal disaggregation
+
+Task page: [Reconcile national accounts components to a total](../src/pymetrix/howto/reconcile-components-to-a-total.md).
+
 
 ```python
 fit = TemporalDisaggregation("gdp ~ ip", method="chow-lin").fit(annual, quarterly)
@@ -1370,6 +1386,9 @@ and in the same menu the data tools: **Ragged edge…**, **Data as known on a da
 (`nowcast.combine(...)` of bridge and dynamic factor models' nowcasts).
 
 ## Seasonal adjustment
+
+Task page: [Seasonally adjust a series](../src/pymetrix/howto/seasonally-adjust-a-series.md).
+
 
 ```python
 data = data.seasonal_adjust("sales")                  # STL; adds sales_sa and sales_seasonal
@@ -3134,6 +3153,9 @@ coefficients are named parameters.
 
 #### EViews's syntax: model text and programs
 
+Task page: [Bring an EViews model across, then check and solve it](../src/pymetrix/howto/bring-in-an-eviews-model.md).
+
+
 ```python
 src = ModelSource(eviews_text, syntax="eviews")    # model text or a .prg: checked as typed, built into a Template
 read_eviews("macro.prg", data=data)                # its "equation eq.ls" specifications fitted to the data first
@@ -3420,8 +3442,9 @@ chosen (Newton's Convergence, Line search and Refresh).
 
 Every period-by-period solve also records the seconds each period's solve took, in
 `Solution.convergence.attrs["seconds"]` (one a row, by `time.perf_counter` around the solver's call), outside the
-table's columns. [Solving large backward-looking models](solving-large-models.md) says when to use each option, how
-they combine, a starting configuration for a model of mostly identities with a few simultaneous blocks, and how to
+table's columns. The task page
+[Solve a large backward-looking model](../src/pymetrix/howto/solve-a-large-backward-looking-model.md) says when to use
+each option, how they combine, a starting configuration for a model of mostly identities with a few simultaneous blocks, and how to
 read the table; `python benchmarks/solve_options.py` times the options on a generated model of 200 equations, or on
 your own (`--model`, `--data`, `--span`).
 
@@ -3450,8 +3473,8 @@ with GARCH variance, each draw follows its own variance path. A sample of residu
 periods by equation; a Dataset of them, over its active sample; or `add_factors` over a historical span) is resampled
 a period at a time, as the Fed's stochsim.prg draws FRB/US's historical errors; `error_scale={"2026Q2": 0.5}` scales
 some periods' errors and `workers=4` solves the draws in four processes. In the app: **Model → Solution → Solve model…**, Stochastic
-simulation under Advanced settings (Errors: sample, with the residuals, their series and periods, Error scale and
-Workers), and **Model → Analysis → Forecast from estimated model…**.
+simulation under Advanced settings (Error draws: The data's residuals, with the residuals, their series and periods,
+Error scale and Parallel processes), and **Model → Analysis → Forecast from estimated model…**.
 
 ### Solving for each country of a panel
 
@@ -4150,6 +4173,9 @@ series' heading offers the same for that series (or the columns selected with it
 
 ## History, Immediate and Code windows
 
+Task page: [Run a script in the app](../src/pymetrix/howto/run-a-script-in-the-app.md).
+
+
 - **Immediate** (bottom panel) is a Jupyter console sharing the session's
   objects: dialog results are there to use, and objects made there appear in
   the Objects panel. It needs `pip install pymetrix[qt]` (qtconsole).
@@ -4252,6 +4278,9 @@ inputs changed, or not computed says so: the app warns after it runs, the step r
 (`record.cautions`), and a report made from them prints it at the top.
 
 ## Projects
+
+Task page: [Save, reopen and share a project, and replay its script](../src/pymetrix/howto/save-and-share-a-project.md).
+
 
 **File → Save project** writes one `.pymx` file: the data the session started
 from (embedded, with metadata), the command history, and the Python script.

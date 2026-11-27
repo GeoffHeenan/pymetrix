@@ -1,7 +1,7 @@
 ---
 summary: test for unit roots and cointegration in 15 to 30 annual observations, with critical values simulated for the sample.
 audience: applied macroeconomists with annual data, and EViews users used to MacKinnon's values
-order: 3
+order: 7
 ---
 
 # Test for cointegration in a short annual sample

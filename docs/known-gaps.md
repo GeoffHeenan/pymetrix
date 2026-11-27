@@ -546,8 +546,10 @@ blocking you, say so: that is how priorities get set.
   column. A step's code that reads a pack's file (`PACK_DIR`) runs as written only from the CLI: the Immediate window
   has no `PACK_DIR`. Models are imported by the user (Import…), never on start; EViews programs and FRB/US XML are
   not among a pack's model files. Packs are not translated, and the exercise folder's number orders exercises only within a pack.
-- **How do I… task pages:** three of the planned fourteen are written (`docs/how-do-i/README.md` lists the rest).
-  Results windows' Next ▸ menus do not link to them yet.
+- **How do I… task pages:** the fifteen planned are written (`docs/how-do-i/README.md` lists them). Results windows'
+  Next ▸ menus and the dialogs' help pages do not link to them yet. The connector page's code is tested against
+  recorded responses only, not the providers themselves; the EViews translation page cannot show its bundle route
+  running (the export program is untested in EViews), and its code runs only where `pymetrix-eviews` is installed.
 - The front window's accent title bar is checked automatically with the Fusion and Windows styles only; on the
   windowsvista and windows11 styles (Windows' own) it is painted the same way but has been looked at by hand less.
   Status colours and muted text are picked when a widget is made, so switching the system between light and dark

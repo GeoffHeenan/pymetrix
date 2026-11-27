@@ -1,7 +1,7 @@
 ---
 summary: read an IRIS .model or Dynare .mod file, check the steady state and the Blanchard-Kahn conditions, and solve it.
 audience: IRIS and Dynare users
-order: 2
+order: 4
 ---
 
 # Bring an IRIS or Dynare model across, then check and solve it

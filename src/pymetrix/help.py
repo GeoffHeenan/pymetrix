@@ -1850,10 +1850,10 @@ add_topic("model-solution", "Solving models", """
     residuals resampled), and perhaps their coefficients too. The spread of the draws
     shows how uncertain the paths are: quantiles give fan charts. For a nonlinear model
     the draws' mean can differ from the deterministic solution. A sample of residuals can
-    be given instead (Errors: sample): historical errors by equation, resampled a whole
+    be given instead (Error draws: The data's residuals): historical errors by equation, resampled a whole
     period at a time, as the Federal Reserve's stochastic simulations of FRB/US draw them.
 
-    Add factors (Model > Add factors) are each equation's residual at the data over a
+    Add factors (Model > Solution > Add factors) are each equation's residual at the data over a
     span: solved with them, the model reproduces the data, so a scenario reads as a
     deviation from that baseline. Optimal control (Model > Policy > Optimal control) moves
     exogenous instruments, period by period, to minimise a discounted quadratic loss with
@@ -1861,50 +1861,15 @@ add_topic("model-solution", "Solving models", """
     state-space objects, are read under Model > Import.
 
     A fixed or held variable can apply in some periods only (Scenario partial; in Model >
-    Solve, Partial under Advanced for holds): where its path has a value the variable is
-    exogenous, elsewhere its equation determines it. Before solving, Model > Check model (or
+    Solution > Solve model, Hold only where given under Advanced, for holds): where its
+    path has a value the variable is exogenous, elsewhere its equation determines it. Before solving, Model > Check model (or
     missing_inputs in code) lists each period, equation and input the solve would lack.
     A solution's Convergence view shows, period by period, the iterations and the largest
     residual left with its equation; a period that fails to converge stops the solve, and
     the error (its convergence table in code) names that period.
     """, ("Hall, S. G. and Henry, S. G. B. (1988). Macroeconomic Modelling. North-Holland.",
           "Fair, R. C. (1980). Estimating the expected predictive accuracy of econometric models. International Economic Review 21(2), 355-378. doi:10.2307/2526186"),
-          ("large-model-solution",))
-add_topic("large-model-solution", "Solving large backward-looking models", """
-    A large model of identities and estimated equations, mostly recursive with a few
-    simultaneous blocks, solves faster and more reliably with a few of the solver's options
-    (Model > Solution > Solve model).
-
-    Ordering: blocks (under Advanced) splits each period's equations into blocks and takes
-    them in order: an equation that needs only variables found before it, such as an
-    identity, is solved once, by one evaluation, and the solver iterates only within the
-    simultaneous blocks. Use it when most equations are recursive; the Convergence view's
-    recursive column says how many are. It saves evaluations; it saves time on large
-    models, while a joint Newton step on a model of a few hundred compiled equations is
-    already fast.
-
-    Convergence: step stops when no variable moves by more than the tolerance relative to
-    its size, a test that does not depend on the equations' units, as the residual test
-    does: use it when the variables are in mixed units. Refresh: period keeps Newton's
-    Jacobian while each step cuts the residuals fast, for costly Jacobians. Line search
-    halves a step that would not reduce the residuals, for starts far from the solution
-    (both Newton's own: in Advanced settings, Solver settings, under Newton, when it is the
-    solver chosen). Fallback (under Advanced) retries a period the solver cannot solve, from the same
-    starting values, with damped Gauss-Seidel and then Newton with a line search.
-
-    A starting configuration: Newton with Convergence: step and Refresh: period, Ordering:
-    blocks, and Fallback. In code, Fallback(Newton(convergence="step", refresh="period"),
-    Newton(convergence="step", line_search=True), GaussSeidel(convergence="step",
-    damping=0.5, max_iter=1000)) with ordering="blocks".
-
-    The Convergence view gives, by period, the iterations, the largest residual left and its
-    equation; with the options, also the test that stopped the period, the solver that
-    solved it (a later one of a Fallback means the first failed there), the Jacobians
-    evaluated, the blocks iterated on and the equations solved once. The seconds each
-    period's solve took are kept with the table, in convergence.attrs["seconds"] in code,
-    not as a column. docs/solving-large-models.md has the details, and
-    benchmarks/solve_options.py times the options on a generated model or on your own.
-    """, (), ("model-solution",))
+          ("howto-solve-a-large-backward-looking-model",))
 add_topic("matrices", "Matrices with names", """
     A Matrix keeps names for its rows and columns, so matrix algebra checks that they meet: A @ B needs A's columns
     to be B's rows, in the same order, and a mistake in ordering is an error rather than a wrong number. The usual
