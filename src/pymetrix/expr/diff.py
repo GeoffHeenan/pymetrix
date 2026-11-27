@@ -8,6 +8,7 @@ from __future__ import annotations
 from .functions import FUNCTIONS, partials
 from .nodes import (
     COMPARISONS,
+    DATA_ONLY,
     LOGICAL,
     MARKERS,
     BinOp,
@@ -78,6 +79,19 @@ def _diff(node: Expr, wrt: Name | Coef, seen: dict[int, tuple[Expr, bool]]) -> E
             a, b = node.args
             first = Call("step", (sub(a, b) if node.fn == "max" else sub(b, a),))
             return add(mul(first, _diff(a, wrt, seen)), mul(sub(Num(1.0), first), _diff(b, wrt, seen)))
+        if node.fn in DATA_ONLY:
+            raise ExpressionError(f"{node} cannot be differentiated: {node.fn}() is a function of the data's rows "
+                                  "(their dates, or random draws), not of the model's variables; make it a series first")
+        if node.fn == "iif":  # flat in the condition, as a comparison is: the derivative of the branch taken
+            c, a, b = node.args
+            da, db = _diff(a, wrt, seen), _diff(b, wrt, seen)
+            return Num(0.0) if da == db == Num(0.0) else Call("iif", (c, da, db))
+        if node.fn == "fillna":  # v's derivative where x is missing, x's where not
+            x, v = node.args
+            dx, dv = _diff(x, wrt, seen), _diff(v, wrt, seen)
+            return Num(0.0) if dx == dv == Num(0.0) else Call("iif", (Call("isna", (x,)), dv, dx))
+        if node.fn in ("round", "floor", "ceil", "isna"):
+            return Num(0.0)  # steps: flat wherever they do not jump, as step() is
         if node.fn in FUNCTIONS:  # distributions, erf and moving windows: the chain rule over their arguments
             out: Expr = Num(0.0)
             for i, (arg, partial) in enumerate(zip(node.args, partials(node))):
@@ -93,6 +107,8 @@ def _diff(node: Expr, wrt: Name | Coef, seen: dict[int, tuple[Expr, bool]]) -> E
             return div(du, u)
         if node.fn == "exp":
             return mul(node, du)
+        if node.fn == "log10":
+            return div(du, mul(u, Num(2.302585092994046)))  # log(10)
         if node.fn == "sqrt":
             return div(du, mul(Num(2.0), node))
         if node.fn == "abs":

@@ -17,8 +17,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from . import functions
-from .nodes import EXPANDING, GROUPWISE, MARKERS, MOVING, BinOp, Call, Coef, Expr, ExpressionError, Level, Name, Neg, Num
+from . import functions, rows
+from .nodes import CALENDAR, EXPANDING, GROUPWISE, MARKERS, MOVING, NA, RANDOM, BinOp, Call, Coef, Expr, ExpressionError, Level, Name, Neg, Num
 
 Resolver = Callable[[str, int], Any]
 
@@ -30,7 +30,31 @@ _FUNCS: dict[str, Callable[[Any], Any]] = {
     "sign": np.sign,
     "step": lambda x: np.heaviside(x, 1.0),  # 1 where x >= 0, else 0; missing stays missing
     "not": lambda x: _truth(np.equal(x, 0), x),
+    "log10": np.log10,
+    "floor": np.floor,
+    "ceil": np.ceil,
+    "isna": lambda x: _keep(np.isnan(np.asarray(x, dtype=float)) * 1.0, x),  # 1 where missing: never missing itself
 }
+
+
+def _keep(values: Any, *like: Any) -> Any:
+    """``values`` as a Series on the index of the first Series among ``like``; a float when it is one number."""
+    series = next((x for x in like if isinstance(x, pd.Series)), None)
+    if series is not None:
+        return pd.Series(np.broadcast_to(values, (len(series),)), index=series.index)
+    return float(values) if np.ndim(values) == 0 else values
+
+
+def _choice(fn: str, values: list[Any]) -> Any:
+    """round, fillna and iif on numbers, arrays or Series."""
+    if fn == "round":
+        return rows.round_half_away(*values)
+    if fn == "fillna":
+        x, v = values
+        return _keep(np.where(np.isnan(np.asarray(x, dtype=float)), v, x), x, v)
+    c, a, b = values
+    cond = np.asarray(c, dtype=float)
+    return _keep(np.where(np.isnan(cond), np.nan, np.where(cond != 0, a, b)), c, a, b)
 
 _COMPARE = {"<": np.less, "<=": np.less_equal, ">": np.greater, ">=": np.greater_equal, "==": np.equal, "!=": np.not_equal}
 
@@ -90,6 +114,14 @@ def _eval(node: Expr, resolve: Resolver, params: Mapping[str, float]) -> Any:
         if node.elementwise:
             a, b = _eval(node.args[0], resolve, params), _eval(node.args[1], resolve, params)
             return np.maximum(a, b) if node.fn == "max" else np.minimum(a, b)
+        if node.fn == NA:
+            return np.nan
+        if node.fn in CALENDAR:
+            return rows.calendar(node.fn, rows.dataset_of(resolve))
+        if node.fn in RANDOM:
+            return rows.draws(node, [_eval(a, resolve, params) for a in node.args[:-1]], rows.dataset_of(resolve))
+        if node.fn in ("round", "fillna", "iif"):
+            return _choice(node.fn, [_eval(a, resolve, params) for a in node.args])
         if node.fn in MARKERS:
             raise ExpressionError(
                 f"{node.fn}() can only appear as a term of a linear-form equation"
@@ -109,6 +141,9 @@ def _eval(node: Expr, resolve: Resolver, params: Mapping[str, float]) -> Any:
 
 def _groupwise(node: Call, resolve: Resolver, params: Mapping[str, float]) -> pd.Series:
     x = _eval(node.args[0], resolve, params)
+    data = rows.dataset_of(resolve)
+    if not isinstance(x, pd.Series) and np.ndim(x) == 0 and data is not None:  # sum(1, by=g): a number on every row
+        x = pd.Series(float(x), index=data.frame.index)
     if not isinstance(x, pd.Series):
         raise ExpressionError(f"{node}: group-wise functions work on series (data.eval, derived series, "
                               "linear-form regressors); make it a derived series first")

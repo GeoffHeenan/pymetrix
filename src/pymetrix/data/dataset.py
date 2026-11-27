@@ -479,6 +479,13 @@ class Dataset:
         variables = dict(self.variables)
         frame = self.frame.copy()
         for name, recipe in recipes.items():
+            if isinstance(recipe, str):
+                from ..expr.nodes import RANDOM, Call
+
+                drawn = sorted({n.fn for n in parse_expression(recipe).walk() if isinstance(n, Call) and n.fn in RANDOM})
+                if drawn:
+                    raise DataError(f"{name}: {', '.join(f + '()' for f in drawn)} draws random numbers, which are values, not "
+                                    "a recipe to follow: make the series with with_series (Generate series), not derive")
             recipe = Formula(recipe) if isinstance(recipe, str) else recipe
             missing = sorted(set(recipe.inputs(self)) - set(self.names) - set(recipes))
             if missing:

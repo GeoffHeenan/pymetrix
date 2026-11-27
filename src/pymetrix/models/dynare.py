@@ -65,7 +65,7 @@ from .solvers import ModelError
 
 __all__ = ["DynareModel", "read_mod"]
 
-_FUNCS = {"exp": math.exp, "log": math.log, "ln": math.log, "sqrt": math.sqrt, "abs": abs, "max": max, "min": min,
+_FUNCS = {"exp": math.exp, "log": math.log, "ln": math.log, "log10": math.log10, "sqrt": math.sqrt, "abs": abs, "max": max, "min": min,
           "inf": math.inf, "Inf": math.inf, "NaN": math.nan, "nan": math.nan, "pi": math.pi, "erf": math.erf,
           "normcdf": lambda x, mu=0.0, sigma=1.0: 0.5 * math.erfc(-(x - mu) / (sigma * math.sqrt(2.0))),
           "normpdf": lambda x, mu=0.0, sigma=1.0: math.exp(-0.5 * ((x - mu) / sigma) ** 2) / (sigma * math.sqrt(2.0 * math.pi))}

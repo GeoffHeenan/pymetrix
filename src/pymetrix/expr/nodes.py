@@ -18,7 +18,22 @@ class ExpressionError(SpecificationError):
     """An expression or equation could not be parsed, evaluated or used."""
 
 
-PRIMITIVES = frozenset({"log", "exp", "sqrt", "abs", "sign", "step", "not"})  # step(x): 1 where x >= 0, else 0; not(x): 1 where x is 0
+PRIMITIVES = frozenset({"log", "exp", "sqrt", "abs", "sign", "step", "not",  # step(x): 1 where x >= 0, else 0; not(x): 1 where x is 0
+                        "log10", "floor", "ceil", "isna"})  # isna(x): 1 where x is missing, else 0 (never missing itself)
+# Elementwise functions of several arguments: round(x[, n]) (n decimals, half away from zero), fillna(x, v) (v where x
+# is missing) and iif(c, a, b) (a where c is true, b where false, missing where c is). ``na`` (no brackets) is the
+# missing value, stored as Call("na", ()).
+CHOICES: dict[str, tuple[int, int]] = {"round": (1, 2), "fillna": (2, 2), "iif": (3, 3)}
+NA = "na"
+# Functions of the data's rows, with no meaning in a model: the calendar of the time axis (year(), quarter(), month(),
+# day(): of each period's first day; obsnum(): the observation's number, from 1, within each entity in time order),
+# and random draws (normrnd(mu = 0, sigma = 1, seed=s), unifrnd(a = 0, b = 1, seed=s): one draw a row, from the
+# generator pymetrix.set_random_generator chose, seeded, so a formula gives the same draws each time). They need
+# a dataset (data.eval, Generate series, regressors), not model solvers. Random draws are stored with the seed last,
+# Call("normrnd", (mu, sigma, Num(seed))).
+CALENDAR = frozenset({"year", "quarter", "month", "day", "obsnum"})
+RANDOM: dict[str, tuple[float, float]] = {"normrnd": (0.0, 1.0), "unifrnd": (0.0, 1.0)}
+DATA_ONLY = CALENDAR | frozenset(RANDOM)
 # Comparisons and logical connectives give 1 where true and 0 where false (missing where an operand is missing), so a
 # condition is a 0/1 series: ``recession = gy < 0``, ``both = (u > 5) and (infl > 2)``.
 COMPARISONS = frozenset({"<", "<=", ">", ">=", "==", "!="})
@@ -247,6 +262,14 @@ class Call(Expr):
             n = len(self.args) // k
             at = window_lead(self.fn, n)  # the argument without a lead or lag
             return f"{self.fn}({', '.join(str(self.args[i * n + at]) for i in range(k))}, {n})"
+        if self.fn == NA and not self.args:
+            return NA
+        if self.fn in RANDOM and self.args:  # the defaults left out, the seed by name: normrnd(seed=7)
+            *params, seed = self.args
+            defaults = RANDOM[self.fn]
+            while params and params[-1] == Num(defaults[len(params) - 1]):
+                params.pop()
+            return f"{self.fn}({', '.join([*(str(a) for a in params), f'seed={seed}'])})"
         if self.fn in ELEMENTWISE and len(self.args) == 2 and isinstance(self.args[1], Level):
             return f"{self.fn}({self.args[0]}, by={self.args[1]})"  # max(y, country) would mean the larger of the two
         return f"{self.fn}({', '.join(str(a) for a in self.args)})"

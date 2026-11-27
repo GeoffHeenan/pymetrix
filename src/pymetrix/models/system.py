@@ -248,6 +248,14 @@ def _no_expanding(eq: Any, symbolic: Expr) -> None:
     from ..expr.nodes import EXPANDING
     from .solvers import ModelError
 
+    from ..expr.nodes import DATA_ONLY
+
+    rows = sorted({n.fn for n in symbolic.walk() if isinstance(n, Call) and n.fn in DATA_ONLY})
+    if rows:
+        raise ModelError(f"{eq.text!r} uses {', '.join(f + '()' for f in rows)}, a function of the data's rows (their dates, "
+                         "or random draws): a model has no rows to take them from; make it a series of the data first "
+                         "(data.with_series(yr=\"year()\")) and use the series as an exogenous variable (a model's own "
+                         "random draws are its shocks)")
     found = sorted({n.fn for n in symbolic.walk() if isinstance(n, Call) and n.fn in EXPANDING})
     if found:
         raise ModelError(f"{eq.text!r} uses {', '.join(f + '()' for f in found)}, an expanding window: it uses every period "

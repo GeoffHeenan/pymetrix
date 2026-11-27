@@ -31,11 +31,13 @@ from typing import Any
 
 import numpy as np
 
-from . import functions
+from . import functions, rows
 from .nodes import (
+    DATA_ONLY,
     EXPANDING,
     GROUPWISE,
     MARKERS,
+    NA,
     BinOp,
     Call,
     Coef,
@@ -49,16 +51,19 @@ from .nodes import (
 
 __all__ = ["Compiled", "compilable", "compile_exprs"]
 
-_FUNCTIONS = {"log": "_np.log", "exp": "_np.exp", "sqrt": "_np.sqrt", "abs": "_np.abs", "sign": "_np.sign"}
+_FUNCTIONS = {"log": "_np.log", "exp": "_np.exp", "sqrt": "_np.sqrt", "abs": "_np.abs", "sign": "_np.sign", "log10": "_np.log10",
+              "floor": "_np.floor", "ceil": "_np.ceil"}
 _COMPARE = {"<": "less", "<=": "less_equal", ">": "greater", ">=": "greater_equal", "==": "equal", "!=": "not_equal"}
 
 
 def compilable(expr: Expr) -> bool:
-    """Whether ``expr`` can be compiled (no group-wise functions, expanding windows or linear-form markers)."""
+    """Whether ``expr`` can be compiled (no group-wise functions, expanding windows, functions of the data's rows or
+    linear-form markers)."""
     def ok(node: Expr) -> bool:
         if isinstance(node, Level):
             return False
-        if isinstance(node, Call) and not node.elementwise and (node.fn in GROUPWISE or node.fn in MARKERS or node.fn in EXPANDING):
+        if isinstance(node, Call) and not node.elementwise and (node.fn in GROUPWISE or node.fn in MARKERS or node.fn in EXPANDING
+                                                             or node.fn in DATA_ONLY):
             return False
         return all(ok(c) for c in node.children())
 
@@ -83,7 +88,7 @@ class Compiled:
     @cached_property
     def _scalar(self) -> Callable[[Sequence[float], Sequence[float]], list[Any]]:
         """The same source on Python floats (``_Scalar`` in place of NumPy)."""
-        namespace: dict[str, Any] = {"_np": _SCALAR, "_F": functions}
+        namespace: dict[str, Any] = {"_np": _SCALAR, "_F": functions, "_R": rows}
         exec(compile(self.source, "<pymetrix compiled expressions>", "exec"), namespace)  # noqa: S102 - generated from the tree only
         return namespace["_f"]
 
@@ -185,7 +190,7 @@ def _compile(exprs: tuple[Expr, ...], coefs: tuple[str, ...]) -> Compiled:
     lines += [f"            {_code(e, refs, params, shared)}," for e in exprs]
     lines += ["        ]"]
     source = "\n".join(lines)
-    namespace: dict[str, Any] = {"_np": np, "_F": functions}
+    namespace: dict[str, Any] = {"_np": np, "_F": functions, "_R": rows}
     exec(compile(source, "<pymetrix compiled expressions>", "exec"), namespace)  # noqa: S102 - generated from the tree only
     return Compiled(exprs, tuple(refs), coefs, source, namespace["_f"])
 
@@ -263,6 +268,19 @@ def _code(node: Expr, refs: dict[tuple[str, int], int], params: dict[str, int], 
         if node.elementwise:
             fn = "_np.maximum" if node.fn == "max" else "_np.minimum"
             return f"{fn}({_code(node.args[0], refs, params, shared)}, {_code(node.args[1], refs, params, shared)})"
+        if node.fn == NA:
+            return "_np.nan"
+        if node.fn == "isna":
+            return f"(_np.isnan({_code(node.args[0], refs, params, shared)}) * 1.0)"
+        if node.fn == "round":
+            args = ", ".join(_code(a, refs, params, shared) for a in node.args)
+            return f"_R.round_half_away({args})"
+        if node.fn == "fillna":
+            x, v = (_code(a, refs, params, shared) for a in node.args)
+            return f"_np.where(_np.isnan({x}), {v}, {x})"
+        if node.fn == "iif":
+            c, a, b = (_code(x, refs, params, shared) for x in node.args)
+            return f"_np.where(_np.isnan({c}), _np.nan, _np.where(_np.not_equal({c}, 0.0), {a}, {b}))"
         if node.fn == "step":
             return f"_np.heaviside({_code(node.args[0], refs, params, shared)}, 1.0)"
         if node.fn == "not":

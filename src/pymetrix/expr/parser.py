@@ -13,14 +13,15 @@ Grammar (lowest to highest precedence)::
     power    := postfix ("^" unary)?          # "**" is accepted for "^"
     postfix  := atom ("[" signed-integer "]")*  # x[-1] lags, x[+1] leads
     atom     := number | name | name "(" args ")" | "(" expr ")"
-    args     := arg ("," arg)*        arg := expr | "by" "=" name   # by= groups a group-wise function
+    args     := arg ("," arg)*        arg := expr | "by" "=" name | "seed" "=" integer   # by= groups; seed= seeds draws
 
 Names listed in ``params`` become parameters (``Coef``); every other name is
 a variable. ``d``, ``dlog`` and ``pch`` are expanded into primitive
 operations so that all lags are explicit in the tree; moving-window
 functions (``movavg(x, 4)``) keep every lag of their window as an argument.
 Distribution functions (``normcdf(x)``, ``tinv(p, df)``) take their
-parameters as further arguments (see ``pymetrix.expr.functions``).
+parameters as further arguments (see ``pymetrix.expr.functions``). ``na``
+without brackets is the missing value; random draws take ``seed=``.
 """
 
 from __future__ import annotations
@@ -29,7 +30,8 @@ import re
 from collections.abc import Iterable
 
 from .functions import DISTRIBUTIONS, SPECIAL, arity, signature
-from .nodes import CENTRED, COMPARISONS, ELEMENTWISE, EXPANDING, GROUPWISE, LOGICAL, MARKERS, MOVING, PRIMITIVES, BinOp, Call, Coef, Expr, ExpressionError, Level, Name, Neg, Num, window_lead
+from .nodes import (CALENDAR, CENTRED, CHOICES, COMPARISONS, ELEMENTWISE, EXPANDING, GROUPWISE, LOGICAL, MARKERS, MOVING, NA,
+                    PRIMITIVES, RANDOM, BinOp, Call, Coef, Expr, ExpressionError, Level, Name, Neg, Num, window_lead)
 
 _TOKEN = re.compile(
     r"""
@@ -41,14 +43,19 @@ _TOKEN = re.compile(
     re.VERBOSE,
 )
 
-_FUNCTIONS = sorted(PRIMITIVES | MARKERS | GROUPWISE | {"d", "dlog", "pch"} | set(DISTRIBUTIONS) | SPECIAL | set(MOVING) | set(EXPANDING))
+_FUNCTIONS = sorted(PRIMITIVES | MARKERS | GROUPWISE | {"d", "dlog", "pch"} | set(DISTRIBUTIONS) | SPECIAL | set(MOVING) | set(EXPANDING)
+                    | set(CHOICES) | CALENDAR | set(RANDOM))
 
 # other packages' names for functions pymetrix spells differently: the hint after "unknown function"
 _OTHER_NAMES = {"diff": "d(x) (the first difference; d(x, 2) the second; x - x[-4] over four periods)", "ln": "log(x)",
                 "lag": "x[-1] (the lag of x)", "lead": "x[1] (the lead of x)", "pct_change": "pch(x)", "pchange": "pch(x)",
                 "growth": "pch(x) or dlog(x)", "std": "sd(x)", "stdev": "sd(x)", "avg": "mean(x)", "average": "mean(x)",
                 "mavg": "movavg(x, n)", "movav": "movavg(x, n)", "rolling_mean": "movavg(x, n)", "cumprod": "exp(cumsum(log(x)))",
-                "power": "x^n", "pow": "x^n", "sqr": "x^2"}
+                "power": "x^n", "pow": "x^n", "sqr": "x^2",
+                "ceiling": "ceil(x)", "if": "iif(condition, a, b)", "ifelse": "iif(condition, a, b)", "where": "iif(condition, a, b)",
+                "isnan": "isna(x)", "isnull": "isna(x)", "ismissing": "isna(x)", "nan": "na (the missing value)",
+                "coalesce": "fillna(x, v)", "nan_to": "fillna(x, v)", "randn": "normrnd(seed=1)", "rand": "unifrnd(seed=1)",
+                "rnorm": "normrnd(seed=1)", "runif": "unifrnd(seed=1)", "obsid": "obsnum()"}
 
 
 def _suggestion(fn: str) -> str:
@@ -206,9 +213,17 @@ class _Parser:
                 self.next()
                 args: list[Expr] = []
                 by: Name | None = None
+                seed: int | None = None
                 if not self.at(")"):
                     while True:
-                        if self.peek_keyword("by"):
+                        if self.peek_keyword("seed"):
+                            self.next()
+                            self.next()
+                            given = self.next()
+                            if given[0] != "num" or not given[1].isdigit():
+                                self.error("seed= takes a whole number, e.g. seed=1", given)
+                            seed = int(given[1])
+                        elif self.peek_keyword("by"):
                             self.next()
                             self.next()
                             group = self.expression()
@@ -221,7 +236,13 @@ class _Parser:
                             break
                         self.next()
                 self.expect(")")
+                if seed is not None and value not in RANDOM:
+                    self.error(f"{value}() does not take seed=; seed= seeds random draws, as in normrnd(seed=1)", tok)
+                if value in RANDOM:
+                    return self.random(value, args, seed, tok)
                 return self.call(value, args, tok, by)
+            if value == NA and value not in self.params:
+                return Call(NA, ())
             return Coef(value) if value in self.params else Name(value)
         if kind == "op" and value == "(":
             node = self.expression()
@@ -229,6 +250,17 @@ class _Parser:
             return BinOp(node.op, node.left, node.right, grouped=True) if isinstance(node, BinOp) else node
         self.error("expected a number, a name or '('", tok)
         raise AssertionError  # unreachable
+
+    def random(self, fn: str, args: list[Expr], seed: int | None, tok: Token) -> Expr:
+        """``normrnd(mu, sigma, seed=s)``, ``unifrnd(a, b, seed=s)``: stored with the defaults filled in and the seed last."""
+        names = "mu = 0, sigma = 1" if fn == "normrnd" else "a = 0, b = 1"
+        if len(args) > 2:
+            self.error(f"{fn}() takes at most two parameters and the seed: {fn}({names}, seed=1)", tok)
+        if seed is None:
+            self.error(f"{fn}() needs seed=, as in {fn}(seed=1): seeded, a formula gives the same draws each time it is "
+                       "computed and when the session is replayed", tok)
+        full = list(args) + [Num(d) for d in RANDOM[fn][len(args):]]
+        return Call(fn, (*full, Num(float(seed))))
 
     def peek_keyword(self, word: str) -> bool:
         """The next tokens are ``word =`` (a keyword argument)."""
@@ -250,6 +282,23 @@ class _Parser:
             if len(args) != 1:
                 self.error(f"{fn}() takes one argument", tok)
             return Call(fn, (args[0],))
+        if fn in CHOICES:
+            low, high = CHOICES[fn]
+            shape = {"round": "round(x) or round(x, n), n decimals", "fillna": "fillna(x, v), v where x is missing",
+                     "iif": "iif(condition, a, b), a where the condition holds, b where not"}[fn]
+            if not low <= len(args) <= high:
+                self.error(f"{fn}() takes {low if low == high else f'{low} or {high}'} arguments: {shape}", tok)
+            if fn == "round" and len(args) == 2:
+                n = args[1]
+                n = Num(-n.operand.value) if isinstance(n, Neg) and isinstance(n.operand, Num) else n
+                if not (isinstance(n, Num) and float(n.value).is_integer()):
+                    self.error("round(x, n): n, the number of decimals, is a whole number (negative rounds to tens, hundreds...)", tok)
+                return Call(fn, (args[0], n))
+            return Call(fn, tuple(args))
+        if fn in CALENDAR:
+            if args:
+                self.error(f"{fn}() takes no arguments: it comes from the data's time axis", tok)
+            return Call(fn, ())
         if fn in ("d", "dlog"):
             if len(args) not in (1, 2):
                 self.error(f"{fn}() takes one or two arguments", tok)

@@ -188,6 +188,10 @@ def _expand(expr: Any) -> Any:
             return BinOp(n.op, _expand(n.left), _expand(n.right), n.grouped, "")
         if isinstance(n, Call) and n.fn in ("step", "not"):
             raise ModelError(f"{n.fn}() has no equivalent in Dynare or IRIS")
+        if isinstance(n, Call) and n.fn in ("floor", "ceil", "round", "isna", "fillna", "iif", "na"):
+            what = "the missing value na" if n.fn == "na" else f"{n.fn}()"
+            raise ModelError(f"{what} has no equivalent in Dynare's model block (and is not written for IRIS either): "
+                             "write it out in other terms to export; log10() is written")
         if isinstance(n, Call) and n.fn in FUNCTIONS and n.fn not in _SHARED_FUNCTIONS:
             raise ModelError(f"{n.fn}() has no equivalent in Dynare or IRIS, which have only normcdf, normpdf and erf "
                              "among the distribution and moving-window functions: write it out in other terms to export")
