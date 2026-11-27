@@ -16,8 +16,9 @@ EViews. All of this is the `pymetrix-eviews` plugin's, a separate install.
 
 - The plugin, `pymetrix-eviews`. It is not on PyPI yet: install it from the repository, with
   `pip install -e packages/pymetrix-eviews` in a clone of pymetrix. Once it is published, `pip install --pre
-  pymetrix-eviews`. Restart the app: the `pymetrix-eviews` plugin adds File → Translate EViews program…, File →
-  Import EViews workfile… and the View → EViews translation panel.
+  pymetrix-eviews`. Restart the app and, when it asks about the new plugin, choose Enable: the `pymetrix-eviews`
+  plugin adds File → Translate EViews program…, File → Import EViews workfile… and the View → EViews translation
+  panel.
 - The workfile's data, as the program's `wfopen` expects them. The supported way is to save the page from EViews as
   CSV or Excel (Save As in EViews's File menu, or `wfsave(type=csv) macro.csv`). This page uses six years of
   consumption and income, as EViews saves a quarterly page, its dates in the `obs` column, as `macro.csv`:

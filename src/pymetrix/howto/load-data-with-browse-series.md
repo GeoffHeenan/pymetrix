@@ -22,10 +22,10 @@ the search, so the script runs without the browser.
 
 ## In the app
 
-1. File → Browse series…. Provider: SDMX (ECB, Eurostat, OECD, IMF, BIS or your own), Source: ECB. Type
+1. File → Browse series…, with Provider: SDMX (ECB, Eurostat, OECD, IMF, BIS or your own), Source: ECB. Type
    `exchange rates` in the search box and press Search.
-2. Choose the row EXR (Exchange Rates). Its dimensions appear under Series key, a box each. Choose FREQ: M, CURRENCY:
-   USD and GBP, CURRENCY_DENOM: EUR, EXR_TYPE: SP00 and EXR_SUFFIX: A. The Key line shows the address,
+2. Choose the row Exchange Rates (Code: ECB/EXR). Its dimensions appear under Series key, a box each. Choose FREQ:
+   M, CURRENCY: USD and GBP, CURRENCY_DENOM: EUR, EXR_TYPE: SP00 and EXR_SUFFIX: A. The Key line shows the address,
    `sdmx://ECB/EXR/M.GBP+USD.EUR.SP00.A`; a dimension with nothing chosen takes any code.
 3. Name: fx, then Load. The dataset `fx` has a series per currency, `gbp` and `usd`, labelled with the ECB's titles.
    Add to Load from connector… instead opens that dialog with the codes filled in, to give the first and last

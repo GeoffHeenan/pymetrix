@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **How do I… task pages: the rest of the plan, and one for EViews programs.** Twelve more pages, each one task from
+- **How do I… task pages: the rest of the plan, and one for EViews programs.** Eleven more pages, each one task from
   start to finish in the app and in code, with the numbers to expect and the pitfalls (`src/pymetrix/howto/`): load
   data with Browse series; estimate a VAR, then impulse responses and a forecast; run a forecast round (baseline,
   judgement, a scenario, the store, the report); save, reopen and share a project and replay its script; seasonally
