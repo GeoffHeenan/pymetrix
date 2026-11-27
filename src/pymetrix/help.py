@@ -1660,6 +1660,19 @@ add_topic("derived-series", "Derived series", """
     pch(), log(), exp() and the rest, formulas can use distribution functions such as
     normcdf(x) and tinv(p, df), and moving-window statistics such as movavg(x, 4) and
     movcorr(x, y, 12) (see Distribution functions and moments).
+
+    Rounding: round(x) and round(x, n) round to n decimals with halves away from zero,
+    as MATLAB and Excel do (round(2.5) is 3); floor(x) and ceil(x) round down and up;
+    log10(x) is the base-10 logarithm. Missing values: na is the missing value, isna(x)
+    is 1 where x is missing and 0 where not, and fillna(x, v) is v where x is missing.
+    iif(c, a, b) is a where the condition holds, b where not, and missing where the
+    condition is: iif(gy > 0, gy, na). From the data's rows: year(), quarter(),
+    month() and day() of each period's first day, and obsnum(), the observation's
+    number within each entity; normrnd(mu, sigma, seed=s) and unifrnd(a, b, seed=s)
+    draw one number a row, seeded so the draws are the same each time and when the
+    project is replayed. These work on data (Generate series, data.eval, regressors
+    written in an equation), not in models; random draws are values, so make them
+    with Generate series rather than as a derived series.
     """, (), ("trend-cycle-filters", "distributions-and-moments"))
 add_topic("distributions-and-moments", "Distribution functions and moments", """
     Formulas (derived series, equations, measurement maps and model text) can use

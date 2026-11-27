@@ -83,14 +83,30 @@ def draws(node: Call, args: Sequence[Any], data: Any) -> pd.Series:
     return pd.Series(np.broadcast_to(out, (len(index),)).astype(float), index=index)
 
 
+def _half_up(value: float, n: int) -> float:
+    """One number rounded as written: its shortest decimal form (``repr``), halves away from zero."""
+    from decimal import ROUND_HALF_UP, Decimal
+
+    return float(Decimal(repr(float(value))).quantize(Decimal(1).scaleb(-n), rounding=ROUND_HALF_UP))
+
+
 def round_half_away(x: Any, n: Any = 0.0) -> Any:
-    """x rounded to n decimals, halves away from zero (EViews's, MATLAB's, Stata's and Excel's rule; NumPy's
-    ``round`` takes halves to the even neighbour). A Series stays a Series."""
-    scale = np.power(10.0, np.asarray(n, dtype=float))
+    """x rounded to n decimals, halves away from zero (MATLAB's and Excel's rule; NumPy's ``round`` takes halves to
+    the even neighbour), on the number as written: 1.005 and 2.675 are halves (to 1.01 and 2.68), as typed, though in
+    binary they are just below. ``sign(x) * floor(|x| * 10^n + 0.5) / 10^n``, with values within a few units in the
+    last place of a half worked out on their shortest decimal form. A Series stays a Series."""
     values = np.asarray(x, dtype=float)
+    digits = np.broadcast_to(np.asarray(n, dtype=float), values.shape)
+    scale = np.power(10.0, digits)
     with np.errstate(all="ignore"):
-        out = np.sign(values) * np.floor(np.abs(values) * scale + 0.5) / scale
+        scaled = np.abs(values) * scale
+        out = np.sign(values) * np.floor(scaled + 0.5) / scale
+        near = np.isfinite(scaled) & (np.abs(scaled - np.floor(scaled) - 0.5) < 1e-9 * np.maximum(scaled, 1.0))
+    if near.any():
+        out = np.array(out, dtype=float, copy=True)
+        flat_out, flat_values, flat_digits = out.reshape(-1), values.reshape(-1), digits.reshape(-1)
+        for i in np.flatnonzero(near.reshape(-1)):
+            flat_out[i] = _half_up(flat_values[i], int(flat_digits[i]))
     if isinstance(x, pd.Series):
         return pd.Series(out, index=x.index)
     return float(out) if np.ndim(out) == 0 else out
-

@@ -365,6 +365,33 @@ period by period: `max(c - 900, 0)` in data, or an effective lower bound
 `i ~ max(i_rule, floor)` in a model. With one argument, `max(y)` and `min(y)`
 are the statistic over the series; grouped, `max(y, by=country)`.
 
+**Rounding, missing values and choices:**
+- `round(x)` and `round(x, n)` round to n decimals (n negative rounds to tens, hundreds...), with halves away from
+  zero, as MATLAB and Excel do (`round(2.5)` is 3; NumPy's `round`, like R's, takes halves to the even neighbour
+  and would give 2). `floor(x)` and
+  `ceil(x)` round down and up, and `log10(x)` is the base-10 logarithm.
+- `na` is the missing value; `isna(x)` is 1 where x is missing and 0 where not (never missing itself);
+  `fillna(x, v)` is v where x is missing.
+- `iif(c, a, b)` is a where the condition c holds (is not 0), b where it is 0, and missing where c is missing:
+  `iif(gy > 0, gy, na)` keeps the positive growth rates.
+
+In a model, rounding is flat where it does not jump, as conditions and `step` are, so a model using it linearises;
+`iif` takes the derivative of the branch it takes.
+
+**The calendar and random draws** come from the data's rows, so they work on data (Generate series, derived series,
+`data.eval`, regressors written in an equation) and models refuse them:
+- `year()`, `quarter()`, `month()` and `day()` are those of each period's first day (`month()` of a quarter is 1, 4, 7
+  or 10); `obsnum()` numbers the observations from 1, within each entity of a panel, in time order.
+- `normrnd(mu, sigma, seed=s)` and `unifrnd(a, b, seed=s)` draw one number a row (the parameters default to 0 and 1).
+  `seed=` is required: a formula gives the same draws each time it is computed and when a project is replayed. The
+  draws come from the generator `set_random_generator` chose. Being values rather than a recipe, they are made with
+  Generate series (`with_series`), not `derive`.
+
+```python
+data = data.with_series(q4="quarter() == 4", trend="obsnum()", noise="normrnd(0, 0.5, seed=1)")
+fit = Equation("y ~ x + (year() >= 2009)").fit(data)
+```
+
 **Distribution functions**, named as in MATLAB and Dynare, work in series expressions, equations, measurement
 maps and model text; arguments may be expressions and parameters, and parameters with defaults may be left out:
 

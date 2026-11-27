@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Rounding, missing values, the calendar and random draws in formulas.** Expressions gain `round(x, n)` (halves
+  away from zero, on the number as written: `round(2.5)` is 3, `round(1.005, 2)` is 1.01), `floor`, `ceil` and
+  `log10`; the missing value `na`, `isna(x)` and `fillna(x, v)`; the conditional `iif(c, a, b)`, missing where c is;
+  and, on data only, `year()`, `quarter()`, `month()`, `day()` (of each period's first day), `obsnum()` (within
+  each entity) and the seeded draws `normrnd(mu, sigma, seed=s)` and `unifrnd(a, b, seed=s)`, from the generator
+  `set_random_generator` chose. They work in Generate series, derived series (draws excepted: they are values, not a
+  recipe), `data.eval` and regressors written in an equation; rounding, `iif` and the missing-value functions also
+  in models, compiled and differentiated (rounding is flat, as `step` is); models refuse the calendar and draws.
+  Dynare and IRIS exports write `log10` and refuse the rest. Other packages' names (`ceiling`, `ifelse`, `isnan`,
+  `rnorm` ...) give a "did you mean" hint.
 - **Issue templates and a defaults page.** `.github/ISSUE_TEMPLATE` has forms for a bug report, a numerical
   discrepancy (the pymetrix version, the other tool and its version, the inputs, both outputs and the tolerance
   expected), a feature request and a validation case, beside the review-feedback form; `config.yml` sends security

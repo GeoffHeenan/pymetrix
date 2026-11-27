@@ -3208,6 +3208,42 @@ The gap macro modellers will feel first is the forecasting and policy-analysis w
   and Correlations…, Test → Cross-correlogram….
 - **Checks:** tests/test\_distributions.py and tests/test\_moments.py (see their docstrings and validation.md).
 
+### Rounding, missing values, the calendar and random draws in the expression language (27 November 2026)
+
+- **Why:** the EViews translator's audit found these the largest group of functions programs use that pymetrix's
+  expressions lacked (`@round`, `@floor`, `@ceiling`, `@isna`, `@nan`, `@iif`, `@year` ..., `nrnd`, `@log10`); the R
+  translator will need the same.
+- **Names:** pymetrix's own, lower case and short, as the rest of the language: `round`, `floor`, `ceil` (not
+  `ceiling`), `log10`, `isna`, `fillna` (pandas' name; not `@nan`, which reads as the missing value), `iif` (EViews'
+  and Visual Basic's; `if` is a keyword in Python and in the code that writes formulas), `na` for the missing value
+  (EViews' word, and the one pymetrix's own messages use). Other packages' spellings (`ceiling`, `ifelse`, `where`,
+  `isnan`, `coalesce`, `rnorm`, `randn` ...) give the "did you mean" hint, not a second name.
+- **`round`:** halves away from zero, as MATLAB's `round` and Excel's `ROUND` do; NumPy and R take halves to the even
+  neighbour. Away from zero was chosen because it is what a reader of a published table expects. The decimals
+  argument is a whole number written in the formula, not an expression, so `round` is elementwise with no hidden dependence. It rounds the number as written: 1.005 and 2.675
+  are just below a half in binary, but a reader who typed them expects 1.01 and 2.68, as Excel gives. So
+  `round(x, n)` is `sign(x) * floor(|x| * 10^n + 0.5) / 10^n`, and the few values within a few units in the last
+  place of a half are rounded on their shortest decimal form (`repr`) by `decimal`; the test checks this against
+  `decimal` on 2,000 values with three decimals.
+- **Missing values:** `na` is `Call("na", ())` (no brackets in the text). `isna` is never missing itself, so it can
+  feed `iif`; `iif(c, a, b)` is missing where c is (a missing condition is not "false"), as comparisons are.
+- **Derivatives:** `round`, `floor`, `ceil` and `isna` are flat, as `step()` and the conditions are: a rule written
+  with them (a rate rounded to a quarter point) linearises around a point where it does not jump. `iif` takes the
+  derivative of the branch taken, as `max`/`min` do through `step`; `fillna` takes x's, or v's where x is missing.
+  This differs from `poissinv`, whose derivative is refused: a quantile function is used for its slope, a rounding
+  rule is not.
+- **Functions of the data's rows** (`DATA_ONLY`): the calendar (`year()` ... `day()` of each period's first day,
+  `obsnum()` within entity in time order) and the draws read the dataset the resolver belongs to
+  (`pymetrix.expr.rows`), so they work wherever a dataset evaluates a formula, and nowhere else. Models refuse them
+  when built (a model has no rows, and its own random draws are its shocks), as they refuse expanding windows; the
+  compiler leaves them to the interpreter.
+- **Random draws:** `normrnd(mu, sigma, seed=s)` and `unifrnd(a, b, seed=s)` are `mu + sigma * standard_normal(n)` and
+  `a + (b - a) * random(n)` from `pymetrix._random.generator(s)`, one per row in the dataset's order. `seed=` is
+  required, so a formula's draws are the same each time it is computed, in the app, a script or a replay (a step
+  replays with the generator it ran with). Unseeded draws were rejected: they would change on every recomputation of
+  a derived series and on every replay. `derive` refuses them for the same reason (a recipe is recomputed when its
+  inputs change); Generate series keeps the values.
+
 ### Co-skewness, co-kurtosis and the random generator (31 October 2026)
 
 - **Co-moments:** `Dataset.coskewness` and `cokurtosis(names, standardized=True, form="matrix"|"pairs")` and

@@ -89,8 +89,8 @@ def test_rounding_against_numpy_and_decimal(quarterly):
     np.testing.assert_array_equal(quarterly.eval("ceil(x)").to_numpy(), np.ceil(x.to_numpy()))
     np.testing.assert_allclose(quarterly.eval("log10(abs(x))").to_numpy(), np.log10(np.abs(x.to_numpy())), rtol=1e-15)
 
-    def half_up(v: float, n: int) -> float:  # halves away from zero, on the decimal value of the float
-        return float(Decimal(repr(v)).quantize(Decimal(1).scaleb(-n), rounding=ROUND_HALF_UP))
+    def half_up(v: float, n: int) -> float:  # halves away from zero, on the number as written (its shortest form)
+        return float(Decimal(repr(float(v))).quantize(Decimal(1).scaleb(-n), rounding=ROUND_HALF_UP))
 
     for n in (0, 1, 2):
         got = quarterly.eval(f"round(x, {n})").to_numpy()
@@ -101,6 +101,12 @@ def test_rounding_against_numpy_and_decimal(quarterly):
     np.testing.assert_array_equal(data.eval("round(v, -2)").to_numpy(), [0, -0, 0, 0, -0, 1200, 1300, 0])
     assert data.eval("round(v, 2)").iloc[-1] == 0.13  # 0.125 is exact in binary: the half goes up
     assert evaluate(parse_expression("round(-7.45, 1)"), lambda n, k: None) == -7.5
+    for written, rounded in [("2.675", 2.68), ("1.005", 1.01), ("-1.005", -1.01), ("0.285", 0.29), ("1.015", 1.02)]:
+        assert evaluate(parse_expression(f"round({written}, 2)"), lambda n, k: None) == rounded  # just below in binary
+    many = np.random.default_rng(8).normal(scale=50, size=2000).round(3)  # many near-halves at 2 decimals
+    for n in (0, 2):
+        got = evaluate(parse_expression(f"round(v, {n})"), lambda name, lag: many)
+        np.testing.assert_array_equal(got, [half_up(v, n) for v in many])
 
 
 def test_missing_values(quarterly):
