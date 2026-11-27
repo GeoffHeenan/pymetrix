@@ -31,7 +31,7 @@ from collections.abc import Iterator, Mapping
 from typing import TYPE_CHECKING, Any, Literal
 
 from .errors import SpecificationError
-from .expr.nodes import MOVING, BinOp, Call, Coef, Expr, Level, Name, Neg, Num, window_lead
+from .expr.nodes import MOVING, NA, BinOp, Call, Coef, Expr, Level, Name, Neg, Num, window_lead
 
 if TYPE_CHECKING:
     from .estimation import Equation
@@ -250,6 +250,8 @@ class _Writer:
 
     def call(self, e: Call) -> str:
         latex = self.style == "latex"
+        if e.fn == NA and not e.args:  # the missing value
+            return "\\text{NA}" if latex else "NA"
         if e.fn in MOVING:  # the window, not its lags: movavg(x, 4)
             k = MOVING[e.fn]
             n = len(e.args) // k

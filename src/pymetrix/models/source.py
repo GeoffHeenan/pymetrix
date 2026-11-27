@@ -96,7 +96,8 @@ Syntax = Literal["pymetrix", "dynare", "iris", "eviews"]
 SYNTAXES: tuple[str, ...] = ("pymetrix", "dynare", "iris", "eviews")
 _SECTIONS = ("parameters", "shocks", "exogenous", "variables", "equations", "measurement", "reported", "regimes")
 _FUNCTIONS = frozenset({"log", "exp", "sqrt", "abs", "sign", "max", "min", "step", "not", "d", "dlog", "pch",
-                        "steady_state", "STEADY_STATE"}) | _EXPRESSION_FUNCTIONS  # distributions, erf, erfc, moving windows
+                        "steady_state", "STEADY_STATE", "log10", "floor", "ceil", "round", "isna", "fillna", "iif",
+                        "year", "quarter", "month", "day", "obsnum", "normrnd", "unifrnd"}) | _EXPRESSION_FUNCTIONS  # distributions, erf, erfc, moving windows
 
 
 @dataclass(frozen=True)
@@ -1519,6 +1520,18 @@ _BASIC_FUNCTIONS = {
     "step": ("step(x)", "1 where x >= 0, else 0"), "not": ("not(x)", "1 where x is 0, else 0"),
     "d": ("d(x)", "the first difference, x - x[-1]"), "dlog": ("dlog(x)", "the difference of the log, log(x) - log(x[-1])"),
     "pch": ("pch(x)", "the percent change, 100*(x/x[-1] - 1)"),
+    "log10": ("log10(x)", "the base-10 logarithm"), "floor": ("floor(x)", "the largest whole number not above x"),
+    "ceil": ("ceil(x)", "the smallest whole number not below x"),
+    "round": ("round(x, n)", "x rounded to n decimals (0 if left out), halves away from zero"),
+    "isna": ("isna(x)", "1 where x is missing, else 0"), "fillna": ("fillna(x, v)", "v where x is missing, else x"),
+    "iif": ("iif(c, a, b)", "a where c holds (is not 0), b where it is 0, missing where c is missing"),
+    "year": ("year()", "the year of each period (data only, not in a model)"),
+    "quarter": ("quarter()", "the quarter of each period, 1 to 4 (data only)"),
+    "month": ("month()", "the month of each period's first day, 1 to 12 (data only)"),
+    "day": ("day()", "the day of the month of each period's first day (data only)"),
+    "obsnum": ("obsnum()", "the observation's number, from 1, within each entity (data only)"),
+    "normrnd": ("normrnd(mu, sigma, seed=s)", "a normal random draw for each row, seeded (data only)"),
+    "unifrnd": ("unifrnd(a, b, seed=s)", "a uniform random draw on [a, b) for each row, seeded (data only)"),
     "diff": ("diff(x)", "the first difference, x - x{-1} (IRIS)"), "difflog": ("difflog(x)", "log(x) - log(x{-1}) (IRIS)"),
     "ttrend": ("ttrend", "the time trend, periods from the base period (IRIS's !dtrends)"),
     "steady_state": ("steady_state(x)", "x's steady-state value (Dynare)"),

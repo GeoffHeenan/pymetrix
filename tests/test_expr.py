@@ -184,5 +184,5 @@ def test_unknown_functions_suggest_the_name_pymetrix_uses():
         parse_expression("diff(log(y))")
     with pytest.raises(ExpressionError, match=r"did you mean movavg\(\)\?"):
         parse_expression("movavgg(y, 4)")
-    with pytest.raises(ExpressionError, match=r"unknown function 'foo' \(known: "):  # nothing close: the list only
-        parse_expression("foo(y)")
+    with pytest.raises(ExpressionError, match=r"unknown function 'qux' \(known: "):  # nothing close: the list only
+        parse_expression("qux(y)")
