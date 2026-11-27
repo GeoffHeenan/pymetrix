@@ -3,6 +3,11 @@ the program's arguments (``%0``, ``%1``), names made from the program's variable
 values: conditions, loop bounds, and the strings and numbers made with EViews's programming-language functions
 (``@word``, ``@wcount``, ``@wlookup``, ``@isobject``, a group's ``@count`` and ``@seriesname``, an equation's ``@r2``).
 
+EViews's date functions (``@dateval``, ``@datestr``, ``@dateadd``, ``@datediff``, ``@dtoo``, ``@otod``) are program
+values too: they act on ``%`` strings and ``!`` numbers, never on series, so they are not pymetrix expressions but
+Python, with ``pymetrix_eviews.dates`` (``eviews_dates`` in the script), worked out at translation time when the
+program's values are known, else when the script runs (a subroutine's parameters, as in FRB/US's ``dateshift``).
+
 The program is read into blocks (``build``); the walker (``Flow``) translates them in order with the translator of
 phases 1 and 2. A block becomes the same block in the script (``for i in range(1, n + 1):``, ``if r2 > 0.5:``, a
 subroutine a function), and the same block in steps mode, which runs it in Python and makes each statement inside
@@ -334,6 +339,12 @@ _STRING_FUNCTIONS = {
 _NOTES = {"@str": "@str gives Python's text for the number, which may differ from EViews's in the digits shown (verify)",
           "@word": "@word past the last word is an error in Python, an empty string in EViews",
           "@val": "@val of a text that is not a number is an error in Python, NA in EViews"}
+# EViews's date functions (pymetrix_eviews.dates): the arguments taken, the report's note, and what they give
+_DATE_NOTE = "EViews's date numbers (days since 1 January A.D. 1, that day 0), worked out by pymetrix_eviews.dates"
+_DATES = {"@dateval": (1, 2, _DATE_NOTE, "num"), "@datestr": (1, 2, _DATE_NOTE, "str"), "@dateadd": (3, 3, _DATE_NOTE, "num"),
+          "@datediff": (3, 3, _DATE_NOTE, "num"),
+          "@dtoo": (1, 1, "@dtoo: the date's observation number among the page's periods, when the line runs", "num"),
+          "@otod": (1, 1, "@otod: the observation's period as pandas writes it (2001Q3), when the line runs", "str")}
 _STATISTICS = {"@mean": "mean", "@sum": "sum", "@min": "min", "@max": "max", "@stdev": "std", "@median": "median",
                "@obs": "count"}
 
@@ -548,6 +559,31 @@ class _Values:
             raise _error("the expression ends too soon")
         raise _error(f"{value!r} does not read here")
 
+    def date_function(self, name: str) -> tuple[str, str, int]:
+        """EViews's date functions, as Python with ``pymetrix_eviews.dates`` (``eviews_dates`` in the script): worked
+        out now when the program's values are known, else when the script runs (see that module)."""
+        args = self.args()
+        low, high = _DATES[name][:2]
+        if not low <= len(args) <= high:
+            shown = str(low) if low == high else f"{low} or {high}"
+            raise _error(f"{name} takes {shown} arguments, not {len(args)}")
+        if name == "@datestr" and len(args) == 1:
+            raise _left("@datestr without a format writes the date in EViews's default format, which depends on its "
+                        "settings: give the format (@datestr(d, \"yyyy[q]q\"))")
+        if name == "@dateadd" or name == "@datediff":
+            unit = args[-1][0]
+            if re.fullmatch(r'"[^"]*"', unit) and unit[1:-1].strip().lower() not in ("a", "y", "s", "q", "m", "w", "d"):
+                raise _left(f"{name} with the unit {unit}: the units a (or y), s, q, m, w and d are translated")
+        codes = [a[0] for a in args]
+        if name in ("@dtoo", "@otod"):
+            page = self.tr._page()
+            self.static = False
+            codes = [page.var, *codes]
+        note = _DATES[name][2]
+        if note not in self.notes:
+            self.notes.append(note)
+        return (f"eviews_dates.{name[1:]}({', '.join(codes)})", _DATES[name][3], 9)
+
     def function(self, name: str) -> tuple[str, str, int]:
         if name == "@obssmpl":
             page = self.tr._page()
@@ -601,15 +637,26 @@ class _Values:
                         "a series' log, or work the number out first)")
         from .left import GAP_FUNCTIONS, PROGRAM_FUNCTIONS
 
-        if name in ("@dateval", "@dateadd", "@datestr", "@datediff", "@strdate", "@dtoo", "@otod"):
-            raise _left(f"{name}: EViews's date numbers are not translated (a gap, docs/known-gaps.md): write the dates, "
-                        "or give them as the program's arguments")
+        if name in _DATES:
+            return self.date_function(name)
+        if name == "@strdate":
+            raise _left("@strdate is a series of each observation's date as text (an alpha series): not translated; "
+                        "@datestr of a date number is")
+        if name == "@date":
+            raise _left("@date is a series (each observation's date number), not a program's value: @dateval of a date "
+                        "string is translated")
         if name in ("@uiprompt", "@uidialog", "@uiedit", "@uilist", "@uiradio"):
             raise _left("interactive prompts; in pymetrix: the dialog asks for the program's arguments")
         if name in PROGRAM_FUNCTIONS or name in GAP_FUNCTIONS:
             raise _left(f"{name} is not translated in a program's values (a gap, docs/known-gaps.md): @word, @wcount, "
                         "@wfind, @wlookup, @isobject, @lower, @upper, @replace, @trim, @left, @right, @mid, @instr, "
-                        "@len, @str, @val and the sample's statistics are")
+                        "@len, @str, @val, @floor, @ceiling, @dateval, @datestr, @dateadd, @datediff, @dtoo, @otod and the "
+                        "sample's statistics are")
+        from pymetrix.models.eviews import FUNCTIONS as SERIES_FUNCTIONS
+
+        if name in SERIES_FUNCTIONS:
+            raise _left(f"{name} is translated in a series' formula, not in a program's values (a number or a string): "
+                        "@word, @wcount, @floor, @ceiling, the date functions and the sample's statistics are")
         raise _left(f"{name} is not an EViews function this translator knows")
 
 
@@ -628,6 +675,13 @@ def _left(reason: str) -> Exception:
 _SAFE = {"len": len, "float": float, "int": int, "str": str, "abs": abs}
 
 
+def _dates_module() -> Any:
+    """``pymetrix_eviews.dates``, as the script names it (``eviews_dates``)."""
+    from .. import dates
+
+    return dates
+
+
 class ProgramValues:
     """The translator's handling of the program's own values (mixed into ``Translator``)."""
 
@@ -643,7 +697,7 @@ class ProgramValues:
         if reader.static:
             known = {v.name: v.value for v in self.py.values() if v.value is not _UNKNOWN and v.kind in ("scalar", "control", "string")}
             try:
-                value = eval(code, {"__builtins__": _SAFE}, known)  # noqa: S307 - Python made here from the program's own values
+                value = eval(code, {"__builtins__": _SAFE, "eviews_dates": _dates_module()}, known)  # noqa: S307 - Python made here from the program's own values
             except Exception:  # noqa: BLE001 - a name with no value yet, an index past the end: worked out when it runs
                 value = _UNKNOWN
             if isinstance(value, bool):

@@ -180,9 +180,29 @@ first step that fails and marks its row).
 
 Left out, each with its reason and pymetrix's way where there is one: `stepls`, `breakls`, `threshold`, `switchreg`,
 `glm` and `nls`, `testadd` and the extreme-value link (gaps), graphs, tables, spools and display, databases, add-ins,
-EViews's date numbers (`@dateval`, `@dateadd`), object parameters of subroutines, names with `$`, and expression
-functions pymetrix has no equivalent of (`@year`, `@round`, `@nan`, `@iif`, `nrnd`... ; pymetrix's known gaps lists
-them).
+object parameters of subroutines, names with `$`, and expression functions pymetrix has no equivalent of (`@date`,
+`@trend`, `@seas` and `@elem` in data work, `@obssmpl` inside a series' formula, `@strdate`, by-group statistics
+grouped by an expression; pymetrix's known gaps lists them).
+
+Expression functions and random numbers:
+
+| EViews | pymetrix |
+| --- | --- |
+| `@log10`, `@floor`, `@ceiling`, `@round(x)`, `@isna`, `@nan(x, v)`, `na` | `log10`, `floor`, `ceil`, `round(x)` (halves away from zero), `isna`, `fillna(x, v)`, `na` |
+| `@iif(c, a, b)`, `@recode(c, a, b)` | `iif(c, a, b)` (missing where `c` is); `@recode(a > b, a, b)` stays `max(a, b)` |
+| `@year`, `@quarter`, `@month`, `@day` | `year()`, `quarter()`, `month()`, `day()`: of each period's first day |
+| `@obsnum`, `@obsid` | `obsnum()`, from 1 within each cross-section (EViews's `@obsnum` counts a panel's rows straight through) |
+| `@cumsum(x)` | `cumsum(x)`: NAs skipped, as EViews's; over all the page's rows (EViews: the current sample; a line under a `smpl` says so) |
+| `@sumsby(x, g)`, `@meansby`, `@minsby`, `@maxsby` | `sum(x, by=g)`, `mean`, `min`, `max`, with `g` a series' name; over all the page's rows |
+| `rndseed n`, then `nrnd`, `@rnorm`, `rnd`, `@runif(a, b)` | `normrnd(seed=s)`, `unifrnd(seed=s)`, `unifrnd(a, b, seed=s)`, `s` = n·1000 + the draw's number after the `rndseed` (1, 2, ... without one); pymetrix's generator, so the numbers are never EViews's: each line is translated with a note "to check" |
+
+None of these is read in a model's equations (`read_eviews` refuses them, saying why): a model has no rows.
+
+EViews's dates (`@dateval`, `@datestr` with a format, `@dateadd`, `@datediff`, `@dtoo`, `@otod`) act on a program's
+`%` strings and `!` numbers, so they are worked out as Python values by `pymetrix_eviews.dates`, with EViews's date
+numbers (days since 1 January A.D. 1, that day 0): at translation time when the program's values are known, otherwise
+when the script runs (it then imports `pymetrix_eviews.dates as eviews_dates`). FRB/US's `dateshift` subroutine
+translates as the package writes it.
 
 ## Installing
 

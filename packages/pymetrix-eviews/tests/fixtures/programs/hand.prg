@@ -36,7 +36,7 @@ series q{%x} = y + _
   1
 graph gr.line y z
 equation eq.ls y c t
-series yr = @year(y)
+series dn = @date
 for !i = 1 to 2
   series a{!i} = !i
 next

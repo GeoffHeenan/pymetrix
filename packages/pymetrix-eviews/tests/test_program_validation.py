@@ -11,9 +11,10 @@ The FRB/US programs read the Fed's database (``dbopen``, ``fetch``) and make the
 (``read_xml_model``): neither is translated. ``test_frbus_example1_against_the_hand_written_simulation`` supplies
 both as tests/test_frbus_example.py does (LONGBASE, the model read by ``read_eviews_xml``) and translates the
 program's own lines: its included library's subroutines (the policy switches, the ``_aerr`` group set to zero), the
-model's solve options, add factors, scenarios and solves, its ``if`` block and the responses. Two lines are changed
-for that: ``wfcreate`` opens LONGBASE instead (the page the database would fill), and ``call dateshift``, whose
-subroutine uses EViews's date numbers (not translated), is replaced by the date it gives.
+model's solve options, add factors, scenarios and solves, its ``if`` block and the responses. One line is changed
+for that: ``wfcreate`` opens LONGBASE instead (the page the database would fill). ``call dateshift``, whose
+subroutine uses EViews's date numbers (``@dateval``, ``@dateadd``, ``@datestr``), translates as it is: the end of
+the simulation it gives, 2025q4 (2020q1 and 23 quarters), is checked.
 """
 
 import os
@@ -123,16 +124,17 @@ def test_frbus_example1_against_the_hand_written_simulation(tmp_path):
     data = tmp_path / "longbase.csv"
     frame.to_csv(data, index=False)
     text = (Path(FRBUS) / "programs" / "example1.prg").read_text()
-    for old, new in (("wfcreate(wf=aaa,page={%mainpage}) q {%wfstart} {%wfend}", "wfopen longbase"),
-                     ("call dateshift(%simstart,%simend,!nsimqtrs-1)", '%simend = "2025q4"')):
-        assert text.count(old) == 1
-        text = text.replace(old, new)
+    old = "wfcreate(wf=aaa,page={%mainpage}) q {%wfstart} {%wfend}"
+    assert text.count(old) == 1 and text.count("call dateshift(%simstart,%simend,!nsimqtrs-1)") == 1
+    text = text.replace(old, "wfopen longbase")
     t = translate_program(text, bundle=data, read_options={"time": "obs", "freq": "Q"}, objects={"stdver": model},
                           folder=Path(FRBUS) / "programs")
     left = {r.eviews.split()[0].split("(")[0].split(".")[-1] for r in t.report if r.file == t.program and r.status == "left out"}
     assert left == {"wfclose", "read_xml_model", "dbopen", "fetch", "statusline", "graph", "addtext", "legend", "align", "show"}  # every model, sample, series and control line translated
+    assert t.report.counts()["error"] == 0
     namespace = {"stdver": model}
     exec(compile(t.script, "example1.prg", "exec"), namespace)
+    assert namespace["simend"] == "2025q4"  # dateshift: 2020q1 and !nsimqtrs - 1 = 23 quarters, by hand
     got = namespace["longbase"].frame.loc["2020Q1":"2025Q4"]
 
     hand = frame.copy()
@@ -149,6 +151,7 @@ def test_frbus_example1_against_the_hand_written_simulation(tmp_path):
     assert got["d_rff"].iloc[0] == pytest.approx(1.0, abs=0.01)  # test_funds_rate_shock's check of the first quarter
     # steps mode: the same, as recorded steps (about two minutes: each of the 1,169 steps copies the page)
     out = t.run()
+    assert out["simend"] == "2025q4"
     steps = out["session"]["longbase"].frame.loc["2020Q1":"2025Q4"]
     for column in ("d_rff", "d_rg10", "d_lur", "d_pic4", "xgap_0", "rff_1"):
         np.testing.assert_array_equal(steps[column], got[column])

@@ -343,9 +343,23 @@ def _help() -> None:
         **What is left out.** stepls, breakls, threshold, switchreg, glm and nls (each naming pymetrix's
         equivalent); testadd and the extreme-value link (gaps); graphs, tables, spools and display; EViews
         databases (fetch and store); add-ins (what they make can be given to translate_program as objects=);
-        EViews's date numbers (@dateval, @dateadd, @datestr); subroutine parameters that are objects; names with $
-        in them; and the expression functions pymetrix has no equivalent of, such as @year, @round, @nan, @iif and
-        nrnd (docs/known-gaps.md in pymetrix lists them).
+        subroutine parameters that are objects; names with $ in them; and the expression functions pymetrix has no
+        equivalent of: @date, @trend, @seas and @elem in data work, @obssmpl inside a series' formula, @strdate,
+        and @sumsby and the like grouped by anything but a series' name (docs/known-gaps.md in pymetrix lists them).
+
+        **Expression functions.** @log10, @floor, @ceiling, @round, @isna, @nan, @iif (and @recode), na, @year,
+        @quarter, @month, @day, @obsnum, @obsid, @cumsum, @sumsby, @meansby, @minsby and @maxsby translate to
+        pymetrix's functions (log10, floor, ceil, round, isna, fillna, iif, na, year(), ..., obsnum(), cumsum, sum(x,
+        by=g) ...). pymetrix computes @cumsum and the by-group statistics over all the page's rows, EViews over the
+        current sample: a line under a smpl says so. Random numbers (nrnd, rnd, @rnorm, @runif) become normrnd and
+        unifrnd with a seed: rndseed n gives the draws after it n*1000 + 1, n*1000 + 2 ..., and without a rndseed
+        the program's draws are seeded 1, 2 ... in order. pymetrix's numbers are never EViews's, so each such line is
+        translated with a note "to check".
+
+        **EViews's dates.** @dateval, @datestr (with a format), @dateadd, @datediff, @dtoo and @otod act on the
+        program's strings and numbers, so they are worked out as Python values, with EViews's date numbers (days
+        since 1 January A.D. 1, that day 0): now, when the values are known before the program runs, else when the
+        script runs (it imports pymetrix_eviews.dates). FRB/US's dateshift subroutine translates as it is.
 
         A program's wfopen needs the workfile's data: export it with the export program (experimental), or save it
         from EViews as CSV or Excel and pass that file, with read_options={"time": "obs", "freq": "Q"} for

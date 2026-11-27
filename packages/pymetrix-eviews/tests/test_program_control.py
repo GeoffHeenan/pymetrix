@@ -251,7 +251,9 @@ series after = 1
     ("next\n", 1, "error", ("without its for",)),
     ("call nothing(1)\n", 1, "error", ("no subroutine nothing",)),
     ("subroutine f(series s)\nendsub\ncall f(x)\n", 3, "left out", ("object arguments", "gap")),
-    ("%d = @dateadd(%s, 1, \"q\")\n", 1, "left out", ("date numbers", "gap")),
+    ("%d = @datestr(@dateval(\"2001q1\"))\n", 1, "left out", ("default format", "give the format")),
+    ("!d = @dateadd(@dateval(\"2001q1\"), 1, \"bd\")\n", 1, "left out", ("unit",)),
+    ("wfcreate q 2001q1 2001q4\n%d = @strdate(\"yyyy\")\n", 2, "left out", ("alpha series",)),
     ("for !i = 1 to 2\n  wfcreate a 2001 2002\nnext\n", 2, "left out", ("inside a loop",)),
     ("wfcreate a 2001 2002\nseries s = {!i+1}\n", 2, "left out", ("expression in braces",)),
     ("wfcreate a 2001 2002\nmatrix _$_m\n", 2, "left out", ("$",)),
@@ -269,3 +271,76 @@ def test_steps_through_a_runner_stop_at_the_first_failure_with_its_line():
         t.run(s, run=lambda c: (seen.append(c), s.run(c)))
     assert "line 3" in str(caught.value) and caught.value.line == 3
     assert len(seen) == 2 and list(s["untitled"].frame.columns) == []  # the page made; the first series failed
+
+
+# -- EViews's date numbers ------------------------------------------------------------------------------------------
+
+# Days from 1 January A.D. 1 (date number 0) to 1 January 2001, by hand: 2000 years of 365 days and the leap days in
+# years 1 to 2000 (2000 // 4 - 2000 // 100 + 2000 // 400 = 485); 1 July 2001 is 181 days later (31 + 28 + 31 + 30 +
+# 31 + 30, 2001 not a leap year).
+JAN_2001 = 365 * 2000 + 485
+JUL_2001 = JAN_2001 + 181
+
+
+def test_date_numbers_by_hand_and_the_eviews_example():
+    from pymetrix_eviews import dates
+
+    assert dates.dateval("0001-01-01") == 0 and dates.dateval("1/2/0001") == 1  # the first day is 0
+    assert dates.dateval("12/1/1999", "dd/mm/yyyy") == 729765  # EViews's Command Reference: 12 January 1999
+    assert dates.dateval("2001") == JAN_2001 and dates.dateval("2001-07-01") == JUL_2001
+    assert dates.dateval("2001q3") == dates.dateval("2001Q3") == dates.dateval("2001m7") == JUL_2001  # a period's first day
+    assert dates.dateval("2001q3", "yyyyfq") == dates.dateval("2001:3", "yyyy:q") == dates.dateval("01Q3", "yy[Q]q") == JUL_2001
+    assert dates.datestr(JUL_2001, "yyyyfq") == "2001q3" and dates.datestr(JUL_2001, "YYYYFQ") == "2001Q3"
+    assert dates.datestr(JUL_2001, "yyyy[Q]q") == "2001Q3" and dates.datestr(JUL_2001 + 14, "dd/mm/yyyy") == "15/07/2001"
+    assert dates.datestr(JUL_2001, "yyyy-mm-dd") == "2001-07-01" and dates.datestr(JUL_2001, "yyyyfm") == "2001m7"
+    # @dateadd: whole periods (the day kept, or the month's last), weeks and days
+    assert dates.dateadd(JUL_2001, 2, "q") == JAN_2001 + 365  # 2002q1
+    assert dates.dateadd(JUL_2001, -3, "q") == dates.dateval("2000q4") == JAN_2001 - 92  # October to December: 92 days
+    assert dates.dateadd(JAN_2001 + 30, 1, "m") == JAN_2001 + 31 + 27  # 31 January + 1 month: 28 February
+    assert dates.dateadd(JUL_2001, 1, "a") == JUL_2001 + 365 and dates.dateadd(JUL_2001, 2, "w") == JUL_2001 + 14
+    assert dates.datestr(dates.dateadd(dates.dateval("2020q1", "yyyyfq"), 23, "q"), "yyyyfq") == "2025q4"  # FRB/US's dateshift
+    # @datediff: how far the first is after the second
+    assert dates.datediff(dates.dateval("2001q1"), dates.dateval("1999q3"), "q") == 6
+    assert dates.datediff(dates.dateval("1999q3"), dates.dateval("2001q1"), "q") == -6
+    assert dates.datediff(JUL_2001, JAN_2001, "d") == 181 and dates.datediff(JUL_2001, JAN_2001, "w") == 25  # 181 // 7
+    assert dates.datediff(JUL_2001, JAN_2001, "a") == 0 and dates.datediff(JUL_2001, JAN_2001, "m") == 6
+    with pytest.raises(ValueError, match="does not read"):
+        dates.dateval("2001-07", "yyyyfq")
+
+
+DATES = """wfcreate q 2000q1 2030q4
+%simstart = "2020q1"
+!nsimqtrs = 24
+call dateshift(%simstart, %simend, !nsimqtrs - 1)
+smpl {%simstart} {%simend}
+series x = 1
+smpl @all
+!d = @dateval("12/1/1999", "dd/mm/yyyy")
+%s = @datestr(@dateadd(@dateval(%simstart), 59, "q"), "yyyy[Q]q")
+!k = @datediff(@dateval("2001q1"), @dateval("1999q3"), "q")
+!lqtr = @dtoo(%simstart) - 1
+%o = @otod(3)
+
+subroutine dateshift(string %indate, string %outdate, scalar qtrshift)
+  !dddd1 = @dateval(%indate, "yyyyfq")
+  !dddd2 = @dateadd(!dddd1, qtrshift, "q")
+  %outdate = @datestr(!dddd2, "yyyyfq")
+endsub
+"""
+
+
+def test_date_functions_in_a_program_and_frbus_dateshift():
+    """FRB/US's dateshift subroutine (subs/master_library.prg, lines 4-13) as the package writes it, called as
+    example1.prg calls it; the other functions on values known before the program runs. By hand: 2020q1 and 23
+    quarters is 2025q4; 2020q1 and 59 quarters, 2034q4; 1999q3 to 2001q1, 6 quarters; 2020q1 is the 81st quarter
+    from 2000q1; the third observation is 2000q3."""
+    t = translate_program(DATES)
+    assert t.report.counts()["left out"] == 0 and t.report.counts()["error"] == 0, t.report.to_text()
+    assert "import pymetrix_eviews.dates as eviews_dates" in t.script
+    assert "days since 1 January A.D. 1" in t.report.line(15).reason
+    namespace, out = _both(t)
+    for values in (namespace, out):
+        assert values["simend"] == "2025q4" and values["s"] == "2034Q4" and values["k"] == 6 and values["d"] == 729765
+        assert values["lqtr"] == 80 and values["o"] == "2000Q3"
+    x = out["session"]["untitled"].frame["x"]
+    assert x.notna().sum() == 24 and str(x.first_valid_index()) == "2020Q1" and str(x.last_valid_index()) == "2025Q4"

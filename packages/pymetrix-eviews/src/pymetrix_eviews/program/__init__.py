@@ -251,7 +251,9 @@ def _imports(text: str) -> list[str]:
 
     public = set(pymetrix.__all__)
     code = "\n".join(line for line in text.split("\n") if not line.lstrip().startswith("#"))
-    code = re.sub(r'"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'', '""', code)
+    # strings and trailing comments out, in one pass from the left: a comment's apostrophe (the program's names)
+    # does not open a string, and a # inside a string does not start a comment
+    code = re.sub(r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\'|#[^\n]*', lambda m: "" if m.group().startswith("#") else '""', code)
     found = {m.group(1) for m in re.finditer(r"(?<![\w.])([A-Za-z_]\w*)\s*[.(]", code)}
     order = ["Dataset", "Matrix", "Sample"]
     return [n for n in order if n in found and n in public] + sorted(n for n in found if n in public and n not in order)
@@ -280,6 +282,8 @@ def _script(program: Program, outcomes: list[Any], functions: list[Any], flow: F
         head.append(f"from pymetrix import {', '.join(used)}")
     if uses_bundle:
         head.append("import pymetrix_eviews  # noqa: F401 - reads the workfile's bundle (.evbundle)")
+    if any("eviews_dates." in line for line in text.split("\n") if not line.lstrip().startswith("#")):
+        head.append("import pymetrix_eviews.dates as eviews_dates  # EViews's date numbers (@dateval, @datestr, ...)")
     if given:
         kinds = ", ".join(f"{k} (a {type(v).__name__})" for k, v in given.items())
         head += ["", "# The objects the program uses but does not make (in EViews an add-in, a database or another program makes",
