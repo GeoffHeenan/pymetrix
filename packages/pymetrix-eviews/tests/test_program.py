@@ -126,7 +126,7 @@ def test_hand_program_report():
     assert rows[32].reason == "continues line 31" and rows[36].reason == "continues line 35"
     assert rows[37].status == "left out" and "graphs are not translated" in rows[37].reason
     assert rows[38].status == "translated" and rows[38].python == 'eq = Equation("y ~ t", name="eq").fit(q)'
-    assert "@year" in rows[39].reason and "gap" in rows[39].reason
+    assert "@date" in rows[39].reason and "gap" in rows[39].reason
     assert rows[40].status == "translated" and rows[40].python == "for i in range(1, 3):"
     assert rows[41].status == "translated with a note" and "made from a value known when the program runs" in rows[41].reason
     assert rows[41].python == 'q = q.with_series(**{f"a{i}": f"({i})"}, within=q.sample)'
@@ -249,15 +249,90 @@ def test_unknown_series_is_an_error_until_lines_left_out_may_make_it():
 
 
 @pytest.mark.parametrize("expression, name", [
-    ("@year(x)", "@year"), ("@quarter(x)", "@quarter"), ("@month(x)", "@month"), ("@obsnum", "@obsnum"),
-    ("@round(x)", "@round"), ("@floor(x)", "@floor"), ("@ceiling(x)", "@ceiling"), ("@nan(x, 0)", "@nan"),
-    ("@isna(x)", "@isna"), ("@iif(x > 1, 1, 0)", "@iif"), ("nrnd", "nrnd"), ("rnd", "rnd"), ("@date", "@date"),
-    ("@trend", "@trend"), ("@seas(1)", "@seas"), ("x + na", "na"),
+    ("@date", "@date"), ("@trend", "@trend"), ("@seas(1)", "@seas"), ("x + @obssmpl", "@obssmpl"),
 ])
 def test_the_audit_gaps_are_left_out_by_name(expression, name):
     t = translate_program(f"wfcreate q 2000q1 2000q4\nseries x = 1\nseries y = {expression}\n")
     row = t.report.line(3)
     assert row.status == "left out" and name in row.reason and "gap" in row.reason
+
+
+AUDIT = """wfcreate q 1999q3 2000q3
+series x = 1
+x.fill 2.5, -2.5, 1.49, na, 7.75
+series g = 1
+g.fill 1, 2, 1, 1, 2
+series r = @round(x) + 10*@floor(x) + 100*@ceiling(x)
+series m = @isna(x) + 10*@nan(x, -1)
+series c = @iif(x > 2, x, na)
+series cal = @year*10000 + @quarter*1000 + @month*10 + @day
+series o = @obsnum + 10*@obsid
+series l = @log10(abs(x))
+series cs = @cumsum(x)
+series s = @sumsby(x, g) + 100*@meansby(x, g)
+series mm = @minsby(x, g) + 100*@maxsby(x, g) + 10000*@sumsby(1, g)
+series y = @recode(x > 2, 1, 0)
+"""
+
+
+def test_the_audit_functions_now_translate_against_the_hand_worked_values():
+    """Each function of the audit that pymetrix's expressions now have, on five quarters worked by hand from the
+    definitions in EViews's function reference (x: 2.5, -2.5, 1.49, NA, 7.75; g: 1, 2, 1, 1, 2)."""
+    t = translate_program(AUDIT)
+    assert t.report.counts()["left out"] == 0 and t.report.counts()["error"] == 0, t.report.to_text()
+    _, out = _both(t)
+    f = out["session"]["untitled"].frame
+    # @round halves away from zero: 3, -3, 1; @floor 2, -3, 1; @ceiling 3, -2, 2
+    np.testing.assert_array_equal(f["r"], [3 + 20 + 300, -3 - 30 - 200, 1 + 10 + 200, NAN, 8 + 70 + 800])
+    np.testing.assert_array_equal(f["m"], [25, -25, 14.9, 1 - 10, 77.5])  # @isna is 1 or 0, never NA
+    np.testing.assert_array_equal(f["c"], [2.5, NAN, NAN, NAN, 7.75])  # NA where the condition is NA
+    np.testing.assert_array_equal(f["cal"], [19993071, 19994101, 20001011, 20002041, 20003071])  # 1999Q3 starts 1 July
+    np.testing.assert_array_equal(f["o"], [11, 22, 33, 44, 55])
+    np.testing.assert_allclose(f["l"], [math.log10(2.5), math.log10(2.5), math.log10(1.49), NAN, math.log10(7.75)], rtol=1e-15)
+    np.testing.assert_array_equal(f["cs"], [2.5, 0, 1.49, 1.49, 9.24])  # NA skipped, as EViews's 1, 3, 4, NA, 5 -> 1, 4, 8, 8, 13
+    # group 1 (rows 1, 3, 4): sum 2.5 + 1.49 = 3.99, mean 1.995; group 2 (rows 2, 5): sum 5.25, mean 2.625
+    np.testing.assert_allclose(f["s"], [3.99 + 199.5, 5.25 + 262.5, 3.99 + 199.5, 3.99 + 199.5, 5.25 + 262.5], rtol=1e-14)
+    np.testing.assert_allclose(f["mm"], [1.49 + 250 + 30000, -2.5 + 775 + 20000, 1.49 + 250 + 30000, 1.49 + 250 + 30000,
+                                         -2.5 + 775 + 20000], rtol=1e-14)
+    np.testing.assert_array_equal(f["y"], [1, 0, 0, NAN, 1])
+    assert t.report.line(15).python == 'untitled = untitled.with_series(y="iif(x > 2, 1, 0)")'
+
+
+def test_random_draws_are_seeded_from_rndseed_and_marked_to_check():
+    program = ("wfcreate q 2000q1 2001q4\nseries e = nrnd\nseries u = rnd\nrndseed 12345\nseries e2 = 2 + 3*nrnd\n"
+               "series u2 = @runif(1, 5)\nrndseed 12345\nseries e3 = nrnd\n")
+    t = translate_program(program)
+    _, out = _both(t)
+    f = out["session"]["untitled"].frame
+    rng = np.random.default_rng  # NumPy's PCG64: pymetrix's default generator
+    np.testing.assert_array_equal(f["e"], rng(1).standard_normal(8))  # no rndseed before: the draws' order, 1, 2
+    np.testing.assert_array_equal(f["u"], rng(2).random(8))
+    np.testing.assert_allclose(f["e2"], 2 + 3 * rng(12345001).standard_normal(8), rtol=1e-15)  # rndseed*1000 + 1
+    np.testing.assert_allclose(f["u2"], 1 + 4 * rng(12345002).random(8), rtol=1e-15)
+    np.testing.assert_array_equal(f["e3"], rng(12345001).standard_normal(8))  # the same rndseed again: the same draws
+    for line in (2, 3, 5, 6, 8):
+        row = t.report.line(line)
+        assert row.status == "translated with a note" and "to check" in row.reason and "EViews's numbers differ" in row.reason
+    assert "no rndseed" in t.report.line(2).reason and "rndseed 12345" in t.report.line(5).reason
+    assert t.report.line(4).status == "translated with a note" and "12345001" in t.report.line(4).reason
+    looped = translate_program("wfcreate q 2000q1 2000q4\nfor !i = 1 to 2\n  series e{!i} = nrnd\nnext\n")
+    assert "every pass draws the same numbers" in looped.report.line(3).reason
+
+
+@pytest.mark.parametrize("expression, says", [
+    ("@sumsby(x, x(-1))", "a series' name"), ("d(@year)", "inside d"), ("@cumsum(x, 1)", "1 argument"),
+])
+def test_data_functions_refused_where_they_do_not_translate(expression, says):
+    t = translate_program(f"wfcreate q 2000q1 2000q4\nseries x = 1\nseries y = {expression}\n")
+    row = t.report.line(3)
+    assert row.status in ("error", "left out") and says in row.reason, row
+
+
+def test_sample_statistics_note_the_sample():
+    t = translate_program("wfcreate q 2000q1 2001q4\nseries x = 1\nseries a = @cumsum(x)\nsmpl 2001q1 2001q4\n"
+                          "series b = @cumsum(x)\n")
+    assert t.report.line(3).status == "translated"
+    assert "over the current sample in EViews" in t.report.line(5).reason
 
 
 @pytest.mark.parametrize("line, words", [

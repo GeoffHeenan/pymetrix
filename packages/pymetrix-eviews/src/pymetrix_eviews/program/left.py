@@ -57,18 +57,15 @@ STATISTICS = {"@mean": "mean", "@sum": "sum", "@min": "min", "@max": "max", "@st
 
 # the audit (design note, phase 1): EViews expression functions found in the validation programs or named in the
 # design that pymetrix's expressions have no equivalent of. Each is a gap in docs/known-gaps.md.
+# The rest of the audit now translates (the core reader's render_eviews_expression with data=True): @year, @quarter,
+# @month, @day, @obsnum, @obsid, @round, @floor, @ceiling, @log10, @nan, @isna, @iif, na, nrnd, rnd, @rnorm, @runif,
+# @cumsum and @sumsby, @meansby, @minsby, @maxsby (by a series' name).
 GAP_FUNCTIONS = {
-    "@year": "the period's year", "@quarter": "the period's quarter", "@month": "the period's month", "@day": "the day",
-    "@date": "the period's date number", "@obsnum": "the observation number", "@obsid": "the observation number",
-    "@round": "rounding", "@floor": "rounding down", "@ceiling": "rounding up", "@nan": "replacing missing values",
-    "@isna": "testing for a missing value", "@iif": "a choice by a condition", "nrnd": "normal random numbers",
-    "rnd": "uniform random numbers", "@rnorm": "normal random numbers", "@runif": "uniform random numbers",
-    "@cumsum": "a cumulative sum over the sample", "@sumsby": "sums by group", "@minsby": "minimums by group",
-    "@maxsby": "maximums by group", "@meansby": "means by group", "@obssmpl": "the sample's number of observations",
+    "@date": "the period's date number: use @year, @quarter, @month and @day",
+    "@obssmpl": "the sample's number of observations, a number: give a scalar its value first (!n = @obssmpl)",
     "@trend": "a trend from the data's dates (eviews_series makes it for a model; not for data work yet)",
     "@seas": "a seasonal dummy from the data's dates (eviews_series makes it for a model; not for data work yet)",
     "@elem": "a value at a date (eviews_series makes it for a model; not for data work yet)",
-    "@log10": "the base-10 logarithm",
 }
 
 

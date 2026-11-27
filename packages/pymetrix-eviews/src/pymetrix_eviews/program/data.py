@@ -36,10 +36,13 @@ __all__ = ["Outcome", "Translator", "is_closer", "is_opener"]
 
 _UNKNOWN = object()
 _NAN = 'float("nan")'
+DEFAULT_SEED = 0  # before any rndseed, the k-th random draw of the program is seeded DEFAULT_SEED*1000 + k: 1, 2, ...
 _OPENERS = {"for": "next", "while": "wend", "if": "endif", "subroutine": "endsub"}
 _CLOSERS = {"next", "wend", "endif", "endsub"}
 _HARMLESS = frozenset({*PHASE4_COMMANDS, "wfsave", "pagesave", "wfclose"})  # left out without making series
-_SCRIPT_NAMES = {"Dataset", "Matrix", "Sample", "pymetrix", "pymetrix_eviews"}
+_SCRIPT_NAMES = {"Dataset", "Matrix", "Sample", "pymetrix", "pymetrix_eviews", "eviews_dates"}
+# the core reader's refusals of what EViews reads but pymetrix's expressions do not: left out, not errors
+_NOT_TRANSLATED = ("is read with g a series' name", "inside d, dlog, @pch or a moving window", "no seed is given")
 
 
 class _Out(Exception):
@@ -169,6 +172,9 @@ class Translator(Estimation, Models, ProgramValues):
         self.sample_unknown: set[str] = set()  # pages whose sample depends on the branch an if block takes
         self._made_names = False  # the statement being translated makes a name from a value known when it runs
         self._dated_note = False  # the sample being read has dates known when the program runs
+        self.rndseed: int | None = None  # the last rndseed's value (None before one)
+        self.draws = 0  # random draws translated since it (or since the start)
+        self.expression_notes: list[str] = []  # what the statement's expressions say (random draws, the sample)
 
     # -- names ------------------------------------------------------------------------------------------------------
 
@@ -262,10 +268,10 @@ class Translator(Estimation, Models, ProgramValues):
         if re.search(r"\w\.@?\w", re.sub(r'"[^"]*"|\d+\.\d*', "", text)):
             raise _left("an object's data member (eq.@coefs(2), g.@count) in a series expression is not translated: give a "
                         "scalar its value first (scalar b = eq.@coefs(2)), then use the scalar")
-        for m in re.finditer(r'"[^"]*"|(?<![\w@!%])(@?[A-Za-z_]\w*)(\s*\()?', text):
+        for m in re.finditer(r'"[^"]*"|(?<![\w@!%])(@?[A-Za-z_]\w*)', text):
             if m.group(1) is None:
                 continue
-            name, call = m.group(1).lower(), bool(m.group(2))
+            name = m.group(1).lower()
             if name in STATISTICS:
                 raise _left(f"{name} is the sample's {STATISTICS[name].replace('std', 'standard deviation').replace('count', 'number of observations')}, "
                             f"a number: give a scalar its value first (scalar m = {name}(x)), then use the scalar")
@@ -275,9 +281,6 @@ class Translator(Estimation, Models, ProgramValues):
             if name in GAP_FUNCTIONS:
                 raise _left(f"{name} ({GAP_FUNCTIONS[name]}) has no equivalent in pymetrix's expressions: a gap "
                             "(docs/known-gaps.md)")
-            if name == "na" and not call:
-                raise _left("na inside an expression: pymetrix's expressions have no missing-value constant (a gap); "
-                            "y = na alone translates")
             if name.startswith("@") and name in ("@uiprompt", "@uidialog", "@uiedit", "@uilist", "@uiradio"):
                 raise _left(left_reason("interactive prompts", "the dialog asks for the program's arguments"))
 
@@ -322,7 +325,7 @@ class Translator(Estimation, Models, ProgramValues):
             if m.group(2):
                 continue
             name = m.group(1)
-            if name in ("and", "or", "not"):
+            if name in ("and", "or", "not", "na") or re.match(r"\s*=(?!=)", rendered[m.end():]):  # na; by=, seed=
                 continue
             if name in scalars:
                 parts += [rendered[pos:m.start()] + "(", Var(scalars[name]), ")"]
@@ -354,13 +357,62 @@ class Translator(Estimation, Models, ProgramValues):
         tree = self._tree(text, at, comparison=True, coefs=coefs)  # EViews: series d = x > 3, 1 where it holds
         scalars = self._scalars()
         try:
-            rendered = render_eviews_expression(tree, tuple(n for n in scalars), frequency="A" if page.freq == "Y" else page.freq)
+            seeds: list[int] = []
+            rendered = render_eviews_expression(tree, tuple(n for n in scalars), frequency="A" if page.freq == "Y" else page.freq,
+                                                data=True, seeds=lambda: self._seed(seeds))
         except EViewsExpressionError as exc:
+            if any(w in exc.message for w in _NOT_TRANSLATED):  # EViews reads it; pymetrix's expressions do not
+                raise _left(exc.message) from None
             raise _error(exc.message) from None
         except Exception as exc:  # the frequency of @pchy and the like
             raise _error(str(exc)) from None
+        self._data_notes(tree, page, seeds)
         allowed = frozenset(f"{n.vector}_{n.index}" for n in walk_eviews_expression(tree) if isinstance(n, EViewsCoefficient)) if coefs else frozenset()
         return self._names_in(rendered, page, scalars, allowed)
+
+    def _seed(self, seeds: list[int]) -> int:
+        """The next random draw's seed: ``rndseed``'s value times 1,000 plus the draw's number since it (1, 2, ...),
+        or, before any ``rndseed``, the draw's number from the program's start (``DEFAULT_SEED``*1000 + k)."""
+        self.draws += 1
+        seed = (self.rndseed if self.rndseed is not None else DEFAULT_SEED) * 1000 + self.draws
+        seeds.append(seed)
+        return seed
+
+    def _data_notes(self, tree: Any, page: _Page, seeds: list[int]) -> None:
+        """What the report says of an expression's random draws, and of statistics EViews takes over the sample."""
+        fns = {n.fn for n in walk_eviews_expression(tree) if isinstance(n, EViewsCall)}
+        if seeds:
+            given = (f"seeded from rndseed {self.rndseed} (rndseed*1000 + the draw's number after it)" if self.rndseed is not None
+                     else "seeded by their order in the program, no rndseed before them")
+            note = (f"random draws, to check: pymetrix's own generator, {given}: seed{'s' if len(seeds) > 1 else ''} "
+                    f"{', '.join(map(str, seeds))}; EViews's numbers differ")
+            if self.runtime:
+                note += "; inside a loop or subroutine every pass draws the same numbers (the seed is in the text)"
+            self.expression_notes.append(note)
+        stats = sorted(fns & {"@cumsum", "@sumsby", "@meansby", "@minsby", "@maxsby"})
+        if stats and (page.sample is not None or self.runtime or page.var in self.sample_unknown):
+            self.expression_notes.append(f"{', '.join(stats)} over all the page's rows in pymetrix, over the current sample in "
+                                         "EViews: the same when the sample has every row")
+
+    def _cmd_rndseed(self, st: Statement) -> tuple[list[Op], str]:
+        text = st.rest.strip()
+        m = re.fullmatch(r"(\d+)|([!]?[A-Za-z_]\w*)", text)
+        if m is None:
+            raise _error("rndseed takes a whole number: rndseed 12345")
+        if m.group(1):
+            value: Any = int(m.group(1))
+        else:
+            value = self._known(m.group(2))
+            if value is _UNKNOWN or not float(value).is_integer() or value < 0:
+                raise _left(f"rndseed {text}: the seed is known only when the program runs, so the draws after it are "
+                            "seeded by their order in the program; give the number")
+            value = int(value)
+        self.rndseed, self.draws = value, 0
+        note = (f"the seed of the random draws after it: rndseed*1000 + the draw's number ({value * 1000 + 1}, ...); "
+                "pymetrix's generator, not EViews's, so the numbers differ")
+        if st.options:
+            note += f"; ({st.options}) chooses EViews's generator: pymetrix's is set by set_random_generator"
+        return [], note
 
     def condition(self, text: str, at: int, page: _Page) -> Text:
         """A sample's condition (``if x > 0 and y < 3``) as a row condition on the page's columns (``Sample(where=)``)."""
@@ -522,6 +574,7 @@ class Translator(Estimation, Models, ProgramValues):
     def statement(self, st: Statement) -> Outcome:
         self.line = st.line
         self._made_names = False
+        self.expression_notes = []
         original = st
         try:
             if "$" in re.sub(r'"[^"]*"', "", st.text):
@@ -530,7 +583,7 @@ class Translator(Estimation, Models, ProgramValues):
                 raise _left(_DOLLAR)
             st, notes = self._substitute(st)
             ops, note = self._dispatch(st)
-            notes = [*notes, *([note] if note else [])]
+            notes = [*notes, *([note] if note else []), *(n for n in self.expression_notes if n not in notes and n != note)]
             if self._made_names or any(PLACEHOLDER.search(repr(op)) for op in ops):
                 ops = dynamic_ops(ops, self.dynamic)
                 if _makes_names(ops):

@@ -116,6 +116,9 @@ class _Runner:
         self.while_cap = while_cap
         self.functions: dict[str, Def] = {d.name: d for _, d, _ in translation.functions}
         self.public = {n: getattr(pymetrix, n) for n in pymetrix.__all__ if hasattr(pymetrix, n)}
+        from .. import dates
+
+        self.public["eviews_dates"] = dates  # EViews's date functions, as the script imports them
 
     def namespace(self, scope: _Scope) -> dict[str, Any]:
         return {**self.public, **self.session.objects, **scope.names()}
