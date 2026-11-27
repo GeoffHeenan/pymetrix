@@ -78,10 +78,10 @@ fx.write("fx.parquet")                                               # the value
   nothing. Type the key in the browser (FRED API key) or set `FRED_API_KEY`; it is never saved in the project.
 - **Series from one address must share a frequency.** `fred://GDPC1,UNRATE` (quarterly and monthly) is refused:
   load them as two datasets and convert one with Data → Transform → Convert frequency….
-- **The script reads the latest data, and so does the project.** Run again next month, or reopened, the step reads
-  the provider again and gets revised numbers. For FRED, give Vintage (as published on) a date: ALFRED keeps the
-  data as published that day. For the others, write the dataset to a file when you load it (`fx.write("fx.parquet")`)
-  and load that file with File → Load data…: a project keeps the data of a file it loaded.
+- **The script reads the latest data; the project keeps what it read.** Run again next month, the script reads the
+  provider again and gets revised numbers. A saved project keeps the data as it was loaded and opens with it; File →
+  Refresh data… reads the provider again when you want the revisions. To pin the script too, give FRED a Vintage (as
+  published on) date: ALFRED keeps the data as published that day.
 - **Searches and lists are kept for a while.** Searches are cached for a day and lists of dataflows and codes for a
   week; tick Ask again (skip the cache) in the browser, or pass `refresh=True`, when a provider has just added
   something.

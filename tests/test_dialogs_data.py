@@ -264,6 +264,49 @@ def test_load_from_fred_with_periods_and_a_vintage(responses, tmp_path):
     check_project(s, LoadFromConnector("fred", "GDPC1", start="1948Q1", name="recent"), tmp_path)
 
 
+def test_projects_keep_connector_data_as_read_and_refresh_reads_it_again(responses, monkeypatch, tmp_path):
+    """A dataset from Load from connector is saved in the project: opening it does not download again, so a revision
+    at the source does not change the project's numbers. Refreshing reads the source again, re-runs the steps that
+    changed the dataset in place, and recomputes what was computed from it; the project then keeps the new data."""
+    from pymetrix.commands import GenerateSeries, load_project, save_project
+    from pymetrix.ext import connectors
+
+    s = Session()
+    s.run(LoadFromConnector("fred", "GDPC1", name="gdp"))
+    s.run(GenerateSeries("g", "400*dlog(gdpc1)", data="gdp"))
+    assert s.refreshable() == ["gdp"]
+    first = s["gdp"].frame.copy()
+    path = save_project(s, tmp_path / "gdp.pymx")
+
+    original = (FIXTURES / "fred_gdpc1.csv").read_text()
+    lines = original.splitlines()
+    revised = "\n".join(lines[:-1] + [lines[-1].split(",")[0] + ",9999.0"]) + "\n"  # the last quarter revised
+    asked = len(responses)
+    monkeypatch.setattr(connectors, "_get", lambda url: (responses.append(url), revised.encode())[1])
+    reopened = load_project(path)
+    assert len(responses) == asked  # nothing downloaded on opening
+    pd.testing.assert_frame_equal(reopened["gdp"].frame, first)
+
+    done = reopened.refresh()
+    assert len(responses) == asked + 1 and [type(r.command).__name__ for r in done] == ["LoadFromConnector", "GenerateSeries"]
+    frame = reopened["gdp"].frame
+    assert frame["gdpc1"].iloc[-1] == 9999.0 and frame["gdpc1"].iloc[:-1].equals(first["gdpc1"].iloc[:-1])
+    np.testing.assert_allclose(frame["g"].iloc[-1], 400 * np.log(9999.0 / first["gdpc1"].iloc[-2]))  # generated again
+    again = load_project(save_project(reopened, tmp_path / "refreshed.pymx"))
+    assert len(responses) == asked + 1  # the refreshed data is what the project keeps
+    pd.testing.assert_frame_equal(again["gdp"].frame, frame)
+    with pytest.raises(Exception, match="cannot be refreshed"):
+        again.refresh("nosuch")
+
+
+def test_refresh_refuses_data_changed_by_typed_code(responses):
+    s = Session()
+    s.run(LoadFromConnector("fred", "GDPC1", name="gdp"))
+    s.run_code("gdp = gdp.with_series(two=2 * gdp['gdpc1'])")
+    with pytest.raises(Exception, match="changed by typed code"):
+        s.refresh("gdp")
+
+
 def test_load_from_the_world_bank_and_sdmx(responses):
     s = Session()
     s.run(LoadFromConnector("worldbank", "NY.GDP.MKTP.CD", start="2021", end="2023", options="country=WSM;TON&per_page=3", name="wb"))
@@ -331,3 +374,35 @@ def test_the_qt_forms(data, responses):
     assert command_dialog(CombineNowcasts, s).on_advanced_tab("through")
     for cls in (AggregateEntities, RaggedEdge, FillEdge, RealignEdge, FitPCA, FitFactorModel):
         assert command_dialog(cls, s) is not None
+
+
+def test_file_refresh_data_reads_the_checked_datasets_again(responses, monkeypatch):
+    QtWidgets = pytest.importorskip("PySide6.QtWidgets")
+    import os
+
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    from pymetrix.ui import qt as ui
+
+    def no_box(*args, **kwargs):  # a message box would wait for a click
+        raise AssertionError(f"a message box: {args[1:]}")
+
+    monkeypatch.setattr(QtWidgets.QMessageBox, "critical", no_box)
+    s = Session()
+    s.run(LoadFromConnector("fred", "GDPC1", name="gdp"))
+    window = ui.main_window(s)
+    try:
+        file_menu = window.command_menus["File"]
+        labels = [a.text().replace("&", "") for a in file_menu.actions()]
+        assert labels.index("Refresh data…") == labels.index("Browse series…") + 1
+        asked = len(responses)
+        next(a for a in file_menu.actions() if a.text().replace("&", "") == "Refresh data…").trigger()
+        dialog = window.refresh_data_dialog
+        assert dialog.listing.count() == 1 and "fred://GDPC1" in dialog.listing.item(0).text()
+        assert dialog.chosen() == ["gdp"]
+        dialog.accept()
+        session = window.state["session"]
+        assert len(responses) == asked + 1 and [type(r.command).__name__ for r in session.history] == ["LoadFromConnector"] * 2
+    finally:
+        window.state["session"].dirty = False  # closing would ask to save
+        window.close()

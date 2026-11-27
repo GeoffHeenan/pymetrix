@@ -3617,6 +3617,59 @@ def main_window(session: Session) -> Any:
 
     window.open_series_browser = open_series_browser
 
+    def open_refresh_data() -> Any:
+        """File → Refresh data…: read datasets again from their files or data services. A project keeps the data as
+        read, so this is the one way new or revised data comes in (Session.refresh)."""
+        from PySide6.QtCore import Qt as QtNS
+
+        s = current()
+        names = s.refreshable()
+        if not names:
+            Qt.QMessageBox.information(window, "Refresh data", "No dataset here was read from a file or a data service "
+                                       "(File → Load data… or File → Load from connector…), so there is nothing to refresh.")
+            return None
+        dialog = Qt.QDialog(window)
+        dialog.setWindowTitle("Refresh data")
+        layout = Qt.QVBoxLayout(dialog)
+        layout.addWidget(Qt.QLabel("Read these datasets again from their sources. The steps that changed them are run "
+                                   "again, and results computed from them are recomputed (Automatic) or marked out of date "
+                                   "(Manual). A load pinned to a vintage reads that vintage again."))
+        listing = Qt.QListWidget(dialog)
+        for name in names:
+            source = s._load_step(name)
+            item = Qt.QListWidgetItem(f"{name}    {source.code.strip().splitlines()[0] if source else ''}")
+            item.setData(QtNS.ItemDataRole.UserRole, name)
+            item.setFlags(item.flags() | QtNS.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(QtNS.CheckState.Checked)
+            listing.addItem(item)
+        layout.addWidget(listing)
+        buttons = Qt.QDialogButtonBox(Qt.QDialogButtonBox.StandardButton.Ok | Qt.QDialogButtonBox.StandardButton.Cancel, dialog)
+        buttons.button(Qt.QDialogButtonBox.StandardButton.Ok).setText("Refresh")
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        def chosen() -> list[str]:
+            return [listing.item(i).data(QtNS.ItemDataRole.UserRole) for i in range(listing.count())
+                    if listing.item(i).checkState() == QtNS.CheckState.Checked]
+
+        def run() -> None:
+            picked = chosen()
+            if picked:
+                try:
+                    current().refresh(*picked)
+                except Exception as exc:
+                    Qt.QMessageBox.critical(window, *titled("Could not refresh", str(exc)))
+            refresh()
+
+        dialog.accepted.connect(run)
+        dialog.listing, dialog.chosen = listing, chosen  # for scripting and tests
+        window.refresh_data_dialog = dialog
+        dialog.show()
+        return dialog
+
+    window.open_refresh_data = open_refresh_data
+
     # recomputing, the history, the Immediate and Code windows
 
     def recompute(names: Any = None) -> None:
@@ -4653,6 +4706,8 @@ def main_window(session: Session) -> Any:
                 sheet_action.triggered.connect(lambda: open_sheet())
             elif entry.kind == "action" and entry.action == "series-browser":
                 menu.addAction("Browse series…").triggered.connect(lambda: open_series_browser())
+            elif entry.kind == "action" and entry.action == "refresh-data":
+                menu.addAction("Refresh data…").triggered.connect(lambda: open_refresh_data())
             elif entry.kind == "command":
                 menu.addAction(entry.label).triggered.connect(lambda _=False, c=entry.info.cls: run_dialog(c))
 

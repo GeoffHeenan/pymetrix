@@ -19,7 +19,9 @@ shows as a gap.
 Opening a project restores the embedded datasets and replays the commands,
 which rebuilds every estimate, test and forecast exactly (random seeds are
 fixed). Data are embedded so a project still opens when the original files
-have moved or been revised; loads are taken from the embedded copy. Course
+have moved or been revised; loads (Load data, Load from connector and typed
+``Dataset.read``) are taken from the embedded copy, so data from a service comes
+back as it was read, not as revised since; ``Session.refresh`` reads it again. Course
 material is unpacked to a folder in the user's cache and added to the help,
 so an assignment's data, commands and notes travel as one file.
 
@@ -58,7 +60,7 @@ from typing import Any
 from ..errors import SpecificationError
 from .._version import __version__
 from .registry import COMMAND_IDS, COMMANDS, MigrationError, upgrade
-from .session import CommandRecord, Session, _deferred, _mentioned
+from .session import CommandRecord, Session, _deferred, _mentioned, load_target
 
 EXPENSIVE = 2.0  # seconds: slower steps have their results saved with the project, and are deferred on opening in Manual mode
 
@@ -450,7 +452,6 @@ def _replay_entry(session: Session, path: Path, manifest: dict[str, Any], comman
     """One saved step, replayed (or kept unrun, or restored from the cache)."""
     import pickle
 
-    from .builtin import LoadData
     from .code import RunCode
 
     _use_generator(entry, path)
@@ -500,8 +501,7 @@ def _replay_entry(session: Session, path: Path, manifest: dict[str, Any], comman
         session.history.append(record)
         deferred |= set(outputs)
         return
-    read_into = command.name if isinstance(command, LoadData) else (
-        command.output if type(command).__name__ == "Call" and command.function == "pymetrix:dataset.read" else None)
+    read_into = load_target(command)
     if read_into and read_into in datasets:
         # the embedded copy stands in for the original file or connector: the data as it was read
         session.objects[read_into] = session.loaded[read_into] = datasets[read_into]

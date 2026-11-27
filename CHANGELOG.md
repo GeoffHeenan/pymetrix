@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Projects keep data from a data service as it was read; File → Refresh data… reads it again.** A dataset from
+  File → Load from connector… (or Browse series…) was downloaded again whenever its project opened, so its numbers
+  could change with the provider's revisions. It is now saved in the project, as a loaded file's data is, and opening
+  uses that copy. File → Refresh data… (`Session.refresh`) reads chosen datasets again from their files or services,
+  runs again the later steps that changed them in place (series generated or added), and recomputes what was computed
+  from them (Automatic mode) or marks it out of date (Manual); it refuses a dataset that typed code changed, naming the
+  step. Projects saved before keep downloading on opening until they are saved again.
 - **Rounding, missing values, the calendar and random draws in formulas.** Expressions gain `round(x, n)` (halves
   away from zero, on the number as written: `round(2.5)` is 3, `round(1.005, 2)` is 1.01), `floor`, `ceil` and
   `log10`; the missing value `na`, `isna(x)` and `fillna(x, v)`; the conditional `iif(c, a, b)`, missing where c is;

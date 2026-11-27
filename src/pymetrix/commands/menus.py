@@ -18,11 +18,12 @@ MENU_TOPS = ("File", "Data", "Estimate", "Test", "Model", "Forecast")  # the men
 SEPARATOR = None
 SPREADSHEET = "@spreadsheet"  # the app's spreadsheet editor: an action of the window, not a command
 SERIES_BROWSER = "@series-browser"  # File → Browse series…: finds codes; what it loads is a Load from connector step
+REFRESH_DATA = "@refresh-data"  # File → Refresh data…: reads loaded datasets again (Session.refresh), not a command
 
 # An entry is a command's class name, SEPARATOR, an app action ("@..."), or (submenu title, [entries]). A command's
 # label is its own (the part of its menu path after the "/"), unless given as (class name, label).
 MENU_LAYOUT: dict[str, list[Any]] = {
-    "File": ["LoadData", "LoadFromConnector", SERIES_BROWSER, "LoadExample", "NewDataset", "OpenResult", SEPARATOR, "ExportReport"],
+    "File": ["LoadData", "LoadFromConnector", SERIES_BROWSER, REFRESH_DATA, "LoadExample", "NewDataset", "OpenResult", SEPARATOR, "ExportReport"],
     "Data": [
         "PlotSeries", SPREADSHEET, SEPARATOR,
         "SelectSeries", "GenerateSeries", "DeriveSeries", "DeriveEach", "AddToDataset", SEPARATOR,

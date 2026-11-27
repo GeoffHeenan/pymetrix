@@ -74,9 +74,11 @@ subprocess.run([sys.executable, "consumption.py"], check=True)   # the script, i
 
 ## Pitfalls
 
-- **Data read from a provider is read again.** A project keeps the data of the files it loaded (the example datasets
-  come with pymetrix), but a dataset from File → Load from connector… is read from the provider when the project
-  opens, so it can come back revised. Write it to a file and load that, or give FRED a vintage.
+- **Data is kept as it was read, until you refresh it.** A project keeps the data of the files and the data services
+  it loaded (File → Load data…, File → Load from connector…), so it opens with the same numbers when the file has
+  moved or the provider has revised its series. File → Refresh data… reads them again, re-runs the steps that changed
+  them and recomputes what depends on them; save the project to keep the new data. The script, run on its own,
+  always reads the sources as they are then.
 - **The script reads files by their path.** `Dataset.read('quarterly.csv', ...)` in the script needs the file where
   it was; the project does not, as it keeps the data inside. Send the data with the script, or send the project.
 - **Code is trusted by its fingerprint.** Change one character of a project's typed code and it asks again. Read the

@@ -1129,7 +1129,10 @@ add_topic("data-connectors", "Data connectors", """
     Every series records where it came from and, where the provider says, when the data
     were released: its vintage. Where a provider keeps earlier releases (FRED through
     ALFRED), a vintage date gives the data as published that day, so an analysis can be
-    repeated with what was known then.
+    repeated with what was known then. A project keeps the data as it was read: it
+    opens with the same numbers when the provider has revised them since. File →
+    Refresh data… reads the sources again, runs again the steps that changed the data
+    and recomputes the results that use it.
 
     File → Browse series… finds the codes: choose a provider, search by words and pick
     from the results (title, code, frequency, units, first and last period, last

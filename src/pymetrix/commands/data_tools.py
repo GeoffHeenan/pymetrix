@@ -218,6 +218,8 @@ class LoadFromConnector(Command):
     (``fred://GDPC1?start=1990Q1``), so the step can be repeated, or edited, in code. Where the provider keeps
     vintages (FRED, through ALFRED) a date gives the data as published that day, for real-time analysis; empty
     gives the latest. File → Browse series… finds codes by searching or browsing the provider, and fills them in here.
+    A project keeps the data as read, so it opens with the same numbers whatever the provider holds by then; File →
+    Refresh data… reads it again.
     """
 
     topics: ClassVar[tuple[str, ...]] = ("data-connectors",)

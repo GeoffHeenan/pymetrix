@@ -164,7 +164,6 @@ The pages are Markdown files in `src/pymetrix/howto/`, and nowhere else:
 - **STL's trend length read "Deterministic terms".** The shared label for fields named `trend` (a VAR's or a unit-root
   test's constant and trend) was given to STL's trend smoother length, under Seasonal adjustment…'s Method settings;
   it reads Trend length now.
-- **A dataset loaded from a connector is not kept in the project.** A project keeps the data of files it loaded, but
-  File → Load from connector… is run again when the project opens, so the data can come back revised. The pages say
-  so, and how to keep the values (write them to a file, or give FRED a vintage); whether a project should keep them is
-  a question of its own.
+- **A dataset loaded from a connector was not kept in the project.** A project kept the data of files it loaded, but
+  File → Load from connector… ran again when the project opened, so the data could come back revised. Since then the
+  project keeps it as read, and File → Refresh data… reads it again on request; the pages say so.

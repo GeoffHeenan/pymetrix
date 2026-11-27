@@ -238,12 +238,23 @@ def is_workspace_value(name: str, value: Any) -> bool:
 UNDO_STEPS = 20  # how many dialog steps Undo can take back
 
 
+def load_target(cmd: Any) -> str | None:
+    """The dataset a step reads from a file or a data service (Load data, Load from connector, a recorded
+    ``Dataset.read``), or None for any other step."""
+    kind = type(cmd).__name__
+    if kind in ("LoadData", "LoadFromConnector"):
+        return getattr(cmd, "name", None)
+    if kind == "Call" and getattr(cmd, "function", "") == "pymetrix:dataset.read":
+        return getattr(cmd, "output", None) or None
+    return None
+
+
 class Session:
     def __init__(self) -> None:
         self.objects: dict[str, Any] = {}
         self.history: list[CommandRecord] = []
         self.initial: dict[str, Any] = {}  # objects placed in the session directly, as first seen by a command
-        self.loaded: dict[str, Any] = {}  # datasets as read by Load data commands
+        self.loaded: dict[str, Any] = {}  # datasets as read by Load data and Load from connector steps (projects keep them)
         self.opened: dict[str, bytes] = {}  # saved results as read by Open result commands, by path: projects keep a copy
         self.made: set[str] = set()  # names whose current objects commands produced
         self.path: Any = None  # project file, once saved or opened
@@ -740,8 +751,9 @@ class Session:
             raise
         finally:
             self.current_cautions = []
-        if type(cmd).__name__ == "LoadData":
-            self.loaded[cmd.name] = self.objects[cmd.name]  # type: ignore[attr-defined]
+        target = load_target(cmd)
+        if target is not None and target in self.objects:
+            self.loaded[target] = self.objects[target]
         self._note_reads([cmd])
         calls = self._typed_calls(cmd.code, recorder, result, before) if recorder is not None else None  # type: ignore[attr-defined]
         if calls:
@@ -760,6 +772,45 @@ class Session:
                 raise
             self.recalculation_stopped = True  # the step is recorded; what depends on it stays out of date
         return result
+
+    def _load_step(self, name: str) -> CommandRecord | None:
+        """The step that last read ``name`` from its source (Load data, Load from connector or ``Dataset.read``)."""
+        return next((r for r in reversed(self.history) if r.ok and not r.pruned and load_target(r.command) == name), None)
+
+    def refreshable(self) -> list[str]:
+        """The datasets File → Refresh data… can read again: those a load step read from a file or a data service."""
+        return sorted(n for n in self.loaded if n in self.objects and self._load_step(n) is not None)
+
+    def refresh(self, *names: str) -> list[CommandRecord]:
+        """Read datasets again from their sources (all those ``refreshable`` lists, or the ones named): File → Refresh
+        data…. A project keeps the data as it was read, so opening it gives the same numbers whatever the source holds
+        by then; refreshing takes the source's current data (a load pinned to a vintage reads that vintage again).
+
+        Each load step runs again, recorded as a new step, and so do the later steps that changed the dataset in place
+        (series generated or added to it), in order. What was computed from the dataset is then out of date: Automatic
+        mode recomputes it, Manual mode marks it. Typed code that changed the dataset is not run again: the refresh is
+        refused, naming the step, so the change can be made again by hand after refreshing. Returns the steps run."""
+        wanted = list(names) or self.refreshable()
+        plans: list[tuple[CommandRecord, list[CommandRecord]]] = []
+        for name in wanted:
+            step = self._load_step(name)
+            if step is None or name not in self.objects:
+                raise SpecificationError(f"{name} was not read from a file or a data service, so it cannot be refreshed"
+                                         + (f" (refreshable: {', '.join(self.refreshable())})" if self.refreshable() else ""))
+            later = [r for r in self.history[self.history.index(step) + 1:]
+                     if r.ok and not r.pruned and name in r.writes and name in r.reads]
+            typed = [r for r in later if type(r.command).__name__ == "RunCode"]
+            if typed:
+                raise SpecificationError(f"{name} was changed by typed code after it was read ({typed[0].code.strip().splitlines()[0]!r}), "
+                                         "which refreshing would not run again: refresh it in code, or make the change again after "
+                                         "refreshing")
+            plans.append((step, later))
+        start = len(self.history)
+        for step, later in plans:
+            self.run(step.command)
+            for r in later:
+                self.run(r.command)
+        return self.history[start:]
 
     def _typed_calls(self, code: str, recorder: Any, result: Any, before: dict[str, int]) -> list[Any] | None:
         """The API calls typed code consists of (see ``pymetrix.calls.as_calls``), if it can be replayed as them: each

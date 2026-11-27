@@ -1097,7 +1097,9 @@ update and notes, where the provider gives them. **File → Browse series…** d
 the app: choose the provider, search or browse, select one or more series (for SDMX, a
 dataflow, then codes for each dimension, with the key previewed), and **Load** them at once
 or **Add to Load from connector…** to add periods, a vintage or options. Either way the step
-recorded is `Dataset.read(address)`, so the script replays without the browser. An SDMX
+recorded is `Dataset.read(address)`, so the script replays without the browser. A saved project keeps the data as
+it was read and opens with it, whatever the provider has revised since; **File → Refresh data…**
+(`session.refresh("fx")`) reads it again, runs again the steps that changed it and recomputes what uses it. An SDMX
 provider's dataflows are in the provider's own folders where it publishes them (its SDMX
 category schemes, such as the ECB's "Monetary and financial statistics › Balance sheet items";
 dataflows in none are under "Other"). Where it publishes none, or they put nearly everything in
