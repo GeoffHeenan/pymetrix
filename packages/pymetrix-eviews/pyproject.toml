@@ -11,7 +11,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [{ name = "Geoffrey Heenan" }]
-dependencies = ["pymetrix>=0.1.0a20"]  # uses extension API 1.10, after 0.1.0a20: raise the floor to the release that has it before releasing this
+dependencies = ["pymetrix>=0.1.0a21"]  # extension API 1.10 (0.1.0a21)
 
 [project.urls]
 Homepage = "https://github.com/GeoffHeenan/pymetrix"

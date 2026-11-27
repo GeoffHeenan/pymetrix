@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0a21: the EViews plugin, more expression functions and task pages (27 November 2026)
 
 - **Projects keep data from a data service as it was read; File → Refresh data… reads it again.** A dataset from
   File → Load from connector… (or Browse series…) was downloaded again whenever its project opened, so its numbers

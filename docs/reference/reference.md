@@ -1,6 +1,6 @@
 # PyMetrix command and function reference
 
-Generated from the code at version 0.1.0a20: 207 dialog commands, 317 API calls, 100 settings classes, 162 other public names and 104 external library functions (`python scripts/make_api_reference.py`).
+Generated from the code at version 0.1.0a21: 207 dialog commands, 317 API calls, 100 settings classes, 162 other public names and 104 external library functions (`python scripts/make_api_reference.py`).
 
 **How to read it.** *UI* means a dialog in the desktop app records it; everything here can also be used headlessly (scripts, notebooks, the MCP server), since every dialog step is recorded as the Python call shown. *Wrapper* means PyMetrix passes the work to one library function, mapping its settings to that function's arguments (the adapter); *PyMetrix* means PyMetrix's own code, with the library functions it calls listed. The library functions are found by scanning the source, following calls up to two steps through PyMetrix's own functions and methods.
 
