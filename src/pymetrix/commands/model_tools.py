@@ -135,9 +135,9 @@ class ImportFRBUS(Command):
 
     The equations are EViews's, read by the EViews reader; coefficients such as y_x(1) become parameters y_x_1.
     Variables with model-consistent-expectations versions use the standard (VAR-expectations) equations unless MCE
-    names their groups (e.g. mcap, mcwp) or is all. The result lists the variables; solve it with Model > Solve model (its
-    name among the equations), make it track the data with Model > Add factors, and control it with
-    Model > Policy > Optimal control. The package itself is the Fed's and is not shipped with pymetrix.
+    names their groups (e.g. mcap, mcwp) or is all. The result lists the variables; solve it with Model > Solution >
+    Solve model (its name among the equations), make it track the data with Model > Solution > Add factors, and
+    control it with Model > Policy > Optimal control. The package itself is the Fed's and is not shipped with pymetrix.
     """
 
     topics: ClassVar[tuple[str, ...]] = ("model-solution",)
@@ -217,13 +217,13 @@ class ImportEViewsStateSpace(Command):
 @dataclass(frozen=True)
 class AddFactors(Command):
     """Tracking add factors: each equation's residual at the data in each period of a span, as EViews's addinit sets
-    them. Solved with them (Model > Solve model, Scenario, Add factors) the model reproduces the data exactly, under any
-    solver, so a scenario's other changes read as deviations from that baseline.
+    them. Solved with them (Model > Solution > Solve model, Scenario, Add factors) the model reproduces the data
+    exactly, under any solver, so a scenario's other changes read as deviations from that baseline.
 
     Over a projection's span (a baseline such as the Fed's LONGBASE), the add factors make the model track it; over a
     historical span, they are the equations' historical errors, by period, which a stochastic simulation can resample
-    (Model > Solve model, Advanced, Errors: sample). Every variable of the model needs values in the span; an equation's
-    add factor is missing where its lags reach before the data.
+    (Model > Solution > Solve model, Advanced, Error draws: The data's residuals). Every variable of the model needs
+    values in the span; an equation's add factor is missing where its lags reach before the data.
     """
 
     topics: ClassVar[tuple[str, ...]] = ("model-solution",)

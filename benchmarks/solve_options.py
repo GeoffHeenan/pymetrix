@@ -4,7 +4,8 @@ python benchmarks/solve_options.py [--equations 200] [--quarters 40] [--repeats 
 The model is generated: a chain of identities, each needing the one before (recursive), fed by two small nonlinear
 simultaneous blocks (three equations with an ``exp`` and a ``log``, and two with a ratio), about 200 equations over
 40 quarters. It is solved four ways: the default (``Newton()`` on all the equations at once); ``ordering="blocks"``;
-``Newton(refresh="period")``; and the combination docs/solving-large-models.md recommends (``RECOMMENDED``). For each:
+``Newton(refresh="period")``; and the combination the task page
+src/pymetrix/howto/solve-a-large-backward-looking-model.md recommends (``RECOMMENDED``). For each:
 the median wall time of ``Model.solve`` over the repeats (after one solve not timed, which compiles the equations),
 and of the time in the periods' solves alone (the sum of ``Solution.convergence.attrs["seconds"]``: the rest is
 setting the solve up), the equations evaluated (each residual of each equation counts one; a Jacobian counts its rows), the Jacobians
@@ -34,8 +35,8 @@ import pandas as pd
 
 from pymetrix import Dataset, Equation, Fallback, GaussSeidel, Model, Newton
 
-# the starting configuration docs/solving-large-models.md recommends for a model of mostly identities with a few
-# simultaneous blocks (its test checks the page gives the same)
+# the starting configuration src/pymetrix/howto/solve-a-large-backward-looking-model.md recommends for a model of
+# mostly identities with a few simultaneous blocks (its test checks the page gives the same)
 RECOMMENDED: dict[str, Any] = {
     "ordering": "blocks",
     "solver": Fallback(Newton(convergence="step", refresh="period"),

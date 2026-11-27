@@ -5,7 +5,9 @@ as they are (``docs/how-do-i/README.md`` lists them), and the help shows each as
 with an index topic, ``how-do-i``, that Help → How do I… opens. The help contents list them in a section of their
 own, which is how the command palette (Ctrl+K) finds them.
 
-Each file starts with front matter (``summary``, ``audience``, ``order``), then a ``# Title`` and the sections of the
+Each file starts with front matter (``summary``, ``audience``, ``order``, and ``plugin`` for a page whose task needs a
+plugin, such as ``pymetrix-eviews``: the index says so, and the page is shown whether the plugin is installed or not,
+so that a reader learns it exists), then a ``# Title`` and the sections of the
 template in ``docs/how-do-i/README.md``. For the help, links between the pages become help links, ``pymetrix:`` links
 stay as they are, and links to the repository's documents (which the installed package does not have) become their
 text. A fenced block whose info string is ``text <file name>`` shows a file the page's code reads; the tests write
@@ -37,6 +39,7 @@ class Page:
     order: int  # its place in the index
     path: Path
     text: str  # the Markdown after the front matter, its title included
+    plugin: str = ""  # the plugin the task needs ("pymetrix-eviews"), if any
 
 
 def pages() -> list[Page]:
@@ -49,7 +52,7 @@ def pages() -> list[Page]:
         heading = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
         title = heading.group(1).strip() if heading else path.stem.replace("-", " ")
         out.append(Page(PREFIX + path.stem, title, str(meta.get("summary", "")), str(meta.get("audience", "")),
-                        int(meta.get("order", 99)), path, text))
+                        int(meta.get("order", 99)), path, text, str(meta.get("plugin", ""))))
     return sorted(out, key=lambda p: (p.order, p.title))
 
 
@@ -85,9 +88,9 @@ def index_text() -> str:
     lines = ["Pages that each take one task from start to finish: the steps in the app (the menu paths and the fields "
              "as the dialogs show them), the same in code, how to check the result, and what goes wrong.", ""]
     for p in pages():
-        lines.append(f"- [{p.title}]({link('topic', p.id)}): {p.summary}" + (f" *For {p.audience}.*" if p.audience else ""))
-    lines += ["", f"Also: [Solving large backward-looking models]({link('topic', 'large-model-solution')}), and, for "
-                  f"users of other packages, [Coming from EViews]({link('topic', 'coming-from-eviews')}) and "
+        lines.append(f"- [{p.title}]({link('topic', p.id)}): {p.summary}" + (f" *For {p.audience}.*" if p.audience else "")
+                     + (f" Needs the {p.plugin} plugin." if p.plugin else ""))
+    lines += ["", f"Also, for users of other packages: [Coming from EViews]({link('topic', 'coming-from-eviews')}) and "
                   f"[Coming from MATLAB/IRIS and Dynare]({link('topic', 'coming-from-iris')})."]
     return "\n".join(lines)
 

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- **How do I… task pages: the rest of the plan, and one for EViews programs.** Twelve more pages, each one task from
+  start to finish in the app and in code, with the numbers to expect and the pitfalls (`src/pymetrix/howto/`): load
+  data with Browse series; estimate a VAR, then impulse responses and a forecast; run a forecast round (baseline,
+  judgement, a scenario, the store, the report); save, reopen and share a project and replay its script; seasonally
+  adjust a series; bring an EViews model across, then check and solve it; run a script in the app; make a report;
+  check a forecast's record (backtest); reconcile national accounts components to a total; and translate an EViews
+  program, a page in the core help for a task of the `pymetrix-eviews` plugin, which it says how to install (its
+  front matter names the plugin, and the index says the task needs it). Solving large backward-looking models moves
+  from `docs/solving-large-models.md` into the same template as the task page "Solve a large backward-looking model";
+  its separate summary topic (`large-model-solution`) is gone, as the help shows the page itself. The pages are
+  numbered in the plan's order. A test runs every page's code (the connector page's against recorded responses, never
+  the network; the EViews page's where the plugin is installed), runs its steps in the app as the dialogs' commands
+  with the fields as the page names them, and checks the numbers it quotes against an independent calculation.
+  Help text that named a dialog's fields by old labels now uses the dialogs' own: Hold only where given (was
+  Partial), Error draws: The data's residuals (was Errors: sample) and Parallel processes (was Workers), and Model >
+  Solution > Add factors; STL's trend smoother length is labelled Trend length (it read Deterministic terms).
+
 - **Issue templates and a defaults page.** `.github/ISSUE_TEMPLATE` has forms for a bug report, a numerical
   discrepancy (the pymetrix version, the other tool and its version, the inputs, both outputs and the tolerance
   expected), a feature request and a validation case, beside the review-feedback form; `config.yml` sends security

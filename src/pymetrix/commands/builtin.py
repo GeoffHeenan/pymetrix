@@ -2437,8 +2437,8 @@ class Forecast(Command):
     For an honest test of forecasting ability, estimate up to a date and forecast the periods after it dynamically,
     or use Estimate > Rolling or recursive. Static forecasts of a single equation have intervals for shock and
     parameter uncertainty; a dynamic forecast of an equation without ARMA or GARCH errors has none (simulate it with
-    Model > Solve model for that), and a least-squares VAR's intervals reflect shock uncertainty only, so they are too
-    narrow in small samples.
+    Model > Solution > Solve model for that), and a least-squares VAR's intervals reflect shock uncertainty only, so
+    they are too narrow in small samples.
     """
 
     maturity: ClassVar[str] = "stable"
@@ -2664,8 +2664,8 @@ class SolveModel(Command):
     Choose the equations and the solution period; values before the period come from the data. Choose the solver
     and, if needed, its settings. In the scenario, targets hold endogenous variables, each with one free shock
     (exogenize and endogenize). With the first-order solver, shocks are known in advance unless listed as
-    unanticipated. With Partial (advanced), a hold applies only in the periods it gives a value: elsewhere the
-    variable's equation determines it as usual and its free variable keeps its data.
+    unanticipated. With Hold only where given (advanced), a hold applies only in the periods it gives a value:
+    elsewhere the variable's equation determines it as usual and its free variable keeps its data.
 
     The result's Convergence view shows, period by period, the solver's iterations and the largest residual left and
     its equation (Newton, Gauss-Seidel, perfect foresight). Before solving, Model.missing_inputs (or Model.check with

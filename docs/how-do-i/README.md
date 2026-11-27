@@ -10,12 +10,23 @@ This page is the plan: the pages, the template they follow, how readers reach th
 
 ## The pages
 
-Written:
+All fifteen are written:
 
 - [Estimate an equation and test its residuals](../../src/pymetrix/howto/estimate-and-test-an-equation.md)
+- [Load data with Browse series (FRED, IMF, ECB, Eurostat, World Bank)](../../src/pymetrix/howto/load-data-with-browse-series.md)
+- [Estimate a VAR, then impulse responses and a forecast](../../src/pymetrix/howto/estimate-a-var.md)
 - [Bring an IRIS or Dynare model across, then check and solve it](../../src/pymetrix/howto/bring-in-an-iris-or-dynare-model.md)
+- [Run a forecast round: baseline, judgement, scenarios, report](../../src/pymetrix/howto/run-a-forecast-round.md)
+- [Save, reopen and share a project, and replay its script](../../src/pymetrix/howto/save-and-share-a-project.md)
 - [Test for cointegration in a short annual sample](../../src/pymetrix/howto/cointegration-in-a-short-sample.md)
-- [Solving large backward-looking models](../solving-large-models.md), written before the template (see below)
+- [Seasonally adjust a series](../../src/pymetrix/howto/seasonally-adjust-a-series.md)
+- [Bring an EViews model across, then check and solve it](../../src/pymetrix/howto/bring-in-an-eviews-model.md)
+- [Run a script in the app](../../src/pymetrix/howto/run-a-script-in-the-app.md)
+- [Make a report](../../src/pymetrix/howto/make-a-report.md)
+- [Check a forecast's record (backtest)](../../src/pymetrix/howto/check-a-forecasts-record.md)
+- [Solve a large backward-looking model](../../src/pymetrix/howto/solve-a-large-backward-looking-model.md)
+- [Reconcile national accounts components to a total](../../src/pymetrix/howto/reconcile-components-to-a-total.md)
+- [Translate an EViews program](../../src/pymetrix/howto/translate-an-eviews-program.md) (the `pymetrix-eviews` plugin)
 
 The list, by priority: the tasks most readers meet first, then those of one audience. Audiences: **new** (new to
 pymetrix and to econometrics software), **EViews** (experienced EViews users), **IRIS/Dynare** (MATLAB users of
@@ -24,19 +35,20 @@ IRIS or Dynare), **code** (people who work in Python first), **forecasters** (fo
 | # | Task | Audience | Starts from | Status |
 |---|------|----------|-------------|--------|
 | 1 | Estimate an equation and test its residuals | new, EViews | Estimate → Equation… | written |
-| 2 | Load data with Browse series (FRED, IMF, ECB, Eurostat, World Bank) | new, everyone | File → Browse series… | planned |
-| 3 | Estimate a VAR, then impulse responses and a forecast | EViews, IRIS/Dynare | Estimate → VARs and local projections → VAR… | planned |
+| 2 | Load data with Browse series (FRED, IMF, ECB, Eurostat, World Bank) | new, everyone | File → Browse series… | written |
+| 3 | Estimate a VAR, then impulse responses and a forecast | EViews, IRIS/Dynare | Estimate → VARs and local projections → VAR… | written |
 | 4 | Bring an IRIS or Dynare model across, then check and solve it | IRIS/Dynare | Model → Import → IRIS file… | written |
-| 5 | Run a forecast round: baseline, judgement, scenarios, report | forecasters | Forecast → Make round… | planned |
-| 6 | Save, reopen and share a project, and replay its script | everyone, code | File → Save project | planned |
+| 5 | Run a forecast round: baseline, judgement, scenarios, report | forecasters | Forecast → Make round… | written |
+| 6 | Save, reopen and share a project, and replay its script | everyone, code | File → Save project | written |
 | 7 | Test for cointegration in a short annual sample | EViews, applied macro | Test → Run test… | written |
-| 8 | Seasonally adjust a series | new, EViews | Data → Transform → Seasonal adjustment… | planned |
-| 9 | Bring an EViews model across, then check and solve it | EViews | Model → Model editor… | planned |
-| 10 | Run a script in the app | code, EViews (programs) | File → Open script… | planned |
-| 11 | Make a report | everyone | View → Report | planned |
-| 12 | Check a forecast's record (backtest) | forecasters | Forecast → Backtest… | planned |
-| 13 | Solve a large backward-looking model | forecasters, EViews | Model → Solution → Solve model… | written (its own form) |
-| 14 | Reconcile national accounts components to a total | forecasters | Data → Transform → Reconcile components… | planned |
+| 8 | Seasonally adjust a series | new, EViews | Data → Transform → Seasonal adjustment… | written |
+| 9 | Bring an EViews model across, then check and solve it | EViews | Model → Model editor… | written |
+| 10 | Run a script in the app | code, EViews (programs) | File → Open script… | written |
+| 11 | Make a report | everyone | View → Report | written |
+| 12 | Check a forecast's record (backtest) | forecasters | Forecast → Backtest… | written |
+| 13 | Solve a large backward-looking model | forecasters, EViews | Model → Solution → Solve model… | written |
+| 14 | Reconcile national accounts components to a total | forecasters | Data → Transform → Reconcile components… | written |
+| 15 | Translate an EViews program (the `pymetrix-eviews` plugin) | EViews | File → Translate EViews program… | written |
 
 Notes on the list:
 
@@ -45,9 +57,18 @@ Notes on the list:
   One page for both would branch at every step.
 - **Backtest (12) is added** to the candidates: forecasters ask it right after a round, and its pitfalls (the
   sample each forecast may use, revised data) are not in one place now.
-- **Solve a large model (13)** is the existing page. Its content stays; when the template settles, give it the
-  template's sections and move it beside the others, so its help topic, now a separate summary
-  (`large-model-solution`), is the page itself rather than a second copy.
+- **Solve a large model (13)** was written before the template, as `docs/solving-large-models.md`, with a help
+  topic of its own that summarised it (`large-model-solution`). It now has the template's sections and lives beside
+  the others; the summary topic is gone, and the help shows the page itself (`howto-solve-a-large-backward-looking-model`).
+- **Translate an EViews program (15) is added**, for EViews users with programs. Its task is a plugin's
+  (`pymetrix-eviews`), but the page is here, in the core package, with the others: the reader who needs it most is the
+  one who does not know the plugin exists, and finds the page in Help → How do I… or with Ctrl+K before installing
+  anything. Its front matter names the plugin (`plugin: pymetrix-eviews`), the index says the task needs it, and the
+  page starts by saying how to install it. One source and one test module stay: the page's code runs where the plugin
+  is installed and is skipped where it is not (the core-only run), its menu paths are checked where the plugin is
+  installed (the paragraphs name it), and it links no help topic of the plugin's, so the core help has no link it
+  cannot follow. A page in the plugin's package would appear only once the plugin is installed, and would need the
+  index to gather pages from plugins.
 
 ## The template
 
@@ -132,3 +153,18 @@ The pages are Markdown files in `src/pymetrix/howto/`, and nowhere else:
   the next move.
 - **"Mackinnon".** The Critical values choice read "Mackinnon"; it now reads "MacKinnon (asymptotic)", and the other
   choice "Simulated for this sample".
+
+## Found while writing the rest
+
+- **Help text named fields by old labels.** The help on solving models, and the docstrings of Solve model…, Add
+  factors… and Import FRB/US XML file…, said "Partial" for Hold only where given, "Errors: sample" for Error draws:
+  The data's residuals, "Workers" for Parallel processes, and "Model > Solve model" or "Model > Add factors" for the
+  entries now under Model → Solution (as did the Forecast… and Compare scenarios dialogs' help). They use the
+  dialogs' own words now. Labels inside help text are not checked by any test; the menu-path test reads "→" only.
+- **STL's trend length read "Deterministic terms".** The shared label for fields named `trend` (a VAR's or a unit-root
+  test's constant and trend) was given to STL's trend smoother length, under Seasonal adjustment…'s Method settings;
+  it reads Trend length now.
+- **A dataset loaded from a connector is not kept in the project.** A project keeps the data of files it loaded, but
+  File → Load from connector… is run again when the project opens, so the data can come back revised. The pages say
+  so, and how to keep the values (write them to a file, or give FRED a vintage); whether a project should keep them is
+  a question of its own.

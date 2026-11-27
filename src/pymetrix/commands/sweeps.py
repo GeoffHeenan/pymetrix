@@ -126,9 +126,9 @@ class CompareScenarios(Command):
     """Model paths under several scenarios, side by side: a table per variable, the differences between the first
     two, and a graph with a line per scenario.
 
-    Tick solutions already computed (Model > Solve model, one per scenario), or choose an estimated model (forecast from
-    the end of its data) or a rational-expectations solution, with scenarios made in code (Scenario(...)), to solve
-    them all in one step.
+    Tick solutions already computed (Model > Solution > Solve model, one per scenario), or choose an estimated model
+    (forecast from the end of its data) or a rational-expectations solution, with scenarios made in code
+    (Scenario(...)), to solve them all in one step.
     """
 
     topics: ClassVar[tuple[str, ...]] = _TOPICS

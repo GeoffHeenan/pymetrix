@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # Docs that describe the app as it is now (the changelog, design notes and reviews are history and keep old names).
 DOCS = ["README.md", "docs/guide.md", "docs/features.md", "docs/known-gaps.md", "docs/concepts.md", "docs/install.md",
         "docs/modelling-quickstart.md", "docs/how-to-help.md", "docs/tutorials/frbus.md",
-        "docs/solving-large-models.md", "docs/how-do-i/README.md",
+        "docs/how-do-i/README.md",
         *sorted(str(p.relative_to(ROOT)) for p in ROOT.glob("src/pymetrix/howto/*.md")),  # the task pages
         *sorted(str(p.relative_to(ROOT)) for p in ROOT.glob("packages/*/docs/*.md"))]
 

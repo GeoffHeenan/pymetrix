@@ -1,5 +1,6 @@
-"""The how-to page on solving large backward-looking models (docs/solving-large-models.md) runs as written, its
-recommended configuration is the benchmark's, and the benchmark (benchmarks/solve_options.py) runs at a small size.
+"""The task page on solving a large backward-looking model (src/pymetrix/howto/solve-a-large-backward-looking-model.md)
+runs as written, its recommended configuration is the benchmark's, and the benchmark (benchmarks/solve_options.py)
+runs at a small size.
 
 Independent checks: every configuration gives the default's solution; the counts the benchmark reports against what
 Newton must do (one Jacobian of every equation an iteration, jointly) and what the blocks must do (each recursive
@@ -18,7 +19,7 @@ import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = ROOT / "docs" / "solving-large-models.md"
+DOC = ROOT / "src" / "pymetrix" / "howto" / "solve-a-large-backward-looking-model.md"
 
 
 def _benchmark():
