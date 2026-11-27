@@ -52,7 +52,7 @@ _OTHER_NAMES = {"diff": "d(x) (the first difference; d(x, 2) the second; x - x[-
                 "growth": "pch(x) or dlog(x)", "std": "sd(x)", "stdev": "sd(x)", "avg": "mean(x)", "average": "mean(x)",
                 "mavg": "movavg(x, n)", "movav": "movavg(x, n)", "rolling_mean": "movavg(x, n)", "cumprod": "exp(cumsum(log(x)))",
                 "power": "x^n", "pow": "x^n", "sqr": "x^2",
-                "ceiling": "ceil(x)", "if": "iif(condition, a, b)", "ifelse": "iif(condition, a, b)", "where": "iif(condition, a, b)",
+                "ceiling": "ceil(x)", "if": "iif(condition, a, b)", "ifelse": "iif(condition, a, b)",
                 "isnan": "isna(x)", "isnull": "isna(x)", "ismissing": "isna(x)", "nan": "na (the missing value)",
                 "coalesce": "fillna(x, v)", "nan_to": "fillna(x, v)", "randn": "normrnd(seed=1)", "rand": "unifrnd(seed=1)",
                 "rnorm": "normrnd(seed=1)", "runif": "unifrnd(seed=1)", "obsid": "obsnum()"}

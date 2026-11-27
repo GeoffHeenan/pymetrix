@@ -40,7 +40,7 @@ def test_an_unknown_function_names_the_likely_one_without_listing_all():
         parse_expression("logg(y)")
     assert "did you mean log()?" in str(close.value) and "known:" not in str(close.value)
     with pytest.raises(ExpressionError) as far:
-        parse_expression("foo(y)")
+        parse_expression("qux(y)")
     box = explain(far.value)
     assert "known:" not in box.text and "abs, betacdf" in box.details and "Help → Help contents" in box.hint
 

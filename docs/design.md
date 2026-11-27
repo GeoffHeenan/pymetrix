@@ -3216,7 +3216,7 @@ The gap macro modellers will feel first is the forecasting and policy-analysis w
 - **Names:** pymetrix's own, lower case and short, as the rest of the language: `round`, `floor`, `ceil` (not
   `ceiling`), `log10`, `isna`, `fillna` (pandas' name; not `@nan`, which reads as the missing value), `iif` (EViews'
   and Visual Basic's; `if` is a keyword in Python and in the code that writes formulas), `na` for the missing value
-  (EViews' word, and the one pymetrix's own messages use). Other packages' spellings (`ceiling`, `ifelse`, `where`,
+  (EViews' word, and the one pymetrix's own messages use). Other packages' spellings (`ceiling`, `ifelse`,
   `isnan`, `coalesce`, `rnorm`, `randn` ...) give the "did you mean" hint, not a second name.
 - **`round`:** halves away from zero, as MATLAB's `round` and Excel's `ROUND` do; NumPy and R take halves to the even
   neighbour. Away from zero was chosen because it is what a reader of a published table expects. The decimals
