@@ -116,6 +116,11 @@ class Expr:
         """Lag (k < 0) or lead (k > 0) every variable in the expression."""
         if k == 0:
             return self
+        rows = [n for n in self.walk() if isinstance(n, Call) and n.fn in DATA_ONLY]
+        if rows:  # they have no variable to carry the lag: year()[-1] would silently be year()
+            names = ", ".join(sorted({n.fn + "()" for n in rows}))
+            raise ExpressionError(f"{names} cannot be lagged, led or differenced in a formula: make it a series first "
+                                  f"(s = {rows[0]}), then use s[-1] or d(s)")
         out = self.map(lambda n: Name(n.id, n.lag + k) if isinstance(n, Name) else None)
         if isinstance(self, BinOp) and self.source and isinstance(out, BinOp):  # dlog(c) -> dlog(c)[-1]
             import re

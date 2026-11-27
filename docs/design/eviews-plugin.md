@@ -242,7 +242,8 @@ changes which variable later lines use.
 | `vector`, `matrix`, `sym`, `coef` declared or filled | `Matrix`, `Matrix.zeros` (Model → Matrix) | translated where the operation exists in `Matrix` |
 | expression functions in `convert_expression` (`d`, `dlog`, `@pch`, `@movav`, `@recode`, the distributions ...) | the same functions in pymetrix's syntax | translated |
 | `@trend`, `@seas`, `@elem` in series | `eviews_series` makes them from the dates | translated |
-| `@year`, `@quarter`, `@month`, `@date`, `@obsnum`, `@round`, `@floor`, `@nan`, `@isna`, `nrnd`, `rnd`, `@iif` | none in pymetrix's expressions | **gap**, each listed by name. The phase starts with an audit of `pymetrix.expr` against the EViews functions found in the validation programs |
+| `@log10`, `@floor`, `@ceiling`, `@round`, `@isna`, `@nan`, `@iif`, `na`; `@year`, `@quarter`, `@month`, `@day`, `@obsnum`, `@obsid`, `@cumsum`, `@sumsby`/`@meansby`/`@minsby`/`@maxsby`; `nrnd`, `rnd`, `@rnorm`, `@runif` after `rndseed n` | `log10`, `floor`, `ceil`, `round`, `isna`, `fillna`, `iif`, `na`; `year()` ... `obsnum()`, `cumsum`, `sum(x, by=g)` ...; `normrnd(seed=n*1000+k)`, `unifrnd(...)` (the core reader with `data=True`) | translated; a statistic under a `smpl` and every random draw with a note (draws "to check": never EViews's numbers). `@date`, `@trend`/`@seas`/`@elem` in data work and grouping by an expression: **gap** |
+| `@dateval`, `@datestr(d, fmt)`, `@dateadd`, `@datediff`, `@dtoo`, `@otod` | Python values through `pymetrix_eviews.dates` (EViews's date numbers: days since 1 January A.D. 1, that day 0), at translation time when known, else when the script runs | translated with a note; `@datestr` without a format left out |
 
 ### Phase 2: estimation, tests and models
 

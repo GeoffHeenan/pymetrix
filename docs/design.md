@@ -3995,10 +3995,10 @@ program's values, the walker), `program/script.py` (the script) and `program/ste
   program's arguments are run-time values with defaults at the script's top (`arg0 = "us"`), so they are the
   script's parameters, not values baked in.
 - **FRB/US example1 compared.** With the library included, the model given (`read_eviews_xml`) and LONGBASE opened
-  in place of the page the database fills, and `call dateshift` (EViews's date numbers, not translated) replaced by
-  its date, the translated program's funds-rate shock equals the simulation written by hand with
+  in place of the page the database fills, and `call dateshift` translated as written (EViews's date numbers, by
+  `pymetrix_eviews.dates`), the translated program's funds-rate shock equals the simulation written by hand with
   `tests/test_frbus_example.py`'s means to the last bit (1e-8 required), in the script and in the steps. The other
-  examples need the MCE library (names with `$`, matrices), EViews's date numbers and the add-in's options, which are
+  examples need the MCE library (names with `$`, matrices) and the add-in's options, which are
   left out with their reasons.
 - **Errors mean the program is wrong, not that the translator is short.** Subroutine bodies that phases 1 and 2 left
   out now meet syntax the translator does not take (`$` in names, `g(i)`, doubled quotes): each is left out with its

@@ -209,8 +209,7 @@ blocking you, say so: that is how priorities get set.
   once the rows of classes and units under the names are left out (`skiprows=[1, 2]`), which Load data cannot do.
 - **EViews programs are translated for data work, estimation, tests, models and control flow (phases 1 to 3)** by
   `pymetrix-eviews` (`translate_program`). Left out, each line with its reason in the report: in control flow,
-  EViews's date numbers (`@dateval`, `@dateadd`, `@datestr`: write the dates, or pass them as the program's
-  arguments), subroutine parameters that are objects (`series s`, `group g`: string and scalar ones are translated),
+  subroutine parameters that are objects (`series s`, `group g`: string and scalar ones are translated),
   a `local` subroutine's data and estimation lines, names with `$` in them (`_$_x`, as the FRB/US MCE library uses),
   a group's i-th series in an expression (`g(i)`), names made from an expression in braces (`{!i+1}`), pages and
   models made or changed inside a loop, an `if` block or a subroutine, `for` over several string variables at once,
@@ -232,7 +231,7 @@ blocking you, say so: that is how priorities get set.
   `@trend`, `@seas` and `@elem` in data work (`eviews_series` makes them only for a model), sample statistics inside
   a larger expression (give a scalar the statistic first), objects' data members inside a series expression
   (`eq.@coefs(2)` is translated as a scalar's value) and string, date and matrix functions (`@str`, `@val`,
-  `@word`, `@dateval`, `@rows`...). Within estimation: `stepls`, `breakls` (`bai_perron`), `threshold`
+  `@word`, `@datestr`, `@rows`...); `@datestr` without a format. Within estimation: `stepls`, `breakls` (`bai_perron`), `threshold`
   (`ThresholdAR`), `switchreg` (`MarkovSwitching`), `glm` and `nls` options; **`testadd`** (the omitted-variables
   test has no pymetrix equivalent); **the extreme-value link** of `binary`, `ordered` and `censored` (`d=x`: no
   complementary log-log family), and `censored`'s logistic errors and limits given as series; `count`'s other
@@ -249,15 +248,16 @@ blocking you, say so: that is how priorities get set.
   here); add factors used in every scenario; the alias series outside the solved span holding the data. A declared
   scalar starts as NA and `x.label` without an option sets the description; both are marked to verify. Not in the
   app yet: no Translate EViews program dialog or translation panel; translate in code.
-- **EViews expression functions pymetrix's expressions lack** (the audit of phase 1, over the functions in the
-  Brillet and FRB/US programs and those the design names): `@year`, `@quarter`, `@month`, `@day`, `@date`,
-  `@obsnum`/`@obsid` (the period and observation number), `@round`, `@floor`, `@ceiling`, `@nan` and `@isna`
-  (missing values: pymetrix's expressions have no missing-value constant, so `na` inside an expression is a gap too),
-  `@iif` (only `@recode`'s max and min forms map), `nrnd`, `rnd`, `@rnorm` and `@runif` (random numbers), `@cumsum`
-  over a sample, the by-group statistics `@sumsby`, `@meansby`, `@minsby` and `@maxsby`, `@obssmpl` and `@log10`.
-  The translator leaves a line that uses one out, naming the function. None was added to core: rounding and missing
-  values would need the function in the parser, the evaluator, the compiler, the derivatives and the model
-  writers, not one place.
+- **EViews expression functions pymetrix's expressions lack** (the audit of phase 1): `@date` (each observation's
+  date number: use `@year`, `@quarter`, `@month`, `@day`), `@trend`, `@seas` and `@elem` in data work
+  (`eviews_series` makes them for a model), `@obssmpl` inside a series' formula (it is translated as a scalar's
+  value), `@strdate` (an alpha series), and the by-group statistics grouped by an expression (`@sumsby(x, g(-1))`:
+  make the group series first). The translator leaves a line that uses one out, naming it. Translated with a
+  difference: `@cumsum` and the by-group statistics are computed over all the page's rows (EViews: the current
+  sample; the report says so under a `smpl`); `@obsnum` counts within each cross-section (EViews's counts a panel's
+  rows straight through); random draws are pymetrix's own, seeded from `rndseed`, never EViews's numbers, and inside a
+  loop every pass draws the same ones. In pymetrix's own formulas, the calendar functions and random draws cannot be
+  lagged or differenced (`d(year())`): make them a series first.
 - **EViews's syntax** is a subset, confirmed against Brillet's *Structural Econometric Modelling* (EViews) and the
   FRB/US packages, without EViews itself (the book's programs are copyright and not in the repository, so those tests
   run only with `PYMETRIX_BRILLET` set to a folder with one's own copies; CI does not run them): EViews's programming

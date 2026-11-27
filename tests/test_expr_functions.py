@@ -42,6 +42,8 @@ def test_round_trip_through_str():
     ("normrnd(0, 1, 2, seed=1)", "at most two"), ("abs(x, seed=1)", "does not take seed="), ("year(x)", "no arguments"),
     ("round(x, 0.5)", "whole number"), ("round(x, n)", "whole number"), ("iif(x, 1)", "3 arguments"),
     ("fillna(x)", "2 arguments"), ("round()", "1 or 2"),
+    ("d(year())", "cannot be lagged"), ("obsnum()[-1]", "cannot be lagged"), ("movavg(month(), 3)", "cannot be lagged"),
+    ("pch(normrnd(seed=1))", r"s = normrnd\(seed=1\)"), ("cmovavg(quarter(), 3)", "cannot be lagged"),
 ])
 def test_errors_name_the_right_form(text, message):
     with pytest.raises(ExpressionError, match=message):

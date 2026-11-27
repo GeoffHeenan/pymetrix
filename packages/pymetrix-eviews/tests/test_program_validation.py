@@ -29,14 +29,14 @@ FRBUS = os.environ.get("PYMETRIX_FRBUS")
 
 # translated, translated with a note, left out, error: the program's own lines, then every row (the included programs')
 FRBUS_COUNTS = {
-    "programs/example1.prg": ((57, 12, 29, 0), (195, 57, 51, 0)),
-    "programs/example2.prg": ((72, 9, 45, 0), (1613, 152, 1370, 0)),
-    "programs/example3.prg": ((147, 6, 38, 0), (285, 51, 60, 0)),
-    "programs/example4.prg": ((108, 10, 55, 0), (1649, 153, 1380, 0)),
-    "programs/pings.prg": ((341, 62, 60, 0), (1882, 205, 1385, 0)),
-    "programs/stochsim.prg": ((243, 37, 121, 0), (381, 82, 143, 0)),
-    "programs/ocpolicy.prg": ((171, 18, 89, 0), (1712, 161, 1414, 0)),
-    "subs/master_library.prg": ((118, 27, 60, 0), (118, 27, 60, 0)),
+    "programs/example1.prg": ((57, 12, 29, 0), (199, 63, 41, 0)),
+    "programs/example2.prg": ((72, 9, 45, 0), (1617, 158, 1360, 0)),
+    "programs/example3.prg": ((147, 6, 38, 0), (289, 57, 50, 0)),
+    "programs/example4.prg": ((108, 10, 55, 0), (1653, 159, 1370, 0)),
+    "programs/pings.prg": ((341, 62, 60, 0), (1886, 211, 1375, 0)),
+    "programs/stochsim.prg": ((245, 39, 117, 0), (387, 90, 129, 0)),
+    "programs/ocpolicy.prg": ((171, 18, 89, 0), (1716, 167, 1404, 0)),
+    "subs/master_library.prg": ((118, 30, 57, 0), (118, 30, 57, 0)),
 }
 
 

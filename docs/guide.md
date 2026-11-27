@@ -1190,8 +1190,11 @@ reported at its line. Scenarios, overrides (from the alias series, `x_1`), exclu
 solution's series come back into the page as EViews names them (`cons_0`, `cons_1`). Where EViews's defaults differ
 from pymetrix's (the HAC bandwidth, the ARMA estimator, information criteria per observation, the default solver),
 the line is translated with a note saying what to check; an option that is not mapped leaves the line out, naming
-it. Graphs, tables and the EViews functions pymetrix has no equivalent of are left out with the reason ([known
-gaps](known-gaps.md)). Nothing is dropped silently: every line with text has a row.
+it. Graphs, tables and the few EViews functions pymetrix has no equivalent of (`@date`, `@trend` and `@seas` in data
+work) are left out with the reason ([known gaps](known-gaps.md)). Rounding, missing values, `@iif`, the calendar,
+`@cumsum` and the by-group statistics translate to pymetrix's functions; random numbers become seeded draws, from
+`rndseed`, marked to check, since they are never EViews's numbers; EViews's dates (`@dateval`, `@dateadd`,
+`@datestr`) are worked out as the program's values. Nothing is dropped silently: every line with text has a row.
 
 Control flow translates too (phase 3). Loops stay loops, an `if` block an `if`, and a subroutine a function, defined
 at the top of the script:

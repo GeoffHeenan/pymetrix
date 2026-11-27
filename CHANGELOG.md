@@ -11,7 +11,17 @@
   recipe), `data.eval` and regressors written in an equation; rounding, `iif` and the missing-value functions also
   in models, compiled and differentiated (rounding is flat, as `step` is); models refuse the calendar and draws.
   Dynare and IRIS exports write `log10` and refuse the rest. Other packages' names (`ceiling`, `ifelse`, `isnan`,
-  `rnorm` ...) give a "did you mean" hint.
+  `rnorm` ...) give a "did you mean" hint. The calendar and draws cannot be lagged or differenced in a formula
+  (`d(year())`): make them a series first.
+- **EViews: the new expression functions, random numbers and dates** (`pymetrix-eviews`, the core EViews reader).
+  `@log10`, `@floor`, `@ceiling`, `@round`, `@isna`, `@nan`, `@iif` and `na` translate in series formulas and model
+  text, and `@recode(c, a, b)` other than max/min is now `iif`. In data work only (models refuse them, saying why):
+  `@year`, `@quarter`, `@month`, `@day`, `@obsnum`/`@obsid`, `@cumsum`, `@sumsby`/`@meansby`/`@minsby`/`@maxsby`,
+  and `nrnd`, `rnd`, `@rnorm`, `@runif` as seeded `normrnd`/`unifrnd` (`rndseed n` gives n·1000 + 1, + 2 ...;
+  translated with a note "to check"). EViews's date functions (`@dateval`, `@datestr`, `@dateadd`, `@datediff`,
+  `@dtoo`, `@otod`) are worked out as the program's values by `pymetrix_eviews.dates`, so FRB/US's `dateshift`
+  translates as written. `convert_expression` takes `data=` and `seed=`, and `render_eviews_expression` takes
+  `data=` and `seeds=`; the EViews writer writes the new functions back.
 - **How do I… task pages: the rest of the plan, and one for EViews programs.** Eleven more pages, each one task from
   start to finish in the app and in code, with the numbers to expect and the pitfalls (`src/pymetrix/howto/`): load
   data with Browse series; estimate a VAR, then impulse responses and a forecast; run a forecast round (baseline,
