@@ -210,12 +210,115 @@ def test_moving_average_against_the_arithmetic():
     assert np.allclose(got[3:], pd.Series(x).rolling(4).mean().to_numpy()[3:], atol=1e-14) and np.isnan(got[:3]).all()
 
 
+def _with_gaps() -> tuple[Dataset, np.ndarray, np.ndarray]:
+    x = np.array([2.5, -2.5, 0.5, -0.5, 1.49, np.nan, 3.0, -1.2, 7.75, np.nan, 0.0, 12.0])
+    y = np.array([1.0, 2.0, 0.5, -0.5, 1.0, 3.0, np.nan, -1.2, 7.0, 1.0, 0.0, 12.5])
+    periods = pd.period_range("2000Q1", periods=len(x), freq="Q", name="time")
+    return Dataset.from_frame(pd.DataFrame({"x": x, "y": y}, index=periods)), x, y
+
+
+ELEMENTWISE = [  # EViews, and the same computed with NumPy from the definition in EViews's function reference
+    ("@log10(abs(x) + 1)", lambda x, y: np.log10(np.abs(x) + 1)),
+    ("@floor(x)", lambda x, y: np.floor(x)), ("@ceiling(x)", lambda x, y: np.ceil(x)),
+    ("@isna(x)", lambda x, y: np.isnan(x) * 1.0),  # 1 or 0, never NA
+    ("@nan(x, -9)", lambda x, y: np.where(np.isnan(x), -9.0, x)),
+    ("@iif(x > y, x, y - 1)", lambda x, y: np.where(np.isnan(x) | np.isnan(y), np.nan, np.where(x > y, x, y - 1))),
+    ("@recode(x = y, 1, 2)", lambda x, y: np.where(np.isnan(x) | np.isnan(y), np.nan, np.where(x == y, 1.0, 2.0))),
+    ("@iif(x > 0, na, x)", lambda x, y: np.where(x > 0, np.nan, x)), ("x + na", lambda x, y: np.full(len(x), np.nan)),
+]
+
+
+@pytest.mark.parametrize("eviews, numpy", ELEMENTWISE)
+def test_elementwise_functions_against_numpy(eviews, numpy):
+    data, x, y = _with_gaps()
+    got = data.eval(convert_expression(eviews)).to_numpy()
+    want = numpy(x, y)
+    assert np.array_equal(np.isnan(got), np.isnan(want)), (eviews, got, want)
+    assert np.allclose(got[~np.isnan(got)], want[~np.isnan(want)], rtol=1e-14, atol=0)
+
+
+def test_round_halves_away_from_zero_by_hand():
+    data, x, _ = _with_gaps()  # 2.5, -2.5, 0.5, -0.5, 1.49, NA, 3, -1.2, 7.75, NA, 0, 12: worked by hand
+    got = data.eval(convert_expression("@round(x)")).to_numpy()
+    hand = [3, -3, 1, -1, 1, np.nan, 3, -1, 8, np.nan, 0, 12]
+    np.testing.assert_array_equal(got, hand)
+
+
+def test_data_functions_against_pandas():
+    """The functions of the data's rows, read for data work (``data=True``): the calendar against pandas' periods, the
+    observation number, the cumulative sum against EViews's own example (1, 3, 4, NA, 5 gives 1, 4, 8, 8, 13: NAs
+    do not propagate) and the by-group statistics against pandas' groupby, by hand."""
+    periods = pd.period_range("1999Q3", periods=5, freq="Q", name="time")
+    g = np.array([1.0, 2.0, 1.0, 1.0, 2.0])
+    data = Dataset.from_frame(pd.DataFrame({"x": [1.0, 3.0, 4.0, np.nan, 5.0], "g": g}, index=periods))
+
+    def ev(text: str) -> np.ndarray:
+        return data.eval(convert_expression(text, data=True)).to_numpy()
+
+    np.testing.assert_array_equal(ev("@year"), periods.year)
+    np.testing.assert_array_equal(ev("@quarter"), periods.quarter)
+    np.testing.assert_array_equal(ev("@month"), [7, 10, 1, 4, 7])  # each quarter's first month
+    np.testing.assert_array_equal(ev("@day"), [1, 1, 1, 1, 1])
+    np.testing.assert_array_equal(ev("@obsnum"), [1, 2, 3, 4, 5])
+    np.testing.assert_array_equal(ev("@obsid"), [1, 2, 3, 4, 5])
+    np.testing.assert_array_equal(ev("@cumsum(x)"), [1, 4, 8, 8, 13])
+    np.testing.assert_array_equal(ev("@sumsby(x, g)"), [5, 8, 5, 5, 8])  # group 1: 1 + 4 (NA skipped); group 2: 3 + 5
+    np.testing.assert_array_equal(ev("@meansby(x, g)"), [2.5, 4, 2.5, 2.5, 4])
+    np.testing.assert_array_equal(ev("@minsby(x, g)"), [1, 3, 1, 1, 3])
+    np.testing.assert_array_equal(ev("@maxsby(x, g)"), [4, 5, 4, 4, 5])
+    np.testing.assert_array_equal(ev("@sumsby(1, g)"), [3, 2, 3, 3, 2])
+    frame = pd.DataFrame({"x": [1.0, 3.0, 4.0, np.nan, 5.0], "g": g})
+    np.testing.assert_array_equal(ev("@meansby(x, g)"), frame.groupby("g")["x"].transform("mean"))
+
+
+def test_random_draws_are_seeded_in_order_and_refused_without_a_seed():
+    periods = pd.period_range("2000Q1", periods=6, freq="Q", name="time")
+    data = Dataset.from_frame(pd.DataFrame({"x": np.zeros(6)}, index=periods))
+    text = convert_expression("nrnd + 10*rnd + @runif(2, 4)", data=True, seed=7)
+    assert text == "normrnd(seed=7) + 10*unifrnd(seed=8) + unifrnd(2, 4, seed=9)"
+    want = (np.random.default_rng(7).standard_normal(6) + 10 * np.random.default_rng(8).random(6)
+            + 2 + 2 * np.random.default_rng(9).random(6))  # NumPy's PCG64, pymetrix's default generator
+    np.testing.assert_allclose(data.eval(text).to_numpy(), want, rtol=1e-14)
+    assert convert_expression("@rnorm + @nrnd + @rnd", data=True, seed=1) == "normrnd(seed=1) + normrnd(seed=2) + unifrnd(seed=3)"
+    with pytest.raises(ModelError, match="no seed"):
+        convert_expression("nrnd", data=True)
+
+
+@pytest.mark.parametrize("text, says", [
+    ("d(@year)", "inside d"), ("@pch(@cumsum(x))", "inside d"), ("@movav(nrnd, 4)", "moving window"),
+    ("@sumsby(x, g(-1))", "a series' name"), ("@sumsby(x, g + 1)", "a series' name"),
+])
+def test_data_functions_refused_where_they_would_be_lagged(text, says):
+    with pytest.raises(ModelError, match=re.escape(says)):
+        convert_expression(text, data=True, seed=1)
+
+
+def test_writer_writes_the_new_functions_in_eviews_syntax():
+    from pymetrix.expr.parser import parse_expression
+    from pymetrix.models.eviews import eviews_expression
+
+    cases = {"log10(x) + floor(x) + ceil(y)": "@log10(x) + @floor(x) + @ceiling(y)",
+             "round(x) + isna(x) + fillna(x, 0)": "@round(x) + @isna(x) + @nan(x, 0)",
+             "iif(x > 1, x, na)": "@iif((x > 1), x, na)", "year() + quarter() + obsnum()": "@year + @quarter + @obsnum",
+             "cumsum(x) + sum(x, by=g) + mean(x, by=g)": "@cumsum(x) + @sumsby(x, g) + @meansby(x, g)",
+             "normrnd(seed=3) + unifrnd(2, 5, seed=1)": "nrnd + @runif(2, 5)", "round(x, 2)": "(@round(x*10^(2))/10^(2))"}
+    for pymetrix_text, eviews in cases.items():
+        assert eviews_expression(parse_expression(pymetrix_text)) == eviews
+    data, _, _ = _with_gaps()  # and read back, the same numbers
+    for pymetrix_text in ("log10(abs(x) + 1) + floor(x) + ceil(y)", "isna(x) + fillna(x, 0)", "iif(x > 1, x, na)"):
+        back = convert_expression(eviews_expression(parse_expression(pymetrix_text)))
+        np.testing.assert_array_equal(data.eval(back).to_numpy(), data.eval(pymetrix_text).to_numpy())
+
+
 REFUSED = [  # an equation using it, the column where it is refused, and what the message says
     ("y = @pchy(x)", 5, "frequency"), ("y = @pcha(x)", 5, "frequency"), ("y = @max(x)", 5, "sample's maximum"),
     ("y = @elem(x(-1), \"2000q1\")", 5, "a series or @trend"), ("y = @trend(15q1)", 12, "not a date"),
     ("y = @elem(x, \"2000:1\")", 14, "not a date"), ("y = @seas(x)", 11, "period of the year"),
     ("y = @movstdev(x, 4)", 5, "degrees of freedom"), ("y = @movvar(x, 4)", 5, "degrees of freedom"),
-    ("y = @recode(x, 1, 2) + 1", 5, "a comparison"), ("y = @round(x)", 5, "not read here"),
+    ("y = @recode(x, 1, 2) + 1", 5, "a comparison"), ("y = @round(x, 2)", 5, "1 argument"),
+    ("y = 1 + @year", 9, "data only"), ("y = x*nrnd", 7, "random numbers"), ("y = @cumsum(x)", 5, "data only"),
+    ("y = @sumsby(x, g)", 5, "data only"), ("y = @obsnum", 5, "no dates of its own"), ("y = @year(x)", 5, "no arguments"),
+    ("y = @date", 5, "date numbers"),
     ("y = -x^2", 5, "-a^b"), ("y = x^2^3", 8, "a^b^c"), ("y = x(t)", 5, "neither a lag"), ("y = lg(x)", 5, "log"),
     ("y = x and z", 7, "logical"), ("y = x + {%z}", 9, "substitution"), ("y = x > 1", 7, "in brackets"),
     ("y = dlog(x, n)", 13, "whole number"), ("y = log(x, 2)", 5, "1 argument"),

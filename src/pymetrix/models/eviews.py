@@ -26,7 +26,9 @@ case, read in lower case, as EViews treats them):
   ``@dnorm``, ``@qnorm``, Student's ``@ctdist``/``@dtdist``/``@qtdist``, ``@cchisq``/``@dchisq``/``@qchisq`` and
   ``@cfdist``/``@dfdist``/``@qfdist``; ``@recode(a > b, a, b)`` (and ``>=``, ``<``, ``<=``, either order of the two)
   as ``max`` or ``min``, an occasionally binding constraint, and any other ``@recode(condition, a, b)`` as
-  ``(condition)*(a) + (1 - (condition))*(b)`` (the same where both are finite); comparisons in brackets, 1 where they
+  ``iif(condition, a, b)``, as ``@iif``; ``@log10``, ``@floor``, ``@ceiling``, ``@round(x)`` (``round``: halves away
+  from zero; EViews's ``@round`` has no number of decimals), ``@isna``, ``@nan(x, v)`` (``fillna``) and ``na`` (the
+  missing value); comparisons in brackets, 1 where they
   hold and 0 where not, as the book's ``(t <= 2004)`` (``=`` and ``<>`` inside brackets are equality and inequality);
   ``@pc`` (100*@pch), and with the data's frequency (``read_eviews(frequency=)``, ``wfcreate q``, a dated ``smpl``, or
   the data) ``@pchy`` (x/x(-4) - 1 in quarterly data), ``@pcy`` (100 times it), ``@pcha`` ((x/x(-1))^4 - 1) and
@@ -36,7 +38,16 @@ case, read in lower case, as EViews treats them):
   dataset's dates; ``@elem(@trend(base), "2004q4")`` is the number itself. Refused, at the function: ``@max``/``@min``
   (a sample's maximum, a number: ``@recode`` is the elementwise one), the moving variances and standard deviations
   (their degrees of freedom are not settled by either source), ``and``/``or`` (multiply comparisons instead), dates
-  without their frequency in ``@elem``, two-digit years before 30, and every other function.
+  without their frequency in ``@elem``, two-digit years before 30, and every other function. The functions of the
+  data's rows are refused in a model, saying so, and read in data work (``convert_expression(data=True)``, the program
+  translator): ``@year``, ``@quarter``, ``@month``, ``@day`` (``year()`` ...: of each period's first day), ``@obsnum``
+  and ``@obsid`` (``obsnum()``, from 1 within each entity: EViews's ``@obsnum`` counts a panel's rows straight
+  through), ``@cumsum(x)`` (``cumsum``: NAs skipped, as EViews's), ``@sumsby``, ``@meansby``, ``@minsby`` and
+  ``@maxsby(x, g)`` (``sum(x, by=g)`` ..., g a series' name), and, with a seed, ``nrnd``/``@nrnd``/``@rnorm``
+  (``normrnd(seed=s)``), ``rnd``/``@rnd`` and ``@runif(a, b)`` (``unifrnd``): pymetrix's own generator, so the numbers
+  are never EViews's. Pymetrix computes ``cumsum`` and the by-group statistics over all the data's rows, EViews over
+  the current sample. Inside ``d``, ``dlog``, ``@pch`` and the moving windows they are refused (lagging them is not
+  lagging their rows).
 - ``@identity y = ...``: an identity (no coefficients; no add factor or innovation).
 - coefficients: ``c(1)``, ``c(2)`` ... (EViews's default vector) and named vectors ``beta(1)`` declared with
   ``coef(n) beta`` (or ``vector(n) beta``) or given values as ``beta(1) = ...``, become the parameters ``c_1``,
@@ -78,9 +89,10 @@ coefficients ``y_x(1)`` as parameters ``y_x_1``, the definitions as labels, and 
 from __future__ import annotations
 
 import difflib
+import itertools
 import re
 import xml.etree.ElementTree as ET
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -124,21 +136,59 @@ FUNCTIONS: dict[str, tuple[str, str]] = {  # name: (signature, what it does)
     "@dchisq": ("@dchisq(x, v)", "the chi-squared density"), "@qchisq": ("@qchisq(p, v)", "the chi-squared quantile"),
     "@cfdist": ("@cfdist(x, v1, v2)", "the F cumulative distribution function"),
     "@dfdist": ("@dfdist(x, v1, v2)", "the F density"), "@qfdist": ("@qfdist(p, v1, v2)", "the F quantile"),
+    "@log10": ("@log10(x)", "the base-10 logarithm"), "@floor": ("@floor(x)", "the largest whole number not above x"),
+    "@ceiling": ("@ceiling(x)", "the smallest whole number not below x"),
+    "@round": ("@round(x)", "x rounded to the nearest whole number, halves away from zero"),
+    "@isna": ("@isna(x)", "1 where x is NA, else 0"), "@nan": ("@nan(x, v)", "v where x is NA, else x"),
+    "@iif": ("@iif(condition, a, b)", "a where the condition holds, b where not (NA where the condition is NA)"),
+    "na": ("na", "the missing value"),
+    "@year": ("@year", "the year of each observation (data only: refused in a model)"),
+    "@quarter": ("@quarter", "the quarter of each observation (data only: refused in a model)"),
+    "@month": ("@month", "the month of each observation's first day (data only: refused in a model)"),
+    "@day": ("@day", "the day of the month of each observation's first day (data only: refused in a model)"),
+    "@obsnum": ("@obsnum", "the observation's number, from 1 (data only: refused in a model)"),
+    "@obsid": ("@obsid", "the observation's number within its cross-section, from 1 (data only: refused in a model)"),
+    "nrnd": ("nrnd", "a standard normal random draw for each observation (data only, seeded: refused in a model)"),
+    "@nrnd": ("@nrnd", "as nrnd"), "@rnorm": ("@rnorm", "as nrnd"),
+    "rnd": ("rnd", "a uniform random draw on (0, 1) for each observation (data only, seeded: refused in a model)"),
+    "@rnd": ("@rnd", "as rnd"), "@runif": ("@runif(a, b)", "a uniform random draw on (a, b) for each observation (data only)"),
+    "@cumsum": ("@cumsum(x)", "the sum of x up to each observation, NAs skipped (data only)"),
+    "@sumsby": ("@sumsby(x, g)", "the sum of x over the observations with the same value of the series g (data only)"),
+    "@meansby": ("@meansby(x, g)", "the mean of x over the observations with the same value of g (data only)"),
+    "@minsby": ("@minsby(x, g)", "the smallest x among the observations with the same value of g (data only)"),
+    "@maxsby": ("@maxsby(x, g)", "the largest x among the observations with the same value of g (data only)"),
 }
+# functions written without brackets in EViews (``series yr = @year``, ``e = nrnd``); empty brackets are also read
+_NULLARY = frozenset({"na", "@year", "@quarter", "@month", "@day", "@obsnum", "@obsid", "nrnd", "@nrnd", "@rnorm", "rnd", "@rnd"})
+# Functions of the data's rows (pymetrix.expr.nodes.DATA_ONLY) and of the sample: the calendar, the observation's
+# number, random draws, and the cumulative and by-group statistics. A model has no rows: read in data work
+# (render_eviews_expression(..., data=True), as the program translator does), refused in a model's equations.
+_CALENDAR = {"@year": "year()", "@quarter": "quarter()", "@month": "month()", "@day": "day()", "@obsnum": "obsnum()",
+             "@obsid": "obsnum()"}
+_RANDOM = {"nrnd": "normrnd", "@nrnd": "normrnd", "@rnorm": "normrnd", "rnd": "unifrnd", "@rnd": "unifrnd", "@runif": "unifrnd"}
+_BY = {"@sumsby": "sum", "@meansby": "mean", "@minsby": "min", "@maxsby": "max"}
+DATA_FUNCTIONS = frozenset(_CALENDAR) | frozenset(_RANDOM) | frozenset(_BY) | {"@cumsum"}
+# functions whose argument is taken at earlier periods too: a function of the data's rows inside one is refused
+_LAGGING = frozenset({"d", "dlog", "@pch", "@pc", "@pchy", "@pcy", "@pcha", "@pca", "@movav", "@movsum", "@movmax", "@movmin"})
 _SIMPLE = {"log": "log", "@log": "log", "exp": "exp", "@exp": "exp", "abs": "abs", "@abs": "abs", "sqr": "sqrt", "@sqrt": "sqrt",
            "@movav": "movavg", "@movsum": "movsum", "@movmax": "movmax", "@movmin": "movmin",
            "@cnorm": "normcdf", "@dnorm": "normpdf", "@qnorm": "norminv", "@ctdist": "tcdf", "@dtdist": "tpdf", "@qtdist": "tinv",
-           "@cchisq": "chi2cdf", "@dchisq": "chi2pdf", "@qchisq": "chi2inv", "@cfdist": "fcdf", "@dfdist": "fpdf", "@qfdist": "finv"}
+           "@cchisq": "chi2cdf", "@dchisq": "chi2pdf", "@qchisq": "chi2inv", "@cfdist": "fcdf", "@dfdist": "fpdf", "@qfdist": "finv",
+           "@log10": "log10", "@floor": "floor", "@ceiling": "ceil", "@round": "round", "@isna": "isna", "@nan": "fillna",
+           "@iif": "iif"}
 _ARITY = {**{f: (1, 1) for f in ("log", "@log", "exp", "@exp", "abs", "@abs", "sqr", "@sqrt", "@inv", "@pch", "@cnorm", "@dnorm",
-                                  "@qnorm", "@pc", "@pchy", "@pcy", "@pcha", "@pca")},
+                                  "@qnorm", "@pc", "@pchy", "@pcy", "@pcha", "@pca", "@log10", "@floor", "@ceiling", "@round",
+                                  "@isna", "@cumsum")},
           **{f: (2, 2) for f in ("@movav", "@movsum", "@movmax", "@movmin", "@ctdist", "@dtdist", "@qtdist", "@cchisq", "@dchisq",
-                                  "@qchisq")},
-          **{f: (3, 3) for f in ("@cfdist", "@dfdist", "@qfdist", "@recode")}, "d": (1, 3), "dlog": (1, 3)}
+                                  "@qchisq", "@nan", "@runif", *_BY)},
+          **{f: (3, 3) for f in ("@cfdist", "@dfdist", "@qfdist", "@recode", "@iif")}, "d": (1, 3), "dlog": (1, 3),
+          **{f: (0, 0) for f in _NULLARY}}
 _WHY = {"@max": "@max is a sample's maximum (a number), not elementwise: write @recode(a > b, a, b)",
         "@min": "@min is a sample's minimum (a number), not elementwise: write @recode(a < b, a, b)",
         "@movstdev": "the degrees of freedom of EViews's moving standard deviations are not settled here: write it out",
         "@movvar": "the degrees of freedom of EViews's moving variances are not settled here: write it out",
-        "@nan": "a model has no missing values to replace", "@iif": "write @recode(a > b, a, b) for max or min"}
+        "@obssmpl": "the sample's number of observations is a number: give a scalar its value first (!n = @obssmpl)",
+        "@date": "EViews's date numbers are not a pymetrix series: use @year, @quarter, @month and @day"}
 RESERVED = frozenset({"abs", "acos", "and", "ar", "asin", "c", "con", "cnorm", "coef", "cos", "d", "dlog", "dnorm", "else", "endif",
                       "exp", "log", "logit", "lpt1", "lpt2", "ma", "na", "not", "nrnd", "or", "pdl", "rnd", "sar", "sin", "sma",
                       "sqr", "then"})
@@ -348,9 +398,18 @@ class _Parser:
         name = value.lower()
         if name in ("and", "or", "not"):
             raise _Refused(f"{value!r}: logical operators are not read: multiply comparisons instead, (a > 0)*(b > 0)", at, len(value))
+        if name in _NULLARY:  # @year, nrnd, na: no arguments (empty brackets read too)
+            if self.peek()[1] == "(":
+                self.take()
+                if self.peek()[1] != ")":
+                    raise _Refused(f"{value} takes no arguments: {FUNCTIONS[name][0]}, {FUNCTIONS[name][1]}", at, len(value))
+                return _Call(name, (), at, self.take()[2] - at + 1)
+            return _Call(name, (), at, len(value))
         if self.peek()[1] != "(":
             if name == "@trend":  # counted from the data's first period
                 return _Ser("trend_start", 0, at, len(value))
+            if name in _WHY:
+                raise _Refused(f"{value} is not read here: {_WHY[name]}", at, len(value))
             if name.startswith("@"):
                 raise _Refused(f"{value} needs its arguments in brackets", at, len(value))
             return _Ser(name, 0, at, len(value))
@@ -368,7 +427,7 @@ class _Parser:
         if name in ("@trend", "@elem", "@seas"):
             return self.dated(name, value, at)
         if name in FUNCTIONS:
-            args = [self.compare() if name == "@recode" and not args_ else self.sum() for args_ in [[]]]
+            args = [self.compare() if name in ("@recode", "@iif") and not args_ else self.sum() for args_ in [[]]]
             while self.peek()[1] == ",":
                 self.take()
                 args.append(self.sum())
@@ -491,20 +550,27 @@ def _parse(text: str, base: int, vectors: set[str], comparison: bool = False) ->
     return _Parser(text, base, vectors).whole(comparison)
 
 
-def convert_expression(text: str, scalars: tuple[str, ...] = (), vectors: tuple[str, ...] = (), frequency: str | None = None) -> str:
+def convert_expression(text: str, scalars: tuple[str, ...] = (), vectors: tuple[str, ...] = (), frequency: str | None = None,
+                       *, data: bool = False, seed: int | None = None) -> str:
     """One EViews expression as pymetrix's (``d(x, 0, 4)`` as ``(d(x) - d(x[-4]))``...); refused (``ModelError``, with
     the column) when it does not read. ``vectors``: coefficient vectors besides ``c``; ``frequency`` ("Q", "M", "A")
-    for ``@pchy`` and the like."""
+    for ``@pchy`` and the like. With ``data``, an expression for data work, not a model: the functions of the data's
+    rows (``@year``, ``@obsnum``, ``@cumsum``, ``@sumsby`` ...) are read too, and with ``seed`` the random draws
+    (``nrnd``, ``rnd``, ``@runif``), seeded ``seed``, ``seed + 1`` ... in the order they are written."""
+    seeds = None if seed is None else itertools.count(int(seed)).__next__
     try:
-        return _Render({s.lower() for s in scalars}, _per_year(frequency))(_parse(text, 0, {"c", *(v.lower() for v in vectors)}))
+        return _Render({s.lower() for s in scalars}, _per_year(frequency), data, seeds)(_parse(text, 0, {"c", *(v.lower() for v in vectors)}))
     except _Refused as exc:
         raise ModelError(f"column {exc.at + 1}: {exc.message}") from None
 
 
-def _render(node: Any, scalars: tuple[str, ...] = (), frequency: str | None = None) -> str:
+def _render(node: Any, scalars: tuple[str, ...] = (), frequency: str | None = None, *, data: bool = False,
+            seeds: Callable[[], int] | None = None) -> str:
     """A parsed expression (``_parse``) as pymetrix's text, as ``convert_expression`` writes it; ``_Refused`` (with
-    the place) where it does not translate. Public as ``pymetrix.extension.render_eviews_expression``."""
-    return _Render({s.lower() for s in scalars}, _per_year(frequency))(node)
+    the place) where it does not translate. Public as ``pymetrix.extension.render_eviews_expression``. ``data``: an
+    expression for data work (the data's calendar, cumulative and by-group statistics read; a model refuses them);
+    ``seeds``: called for each random draw's seed (without it, random draws are refused)."""
+    return _Render({s.lower() for s in scalars}, _per_year(frequency), data, seeds)(node)
 
 
 def _walk(node: Any) -> list[Any]:
@@ -541,12 +607,62 @@ def _integer_arg(node: Any, what: str) -> int:
 class _Render:
     """EViews expression nodes as pymetrix text, ``k`` periods later (for d, @pch and the like)."""
 
-    def __init__(self, scalars: set[str], per_year: int | None = None) -> None:
+    def __init__(self, scalars: set[str], per_year: int | None = None, data: bool = False,
+                 seeds: Callable[[], int] | None = None) -> None:
         self.scalars = scalars
         self.per_year = per_year  # periods a year, for @pchy and the like
+        self.data = data  # data work: the functions of the data's rows are read
+        self.seeds = seeds  # the next random draw's seed
+        self.window = 0  # > 0 inside a moving window, whose argument pymetrix lags period by period
+
+    def rows(self, node: Any, k: int) -> str:
+        """A function of the data's rows (``DATA_FUNCTIONS``) as pymetrix's, in data work; refused in a model, and
+        where it would be lagged (inside d, @pch, a moving window): its lag is not the function of the lagged rows."""
+        fn, args = node.fn, node.args
+        if not self.data:
+            if fn in _CALENDAR:
+                why = (f"{fn} comes from the data's dates (data only): a model has no dates of its own; make it a series of "
+                       f"the data first (series obs = {fn}) and use the series")
+            elif fn in _RANDOM:
+                why = (f"{fn} draws random numbers (data only): a model's random draws are its shocks (@innov); make the "
+                       "series in the data first and use it")
+            else:
+                why = (f"{fn} is a statistic over the sample (data only): a model solves period by period; make it a series "
+                       "of the data first and use the series")
+            raise _Refused(why, node.at, node.length)
+        if k or self.window:
+            raise _Refused(f"{fn} inside d, dlog, @pch or a moving window is not read: make the series first "
+                           f"(series s = {fn}{'(...)' if args else ''}), then use s", node.at, node.length)
+        if fn in _CALENDAR:
+            return _CALENDAR[fn]
+        if fn in _RANDOM:
+            if self.seeds is None:
+                raise _Refused(f"{fn}: pymetrix's random draws are seeded, and no seed is given here (a program's rndseed "
+                               "gives one)", node.at, node.length)
+            seed = int(self.seeds())
+            if fn == "@runif":
+                return f"unifrnd({self(args[0])}, {self(args[1])}, seed={seed})"
+            return f"{_RANDOM[fn]}(seed={seed})"
+        if fn == "@cumsum":
+            return f"cumsum({self(args[0])})"
+        group = _strip(args[1])
+        if not (isinstance(group, _Ser) and group.lag == 0 and group.name not in self.scalars):
+            raise _Refused(f"{fn}(x, g) is read with g a series' name: make the series first (series g = ...), then "
+                           f"{fn}(x, g)", getattr(group, "at", node.at), getattr(group, "length", node.length))
+        return f"{_BY[fn]}({self(args[0])}, by={group.name})"
 
     def __call__(self, node: Any, k: int = 0) -> str:
         r = self
+        if isinstance(node, _Call) and node.fn in DATA_FUNCTIONS:
+            return self.rows(node, k)
+        if isinstance(node, _Call) and node.fn == "na":
+            return "na"
+        if isinstance(node, _Call) and node.fn in _LAGGING and not self.window:  # what is inside is lagged too
+            self.window += 1
+            try:
+                return self(node, k)
+            finally:
+                self.window -= 1
         if isinstance(node, _Num):
             return "0" + node.text if node.text.startswith(".") else node.text
         if isinstance(node, _Ser):
@@ -612,8 +728,7 @@ class _Render:
                 return f"{'max' if greater else 'min'}({a}, {b})"
             if cond.op not in ("=", "<>") and (x, y) == (b, a):
                 return f"{'min' if greater else 'max'}({a}, {b})"
-            test = r(cond, k)  # otherwise a where the condition holds, b where not: (c)*(a) + (1 - (c))*(b)
-            return f"(({test})*({a}) + (1 - ({test}))*({b}))"
+            return f"iif({r(cond, k)}, {a}, {b})"  # otherwise a where the condition holds, b where not (as @iif)
         raise _Refused(f"{fn} is not read here", node.at, node.length)
 
     def wrapped(self, node: Any, k: int) -> str:
@@ -1581,8 +1696,12 @@ def eviews_series(model: Any, data: Any) -> Any:
 
 def eviews_expression(expr: Any, params: set[str] | frozenset[str] = frozenset(), rename: Mapping[str, str] | None = None) -> str:
     """A pymetrix expression in EViews syntax: lags ``x(-1)``, ``d``, ``dlog``, ``100*@pch`` for ``pch``, ``@recode``
-    for ``max`` and ``min``, ``c_<i>`` as ``c(i)``. Refused (``ModelError``) for what EViews has no equivalent of."""
-    from ..expr.nodes import BinOp, Call, Coef, Name, Neg, Num
+    for ``max`` and ``min``, ``c_<i>`` as ``c(i)``, ``iif`` as ``@iif``, ``fillna`` as ``@nan``, ``round(x, n)`` as
+    ``@round(x*10^n)/10^n``, the calendar as ``@year`` ..., ``obsnum()`` as ``@obsnum`` (in a panel EViews's
+    ``@obsid`` is pymetrix's), ``sum(x, by=g)`` as ``@sumsby(x, g)`` (and mean, min, max), ``normrnd`` and ``unifrnd`` as
+    ``nrnd``, ``rnd`` and ``@runif`` (their seed is dropped: EViews draws its own numbers, seeded by ``rndseed``).
+    Refused (``ModelError``) for what EViews has no equivalent of."""
+    from ..expr.nodes import BinOp, Call, Coef, Level, Name, Neg, Num
     from ..expr.parser import parse_expression
 
     rename = rename or {}
@@ -1590,7 +1709,10 @@ def eviews_expression(expr: Any, params: set[str] | frozenset[str] = frozenset()
                                                                                       "@dnorm", "@qnorm", "@ctdist", "@dtdist", "@qtdist",
                                                                                       "@cchisq", "@dchisq", "@qchisq", "@cfdist", "@dfdist",
                                                                                       "@qfdist")}
-    functions.update({"log": "log", "exp": "exp", "abs": "abs", "sqrt": "@sqrt"})
+    functions.update({"log": "log", "exp": "exp", "abs": "abs", "sqrt": "@sqrt", "log10": "@log10", "floor": "@floor", "ceil": "@ceiling",
+                      "round": "@round", "isna": "@isna", "fillna": "@nan", "iif": "@iif", "cumsum": "@cumsum"})
+    rows = {"na": "na", "year": "@year", "quarter": "@quarter", "month": "@month", "day": "@day", "obsnum": "@obsnum"}
+    by = {"sum": "@sumsby", "mean": "@meansby", "min": "@minsby", "max": "@maxsby"}
 
     def param(name: str) -> str:
         m = re.fullmatch(r"c_(\d+)", name)
@@ -1638,9 +1760,22 @@ def eviews_expression(expr: Any, params: set[str] | frozenset[str] = frozenset()
             text = f"{left}{space}{e.op}{space}{right}"
             return f"({text})" if e.grouped else text
         if isinstance(e, Call):
+            if e.fn in by and len(e.args) == 2 and isinstance(e.args[1], Level):  # sum(x, by=g): @sumsby(x, g)
+                return f"{by[e.fn]}({go(e.args[0])}, {rename.get(e.args[1].id, e.args[1].id)})"
             if e.fn in ("max", "min") and len(e.args) == 2:
                 a, b = (go(x) for x in e.args)
                 return f"@recode(({a}) {'>' if e.fn == 'max' else '<'} ({b}), {a}, {b})"
+            if e.fn in rows and not e.args:
+                return rows[e.fn]
+            if e.fn == "normrnd":  # the seed is pymetrix's: EViews draws its own numbers (rndseed)
+                mu, sigma = (go(x) for x in e.args[:2])
+                return "nrnd" if (mu, sigma) == ("0", "1") else f"({mu} + {sigma}*nrnd)"
+            if e.fn == "unifrnd":
+                a, b = (go(x) for x in e.args[:2])
+                return "rnd" if (a, b) == ("0", "1") else f"@runif({a}, {b})"
+            if e.fn == "round" and len(e.args) == 2:  # n decimals: EViews's @round has none
+                n = go(e.args[1])
+                return f"(@round({go(e.args[0])}*10^({n}))/10^({n}))" if n != "0" else f"@round({go(e.args[0])})"
             if e.fn in functions and (e.fn not in ("normcdf", "normpdf", "norminv") or len(e.args) == 1):
                 return f"{functions[e.fn]}({', '.join(go(x) for x in e.args)})"
             raise ModelError(f"{e.fn}() has no equivalent read in EViews syntax here: write it out in other terms to export")

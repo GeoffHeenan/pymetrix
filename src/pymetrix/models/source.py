@@ -1571,9 +1571,10 @@ def function_help(name: str) -> str:
 
 def _functions(syntax: str) -> list[str]:
     if syntax == "eviews":
+        from .eviews import DATA_FUNCTIONS
         from .eviews import FUNCTIONS as EVIEWS_FUNCTIONS
 
-        return sorted(EVIEWS_FUNCTIONS, key=lambda f: f.lstrip("@"))
+        return sorted(set(EVIEWS_FUNCTIONS) - DATA_FUNCTIONS, key=lambda f: f.lstrip("@"))  # the data's rows: data only
     names = (_IRIS_FUNCTIONS if syntax == "iris" else _FUNCTIONS) - set(_EXPANDING)  # expanding windows: data only
     if syntax == "pymetrix":
         names = names - {"steady_state", "STEADY_STATE"}
