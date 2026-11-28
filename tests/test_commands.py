@@ -9,7 +9,7 @@ from pymetrix.ui.render import to_html
 def test_forms_come_from_field_types():
     specs = {s.name: s for s in form_spec(FitEquation)}
     assert specs["formula"].kind == "formula" and specs["formula"].required
-    assert specs["cov"].kind == "choice" and specs["cov"].choices == ("classic", "white", "hac", "cluster")
+    assert specs["cov"].kind == "choice" and specs["cov"].choices == ("classic", "white", "hc0", "hc2", "hc3", "hac", "cluster")
     assert specs["data"].kind == "object" and specs["data"].source == "Dataset"
     assert "Estimate/Equation..." in {i.menu for i in COMMANDS.values()}
 

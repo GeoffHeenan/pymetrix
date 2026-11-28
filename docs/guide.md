@@ -289,7 +289,7 @@ the dialogs estimate equations by formula.
 import pymetrix as pm
 
 fit = pm.ols(y, X)                                 # y a Series, X a DataFrame with the same index
-fit = pm.ols(y, X, cov="hac", hac_lags=4)          # standard errors as OLS(cov=...): classic, white, hac
+fit = pm.ols(y, X, cov="hac", hac_lags=4)          # standard errors as OLS(cov=...): classic, white, hc0, hc2, hc3, hac
 fit = pm.ols(y, X, cov=pm.Cluster("firm"), clusters=firms)   # clusters: a Series or DataFrame of groups (or index levels)
 fit = pm.ols(y, X, constant=False, weights=w)      # no intercept; weighted least squares
 fit = pm.ols(y_array, X_array, names=["k", "l"])   # numpy: y is "y", the columns x1, x2... unless named
@@ -518,6 +518,13 @@ the same for each of several series.
 2030q4`) has every period from the first to the last and no series; its time axis is named `time`. The frequency is
 `Y`, `Q`, `M`, `W` or `D` (`Y-JUN` for a July-June year; `A` reads as `Y`). Fill it with `with_series`, or type
 values in with the spreadsheet. The step is recorded, so the script and the project rebuild it.
+
+**Data with no dates.** `Dataset.from_frame(df, start="1990Q1", freq="Q")` dates a frame that has no time column (row
+numbers, or a plain integer index, which is dropped) one period per row from 1990Q1, as R's `ts(x, start = c(1990,
+1), frequency = 4)`; `Dataset.read("file.csv", start="1990Q1", freq="Q")` does the same for a CSV or Excel file
+(**File → Load data…**, Dates start at, with the Frequency). A NumPy array goes through a frame:
+`Dataset.from_frame(pd.DataFrame(a, columns=["y", "x"]), start="1990-01", freq="M")`. The start must begin a period of
+the frequency (`1990`, `1990Q1` or `1990-01` for quarters; not `1990-03`), and is refused, not rounded, otherwise.
 
 `with_series` stays static (like EViews' `genr`); `derive` is dynamic. In code both add or
 replace; a replaced series keeps its label and units but not its source or vintage, which
@@ -2170,6 +2177,12 @@ same as substituting them into the equation (the Wald test reads its hypotheses 
 freedom more per restriction, and a coefficient a restriction fixes has none. In the app: **Estimate → Equation…**,
 method **Robust regression (M)** (the norm in Method settings, the rest under Advanced), and **Restrictions** in the
 Method settings of OLS and IV.
+
+**HC0, HC2 and HC3 standard errors.** `OLS(cov="hc3")` gives R's `sandwich::vcovHC` default; `cov="white"` stays
+HC1 (Stata's `vce(robust)`, EViews' White), `cov="hc0"` is White's own, `cov="hc2"` divides each squared residual
+by 1 - h_ii, HC3 by its square (h_ii the leverage). HC2 and HC3 are for linear OLS, weighted or restricted, not with
+`fe(...)`, explicit-form equations or IV; HC0 is also offered for IV. In the app: **Estimate → Equation…**, Standard
+errors HC0, HC2 or HC3. The help page **Least squares** gives the formulas.
 
 ## AR(1) errors, multiplicative heteroskedasticity, frontiers and non-nested tests
 

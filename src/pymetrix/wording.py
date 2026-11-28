@@ -662,7 +662,7 @@ FIELD_LABELS: dict[str, str] = {
 
 COMMAND_LABELS: dict[str, dict[str, str]] = {
     # the same argument name, a different meaning here
-    "LoadData": {"path": "Data file", "entity": "Entity column"},
+    "LoadData": {"path": "Data file", "entity": "Entity column", "start": "Dates start at"},
     "OpenResult": {"path": "Result file"},
     "ImportDynare": {"path": "Dynare file"},
     "ImportIris": {"path": "IRIS file"},
@@ -881,7 +881,7 @@ CHOICE_LABELS: dict[str, dict[Any, str]] = {  # codes kept in scripts, words in 
                "mode": "dense, the inverse Hessian at the mode"},
     "trend": {"n": "none", "c": "constant", "ct": "constant and trend", "ctt": "constant, trend and trend squared", "t": "trend only",
               "add": "additive", "mul": "multiplicative", "auto": "automatic"},
-    "cov": {"classic": "conventional", "white": "White (HC1)", "hac": "HAC (Newey-West)", "cluster": "clustered",
+    "cov": {"classic": "conventional", "white": "White (HC1)", "hc0": "HC0", "hc2": "HC2", "hc3": "HC3", "hac": "HAC (Newey-West)", "cluster": "clustered",
             "hessian": "from the Hessian", "robust": "robust", "homoskedastic": "homoskedastic", "none": "none (faster)"},
     "template": {"": "(summary and graph)", "new_keynesian": "New Keynesian", "rbc": "RBC", "gap_model": "Gap model"},
     "theme": {"": "(the session's default)"},

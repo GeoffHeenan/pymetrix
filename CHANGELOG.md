@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **HC0, HC2 and HC3 standard errors, and a time axis from a first period** (R's `vcovHC` and `ts`). `OLS(cov="hc3")`
+  (and `"hc0"`, `"hc2"`; Standard errors in Estimate → Equation…) gives R's `sandwich::vcovHC` default; `"white"` is
+  still HC1, and no default changed. HC2 and HC3 are for linear OLS, weighted or restricted; HC0 also for IV.
+  `Dataset.from_frame(df, start="1990Q1", freq="Q")` dates a frame without dates one period per row, as
+  `ts(x, start = c(1990, 1), frequency = 4)`; `Dataset.read` takes the same `start=` for CSV and Excel files, as
+  does File → Load data… (Dates start at). A statsmodels result imported with HC0, HC2 or HC3 now says so in its
+  summary, not "White (HC1)".
 - **The task pages from a result and from a dialog's help.** A result's Next ▸ menu lists, after its next dialogs,
   the How do I… pages that carry on from that kind of result (an equation: estimate and test it, check its forecast
   record, make a report; a VAR: estimate a VAR, run a forecast round, check its record...), each opening in the

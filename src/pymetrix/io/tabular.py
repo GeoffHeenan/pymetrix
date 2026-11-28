@@ -29,16 +29,21 @@ def _sourced(ds: Dataset, path: str) -> Dataset:
     return Dataset(ds.frame, ds.axes, variables, ds.flags, ds.meta)
 
 
-def read_csv(path: str, *, time: str | None = None, entity: Any = None, freq: str | None = None, **kw: Any) -> Dataset:
-    return _sourced(Dataset.from_frame(pd.read_csv(path, **kw), time=time, entity=entity, freq=freq), path)
+def read_csv(path: str, *, time: str | None = None, entity: Any = None, freq: str | None = None, start: str | None = None,
+             **kw: Any) -> Dataset:
+    """A CSV file: ``time`` names its column of dates, or ``start`` dates a file without one (rows in order, from that
+    period at frequency ``freq``)."""
+    return _sourced(Dataset.from_frame(pd.read_csv(path, **kw), time=time, entity=entity, freq=freq, start=start), path)
 
 
 def write_csv(ds: Dataset, path: str, **kw: Any) -> None:
     _flat(ds).to_csv(path, index=False, **kw)
 
 
-def read_excel(path: str, *, time: str | None = None, entity: Any = None, freq: str | None = None, **kw: Any) -> Dataset:
-    return _sourced(Dataset.from_frame(pd.read_excel(path, **kw), time=time, entity=entity, freq=freq), path)
+def read_excel(path: str, *, time: str | None = None, entity: Any = None, freq: str | None = None, start: str | None = None,
+               **kw: Any) -> Dataset:
+    """An Excel sheet, with its time column or a ``start`` as for ``read_csv``."""
+    return _sourced(Dataset.from_frame(pd.read_excel(path, **kw), time=time, entity=entity, freq=freq, start=start), path)
 
 
 def write_excel(ds: Dataset, path: str, **kw: Any) -> None:

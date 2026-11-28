@@ -53,10 +53,20 @@ blocking you, say so: that is how priorities get set.
   not offered on GMM, ML or the wrapped estimators; no test of the restrictions is reported with the fit (use
   `fit.test("wald", ...)` on the unrestricted fit). A coefficient a restriction fixes has a zero standard error, so
   its t statistic is undefined.
+- **HC0, HC2 and HC3** (`cov="hc0"`, `"hc2"`, `"hc3"`) are offered for OLS and, HC0 only, for IV. HC2 and HC3 are
+  refused with absorbed fixed effects (`fe(...)`: the demeaned regressors leave out the effects' leverage; put the
+  effects in as `C(...)` dummies instead), for explicit-form (nonlinear) equations and for IV (2SLS has no standard
+  hat matrix, and linearmodels offers none), and when an observation has leverage 1. ML, GMM, systems and the
+  estimators wrapped from linearmodels (LIML, IV-GMM, panels) keep their own choices: there, `cov="white"` with
+  `debiased=False` is linearmodels' HC0. HC4 and HC5 are not offered.
+- **A time axis from a first period** (`Dataset.from_frame(df, start=..., freq=...)`) dates every row of a frame or
+  a CSV or Excel file one period apart: a time series only (no panels: give `time=` and `entity=` columns), with
+  frequencies Y, Q, M, W and D as `Dataset.empty` (R's `frequency = 52`, 7 or 24 has no counterpart). There is no
+  `Dataset.from_arrays`; make a DataFrame first.
 - **Not started:** third-order perturbation. GMM on moment functions (`MomentGMM`) is code only, with numerical
   derivatives, and has no dialog (a Python function cannot be a dialog field).
 - **Regression without a formula** (`pymetrix.ols`) is least squares only (no IV, ML or fixed effects to absorb:
-  put dummies in `X`, or use a formula), with the standard errors `OLS` has (White is HC1; no HC2 or HC3, as in
+  put dummies in `X`, or use a formula), with the standard errors `OLS` has (White is HC1; HC0, HC2 and HC3 as
   `Equation.fit`). It is for code, with no dialog. Column names must be plain series names (letters, digits and
   `_`); other names are refused, not rewritten. Data without a `PeriodIndex` (or dates with a frequency) are a
   cross-section, so HAC and Durbin-Watson need one. A row whose values are all present but infinite is dropped with

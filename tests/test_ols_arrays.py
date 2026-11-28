@@ -212,7 +212,7 @@ def test_refusals_say_what_to_do():
     with pytest.raises(SpecificationError, match="collinear"):
         ols(y, X.assign(x3=X["x1"] * 2))
     with pytest.raises(SpecificationError, match="unknown covariance"):
-        ols(y, X, cov="hc3")
+        ols(y, X, cov="hc4")
     with pytest.raises(SpecificationError, match="both"):
         ols(y.rename("x1"), X)
     const_only = ols(y, X.iloc[:, :0])  # no regressors but the constant: y ~ 1

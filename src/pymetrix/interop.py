@@ -179,7 +179,7 @@ def transform_each(data: Dataset, selection: Any, func: Callable[[pd.Series], An
 
 # --- statsmodels results as pymetrix results ---------------------------------------------------------------------
 
-_COV = {"nonrobust": "classic", "hc0": "white", "hc1": "white", "hc2": "white", "hc3": "white", "hac": "hac"}
+_COV = {"nonrobust": "classic", "hc0": "hc0", "hc1": "white", "hc2": "hc2", "hc3": "hc3", "hac": "hac"}
 
 
 @dataclass(frozen=True)

@@ -10,6 +10,7 @@ option shown to match. Where a comparison is not listed, check the other package
 documentation before comparing numbers.
 
 Robust (White) standard errors: HC1, scaled by n/(n-k), as Stata's vce(robust).
+R's sandwich::vcovHC defaults to HC3 (cov="hc3"); its type = "HC1" is White here.
 Cluster-robust: the G/(G-1) x (n-1)/(n-k) small-sample factor, as Stata.
 
 Newey-West (HAC): Bartlett kernel with floor(4(n/100)^(2/9)) lags, scaled by
