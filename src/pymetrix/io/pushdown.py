@@ -39,6 +39,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 
 from ..data.conditions import check_condition
+from ..errors import PyMetrixError
 
 __all__ = ["condition_expression", "span_expression"]
 
@@ -46,8 +47,9 @@ _OPS = {ast.Eq: "==", ast.NotEq: "!=", ast.Lt: "<", ast.LtE: "<=", ast.Gt: ">", 
 _FLIP = {"<": ">", "<=": ">=", ">": "<", ">=": "<=", "==": "==", "!=": "!="}
 
 
-class _NotPushed(Exception):
-    """This part of the condition is left to the exact evaluation after reading."""
+class _NotPushed(PyMetrixError):
+    """This part of the condition is left to the exact evaluation after reading (caught here, never raised to the
+    user; a PyMetrixError as every error pymetrix raises)."""
 
 
 def condition_expression(where: str, schema: pa.Schema, time: tuple[str, str | None] | None = None,
