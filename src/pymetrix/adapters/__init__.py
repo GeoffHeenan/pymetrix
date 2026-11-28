@@ -23,6 +23,9 @@ def require(module: str) -> Any:
         if top not in EXTRAS:  # a core dependency (statsmodels, matplotlib) missing: a broken install
             raise ImportError(f"this feature uses {top}, which pymetrix requires: pip install {top}") from exc
         raise ImportError(f"this feature uses {top}: pip install pymetrix[{EXTRAS[top]}]") from exc
+    except OSError as exc:  # installed, but its compiled library would not load (LightGBM without OpenMP on a Mac)
+        raise ImportError(f"{top} is installed but its compiled library could not be loaded ({exc}). LightGBM and "
+                          "XGBoost need the OpenMP runtime: on macOS, brew install libomp") from exc
 
 
 def backend(module: str) -> str:
