@@ -1653,6 +1653,7 @@ _KINDS = {
     "Identification": "Identification",
     "OccBinPath": "OccBin path",
     "SecondOrderSolution": "Second-order solution",
+    "ThirdOrderSolution": "Third-order solution",
     "ParticleFilter": "Particle filter",
     "OptimalPolicy": "Optimal policy",
     "OSRResult": "Optimal simple rule",

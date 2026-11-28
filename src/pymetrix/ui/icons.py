@@ -51,7 +51,7 @@ _GROUPS = {
                "FittedSmoothLocalProjection", "IRF", "FEVD", "ImpulseResponse", "VarianceDecomposition",
                "HistoricalDecomposition", "LagSelection", "VARLagOrder", "VECMLagOrder"),
     "model": ("Model", "Template", "DynareModel", "ModelSystem", "FittedModel", "Solution", "LinearSolution", "LinearModel",
-              "SecondOrderSolution", "PanelSolution", "StateSpace", "StateSpaceSystem", "FittedStateSpace", "Decomposition",
+              "SecondOrderSolution", "ThirdOrderSolution", "PanelSolution", "StateSpace", "StateSpaceSystem", "FittedStateSpace", "Decomposition",
               "SweepResult", "Scenario", "ScenarioSet", "ParticleFilter", "OptimalPolicy", "OSRResult", "OptimalControl",
               "Posterior", "Identification", "OccBinPath", "ModelCheck", "Translation", "EViewsXmlModel", "SteadyState",
               "Calibration", "MonteCarloResult"),

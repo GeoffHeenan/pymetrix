@@ -1049,6 +1049,20 @@ def _register_late() -> None:
         out.append(("First order", obj.first.rules()))
         return out
 
+    from .models.third_order import ThirdOrderSolution
+
+    @register_view(ThirdOrderSolution)
+    def _(obj: ThirdOrderSolution) -> list[Section]:
+        steady = pd.Series({v: obj.steady.values[v] for v in obj.endogenous})
+        mean = obj.mean()
+        table = pd.DataFrame({"steady state": steady, "ergodic mean": mean, "risk correction": mean - steady})
+        out: list[Section] = [("Decision rules", obj.rules()),
+                              ("Means", _frame_table(table, "The steady state, and the mean once risk is taken into account")),
+                              ("Moments", obj.moments(periods=20_000, burn=500))]
+        out += _figure(obj.irf(20).plot)
+        out.append(("First order", obj.first.rules()))
+        return out
+
     from .models.particle import ParticleFilter
 
     @register_view(ParticleFilter)

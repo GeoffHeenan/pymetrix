@@ -63,13 +63,18 @@ class Template:
     def solve(self, order: int = 1) -> Any:
         """The rational-expectations solution: first order (a ``LinearSolution``), or second order with the
         template's shock sizes (a ``SecondOrderSolution``: risk corrections, quadratic terms). A first-order solution
-        keeps the template's ``regimes``: its ``solve(data, span)`` follows them unless given others."""
+        keeps the template's ``regimes``: its ``solve(data, span)`` follows them unless given others. ``order=3`` gives
+        the third order (a ``ThirdOrderSolution``: cubic terms, risk corrections to the responses)."""
         if order == 2:
             from .perturbation import second_order
 
             return second_order(self.model, self.shocks, self.shock_sd, steady=self.steady_state(), shock_corr=self.shock_corr or None)
+        if order == 3:
+            from .third_order import third_order
+
+            return third_order(self.model, self.shocks, self.shock_sd, steady=self.steady_state(), shock_corr=self.shock_corr or None)
         if order != 1:
-            raise SpecificationError("order is 1 or 2")
+            raise SpecificationError("order is 1, 2 or 3")
         sol = self.model.linearize(self.steady_state(), shocks=self.shocks).solve()
         return replace(sol, regimes=tuple(self.regimes)) if self.regimes else sol
 

@@ -70,8 +70,8 @@ blocking you, say so: that is how priorities get set.
   not offered on GMM, ML or the wrapped estimators; no test of the restrictions is reported with the fit (use
   `fit.test("wald", ...)` on the unrestricted fit). A coefficient a restriction fixes has a zero standard error, so
   its t statistic is undefined.
-- **Not started:** third-order perturbation. GMM on moment functions (`MomentGMM`) is code only, with numerical
-  derivatives, and has no dialog (a Python function cannot be a dialog field).
+- **GMM on moment functions** (`MomentGMM`) is code only, with numerical derivatives, and has no dialog (a Python
+  function cannot be a dialog field).
 - **Regression without a formula** (`pymetrix.ols`) is least squares only (no IV, ML or fixed effects to absorb:
   put dummies in `X`, or use a formula), with the standard errors `OLS` has (White is HC1; no HC2 or HC3, as in
   `Equation.fit`). It is for code, with no dialog. Column names must be plain series names (letters, digits and
@@ -160,6 +160,14 @@ blocking you, say so: that is how priorities get set.
     measurement error for every observed series, starts from the stationary distribution (no diffuse start, no
     growth trends), and runs in one process; forecasts, moments, decompositions and identification of such a fit use
     its first-order solution. Second-order impulse responses shock one shock at a time, not orthogonalised.
+  - *Third-order solutions* (`solve(order=3)`) are solved, simulated (pruned or not), and give responses and moments
+    by simulation, but are not estimated: `estimate(order=3)` is refused (the particle filter follows second-order
+    rules only). Not built: the closed-form variance and autocovariances of the pruned process (Andreasen et al.;
+    Dynare has them), orders above three, skewed shocks (the shocks are taken to be symmetric, so `ghsss` is zero),
+    growth models (write them in ratios). The solver keeps full, unfolded tensors in the states, shocks and the
+    scale of uncertainty, so time and memory grow with the cube of their number or faster: a fraction of a second
+    for the growth models in the tests, about 15 seconds for 22 states and 7 shocks (Dynare's k-order solver, with
+    folded tensors, is much faster there), too slow for hundreds of states.
 - **The diffuse log likelihood's convention** (`diffuse_terms`): `"exclude"` covers the state-space models, unobserved
   components and the Kalman likelihood of linearised models, not the OccBin filter, known-date regimes or the
   particle filter (refused). With correlated measurement errors the native engine (statsmodels absent) uses the

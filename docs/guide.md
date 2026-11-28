@@ -2860,6 +2860,19 @@ s.rules()
 
 In the app: **Model → Solution → Second-order solution…**.
 
+**Third order.** `solve(order=3)` adds the cubic terms and the corrections for risk to the responses to states and
+shocks (Dynare's `stoch_simul(order=3)`; ghxxx, ghxxu, ghxuu, ghuuu, ghxss, ghuss).
+
+```python
+s = templates.rbc().solve(order=3)
+s.simulate(200, seed=1)                        # pruned (Andreasen et al.); pruning=False for the plain rule
+s.irf(20, replications=500)                    # generalised responses, averaged over the other shocks
+s.irf(20, state={"k": 30})                     # from a given state rather than the stochastic steady state
+s.moments()                                    # mean, standard deviation, skewness, kurtosis: a long simulation
+```
+
+In the app: **Model → Solution → Second-order solution…**, Order 3.
+
 **The particle filter, and estimating second-order solutions.** A second-order solution is
 not linear, so the Kalman filter cannot give its likelihood. The particle filter can: particles
 follow the pruned decision rules with drawn shocks (exactly as `simulate`), are weighted by how

@@ -2147,6 +2147,39 @@ add_topic("particle-smoother", "The particle smoother", """
           "Lindsten, F. and Schön, T. B. (2013). Backward simulation methods for Monte Carlo statistical inference. Foundations and Trends in Machine Learning 6(1), 1-143. doi:10.1561/2200000045",
           "Herbst, E. and Schorfheide, F. (2015). Bayesian Estimation of DSGE Models. Princeton University Press. doi:10.1515/9781400873739"),
           ("forward-looking-models", "likelihood-gradient"))
+add_topic("perturbation", "Second- and third-order solutions", """
+    A first-order solution treats the future as if it were certain: risk does not change
+    decisions, and responses to shocks are proportional to their size. Higher-order
+    perturbation approximates the decision rules by a polynomial in last period's states,
+    this period's shocks and the size of future uncertainty, from the model's exact
+    derivatives at the steady state.
+
+    Second order (Dynare's stoch_simul(order=2)) adds quadratic terms and a constant, the
+    correction for risk: means differ from the steady state (precautionary saving, risk
+    premia), and responses depend on the size and sign of a shock. Third order (order=3)
+    adds cubic terms and corrections for risk to the responses themselves (ghxss, ghuss in
+    Dynare's names): how strongly the economy reacts depends on how uncertain the future
+    is. The shocks are taken to be normal, so the third-order constant is zero.
+
+    Simulating the polynomial rule directly can explode, because its higher powers feed on
+    themselves. Pruning keeps each order's terms acting on the lower-order parts of the
+    state only (Kim, Kim, Schaumburg and Sims at second order; Andreasen,
+    Fernández-Villaverde and Rubio-Ramírez at third), which keeps paths stable and gives a
+    process with well-defined moments; pymetrix prunes by default, as Dynare does with
+    its pruning option. The pruned third-order mean equals the pruned second-order mean.
+
+    Impulse responses start from the stochastic steady state (where the model rests when
+    shocks are expected but none occur) or from a given state. At third order they can be
+    generalised responses: the mean difference, over draws of the other shocks, between
+    paths with and without the impulse. Model > Solution > Second-order solution solves to
+    order 2 or 3. Second-order solutions can be estimated with the particle filter; third-
+    order ones cannot yet.
+    """, ("Schmitt-Grohé, S. and Uribe, M. (2004). Solving dynamic general equilibrium models using a second-order approximation to the policy function. Journal of Economic Dynamics and Control 28(4), 755-775.",
+          "Kim, J., Kim, S., Schaumburg, E. and Sims, C. A. (2008). Calculating and using second-order accurate solutions of discrete time dynamic equilibrium models. Journal of Economic Dynamics and Control 32(11), 3397-3414.",
+          "Andreasen, M. M., Fernández-Villaverde, J. and Rubio-Ramírez, J. F. (2018). The pruned state-space system for non-linear DSGE models: theory and empirical applications. Review of Economic Studies 85(1), 1-49.",
+          "Levintal, O. (2017). Fifth-order perturbation solution to DSGE models. Journal of Economic Dynamics and Control 80, 1-16.",
+          "Koop, G., Pesaran, M. H. and Potter, S. M. (1996). Impulse response analysis in nonlinear multivariate models. Journal of Econometrics 74(1), 119-147."),
+          ("forward-looking-models", "particle-smoother"))
 add_topic("treatment-effects", "Treatment effects and policy evaluation", """
     What would the outcome have been without the policy? Difference-in-differences compares the change in treated
     units with the change in untreated ones, assuming they would have moved in parallel; an event study shows the

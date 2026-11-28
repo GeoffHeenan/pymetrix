@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Third-order perturbation.** `solve(order=3)` on a template, a Dynare or an IRIS model (or `third_order(model,
+  shocks, shock_sd)`) gives Dynare's `stoch_simul(order=3)` decision rules: the cubic terms and the corrections for
+  risk to the responses to states and shocks (ghxxx, ghxxu, ghxuu, ghuuu, ghxss, ghuss). Simulations are pruned
+  (Andreasen, Fernández-Villaverde and Rubio-Ramírez 2018) unless `pruning=False`; responses start from the
+  stochastic steady state or a given state, and are generalised with `replications`; `moments()` simulates. Every
+  term, and simulated paths, agree with Dynare 6.0's to about 1e-13. In the app: Model → Solution → Second-order
+  solution…, Order 3. Not estimated at third order.
 - **Reading part of a large Parquet file.** `Dataset.read("big.parquet", columns=[...], where="...", span=(...))`
   reads only the columns asked for and, through `pyarrow.dataset`, skips the partition folders (a folder partitioned
   as `year=2010/country=DEU/` reads too) and row groups whose statistics rule the condition out; the condition is
