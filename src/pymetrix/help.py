@@ -2030,8 +2030,8 @@ add_topic("translation-framework", "Writing a translator for another language", 
         t.report.summary()      # 3 translated, 1 left out, each with its reason
         t.run(session)          # the same work as three recorded steps
 
-    In the app, translation_panel(PanelSpec(...)) makes the panel the EViews plugin registers as View → EViews
-    translation: a row per line in the status's colour, filters, the program beside the script, Copy, Copy script
+    In the app, translation_panel(PanelSpec(...)) makes the panel the EViews plugin (pymetrix-eviews) registers as
+    View → EViews translation: a row per line in the status's colour, filters, the program beside the script, Copy, Copy script
     and Run as steps. PanelSpec says the language, where the session's translations are and which dialog makes them.
 
     For tests, pymetrix.translation.testing has assert_rows_cover (every line with text has exactly one row, every
