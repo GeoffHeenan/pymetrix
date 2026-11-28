@@ -48,7 +48,7 @@ WORKSPACES: tuple[Workspace, ...] = (
 _STAGES = {
     "explore": ("Dataset", "Selection"),
     "model": ("FittedModel", "Template", "DynareModel", "Model", "ModelSystem", "Solution", "LinearSolution", "StateSpaceSystem",
-              "Decomposition", "SweepResult", "ScenarioSet", "SecondOrderSolution", "ParticleFilter", "OptimalPolicy", "OSRResult", "Posterior",
+              "Decomposition", "SweepResult", "ScenarioSet", "SecondOrderSolution", "ThirdOrderSolution", "ParticleFilter", "OptimalPolicy", "OSRResult", "Posterior",
               "Identification", "OccBinPath", "ModelCheck", "Translation", "EViewsXmlModel", "OptimalControl"),
     "forecast": ("ForecastRound", "Backtest", "ForecastStore"),
     "report": ("Figure", "Table"),

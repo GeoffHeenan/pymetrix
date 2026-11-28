@@ -112,5 +112,5 @@ def test_the_dialog_and_errors():
     s.run(SolveSecondOrder("rbc"))
     assert "second = rbc.solve(order=2)" in s.script()
     assert [t for t, _ in view_sections(s["second"])][:2] == ["Decision rules", "Means"]
-    with pytest.raises(ValueError, match="order is 1 or 2"):
-        templates.rbc().solve(order=3)
+    with pytest.raises(ValueError, match="order is 1, 2 or 3"):
+        templates.rbc().solve(order=4)

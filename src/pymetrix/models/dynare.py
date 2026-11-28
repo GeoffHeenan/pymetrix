@@ -18,7 +18,7 @@ order of ``varexo``, as ``stoch_simul``). Macro-processor directives (``@#define
 ``@#include``, ``@{...}``...) are carried out first, as Dynare's preprocessor does: see
 ``pymetrix.models.dynare_macros``; ``@#include`` needs the model read from its file. Commands such as ``steady``,
 ``check`` and ``stoch_simul`` are listed in ``commands`` but not run. Not read: correlations of measurement errors,
-generalised prior bounds, and stoch_simul's options (``solve(order=2)`` gives the second order).
+generalised prior bounds, and stoch_simul's options (``solve(order=2)`` gives the second order, ``solve(order=3)`` the third).
 
 For estimation: ``estimated_params`` (all three forms: initial values and bounds, priors, or both;
 ``stderr`` for shock sizes, named ``sd_<shock>`` in pymetrix, and for a ``varobs`` variable's measurement error,
@@ -338,13 +338,17 @@ class DynareModel:
     @api()
     def solve(self, order: int = 1) -> Any:
         """The rational-expectations solution, with every ``varexo`` as a shock: first order, or second order
-        with the file's shock sizes (as ``stoch_simul(order=2)``)."""
+        with the file's shock sizes (as ``stoch_simul(order=2)``), or third order (as ``stoch_simul(order=3)``)."""
         if order == 2:
             from .perturbation import second_order
 
             return second_order(self.model, self.exogenous, self.shock_sd, steady=self.steady_state(), shock_corr=self.shock_corr or None)
+        if order == 3:
+            from .third_order import third_order
+
+            return third_order(self.model, self.exogenous, self.shock_sd, steady=self.steady_state(), shock_corr=self.shock_corr or None)
         if order != 1:
-            raise SpecificationError("order is 1 or 2")
+            raise SpecificationError("order is 1, 2 or 3")
         return self.linearize().solve()
 
     def __repr__(self) -> str:
