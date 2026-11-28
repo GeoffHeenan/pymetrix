@@ -169,6 +169,8 @@ A new user can:
 - Strengthen plugin conformance tests.
 - Improve performance benchmarks for expressions, panels, bootstraps and model solving.
 - Add import/export paths that reviewers identify as high value.
+- Heterogeneous-agent (HANK) models by the sequence-space Jacobian, wrapping sequence-jacobian in a plugin: proposed in [design/heterogeneous-agents.md](design/heterogeneous-agents.md).
+- R scripts translated into pymetrix, on a translation framework shared with the EViews plugin: proposed in [design/r-translator.md](design/r-translator.md).
 - Decide whether a VS Code front end is worth prototyping.
 - Build a small public example gallery.
 
