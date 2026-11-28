@@ -529,6 +529,10 @@ BUILDERS: dict[str, Callable[[], Any]] = {
     "ConformalIntervals": lambda: __import__("pymetrix").conformal(
         __import__("pymetrix").Equation("dlog(c) ~ dlog(y) + dlog(c)[-1]").fit(_macro(), span=("2000Q1", "2021Q4")), _macro(),
         ("2022Q1", "2024Q4")),
+    "ThirdOrderSolution": lambda: __import__("pymetrix").read_mod(
+        __import__("pathlib").Path(__file__).parent / "fixtures" / "dynare" / "rbc_order3.mod").solve(order=3),
+    "StabilityMapping": lambda: __import__("pymetrix").stability_mapping(
+        _nk(), draws=60, seed=1, priors={"phi_pi": __import__("pymetrix.estimation.priors", fromlist=["x"]).Uniform(0, 3)}),
     "OccBinFilter": _occbin_filter,
     "ParticleFilter": _particle_filter,
     "Translation": lambda: __import__("pymetrix").export_model(_nk(), "dynare"),
