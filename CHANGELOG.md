@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Reading part of a large Parquet file.** `Dataset.read("big.parquet", columns=[...], where="...", span=(...))`
+  reads only the columns asked for and, through `pyarrow.dataset`, skips the partition folders (a folder partitioned
+  as `year=2010/country=DEU/` reads too) and row groups whose statistics rule the condition out; the condition is
+  pymetrix's row-condition syntax, pushed down where it translates (comparisons, `in [...]`, and/or) and applied
+  exactly afterwards, so the rows are those reading everything and selecting gives. The load's provenance records the
+  filter pushed down, what was applied after reading, and the rows and row groups read against those in the file.
+  `pymetrix.io.scan(path)` gives the rows, row groups and each column's type, min, max and missing values from the
+  metadata only. File → Load data… on a Parquet file over 100 MB shows Part of a large file (columns, Rows where,
+  From, To). Projects save a selection as read; untick Keep a copy in the project (`embed=False`) to keep only the
+  file's path and fingerprint, and opening refuses a changed file (`load_project(path, changed_data="read")` reads
+  it as it is).
 - **LightGBM and XGBoost learners, SHAP values and conformal intervals.** `LightGBM()` and `XGBoost()` (extras
   `[lightgbm]`, `[xgboost]`) fit equations as the scikit-learn learners do, on one thread in the libraries'
   reproducible modes, and are double ML's learners `"lightgbm"` and `"xgboost"`. `shap_values(fit)` or `fit.shap()`

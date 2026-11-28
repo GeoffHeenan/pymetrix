@@ -54,16 +54,35 @@ def write_parquet(ds: Dataset, path: str, **kw: Any) -> None:
     pq.write_table(table, path, **kw)
 
 
-def read_parquet(path: str, **kw: Any) -> Dataset:
+def read_parquet(path: Any, columns: Any = None, where: str | None = None, span: Any = None, **kw: Any) -> Dataset:
+    """A dataset from a Parquet file, or a folder of them (partitioned as ``year=2010/country=DEU/...``). ``columns``,
+    ``where`` and ``span`` read only part of it (``pymetrix.io.selection.read_selected``); without them a file is read
+    whole, as it always was."""
+    from pathlib import Path
+
+    if columns is not None or where is not None or span is not None or (isinstance(path, (str, Path)) and Path(path).is_dir()):
+        from .selection import read_selected
+
+        return read_selected(str(path), columns, where, span, **kw)
     table = pq.read_table(path)
-    stored = table.schema.metadata or {}
+    return frame_to_dataset(table.to_pandas(), pymetrix_meta(table.schema.metadata or {}, path), kw)
+
+
+def pymetrix_meta(stored: dict[bytes, bytes], path: Any) -> dict[str, Any] | None:
+    """pymetrix's metadata from a Parquet schema's key-value metadata (None for a plain file)."""
     raw = next((stored[k] for k in (KEY, *LEGACY_KEYS) if k in stored), None)
-    df = table.to_pandas()
-    if raw is None:  # a plain Parquet file: the caller names the axes
-        return Dataset.from_frame(df, **kw)
+    if raw is None:
+        return None
     meta = json.loads(raw)
     if meta.get("format_version", 1) > FORMAT_VERSION:
         raise DataError(f"{path} was written by a newer version of pymetrix")
+    return meta
+
+
+def frame_to_dataset(df: pd.DataFrame, meta: dict[str, Any] | None, kw: dict[str, Any]) -> Dataset:
+    """The dataset from a Parquet file's rows: by pymetrix's metadata, or, for a plain file, the axes named in ``kw``."""
+    if meta is None:  # a plain Parquet file: the caller names the axes
+        return Dataset.from_frame(df, **kw)
     axes = tuple(_axis_from_dict(a) for a in meta["axes"])
     for a in axes:
         if isinstance(a, TimeAxis):
@@ -94,7 +113,14 @@ def _with_flags(ds: Dataset, triples: list[list[Any]]) -> Dataset:
         return ds
     flags = pd.DataFrame(index=ds.frame.index)
     for name, parts, status in triples:
+        if name not in ds.frame.columns:
+            continue  # a series not read (columns=)
+        key = ds.row_key(tuple(parts) if len(parts) > 1 else parts[0])
+        if key not in flags.index:
+            continue  # a row not read (where=, span=)
         if name not in flags.columns:
             flags[name] = pd.Series(None, index=ds.frame.index, dtype=object)
-        flags.loc[ds.row_key(tuple(parts) if len(parts) > 1 else parts[0]), name] = status
+        flags.loc[key, name] = status
+    if flags.columns.empty:
+        return ds
     return Dataset(ds.frame, ds.axes, ds.variables, flags, ds.meta)

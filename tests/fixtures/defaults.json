@@ -1285,11 +1285,16 @@
   "system": "<required>"
  },
  "command pymetrix:load_data (schema 1)": {
+  "columns": "",
+  "embed": true,
+  "end": "",
   "entity": "",
   "freq": "",
   "name": "data",
   "path": "<required>",
-  "time": ""
+  "start": "",
+  "time": "",
+  "where": ""
  },
  "command pymetrix:load_example (schema 1)": {
   "dataset": "sample_macro",

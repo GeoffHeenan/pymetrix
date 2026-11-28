@@ -1177,6 +1177,48 @@ add_topic("data-connectors", "Data connectors", """
     and structures for a week (in ~/.pymetrix/cache/connectors), so browsing again is
     quick; tick "Ask again" to skip them. A key is never written there.
     """, (), ("nowcasting",))
+add_topic("large-data", "Large Parquet data", """
+    pymetrix keeps a dataset in memory, so a Parquet file larger than memory, or than is
+    comfortable, is read in part: only the columns and rows needed. pyarrow does the
+    reading (pyarrow.dataset), from one file or a folder of files partitioned by their
+    folder names (year=2010/country=DEU/...).
+
+    Look first, without reading data: pymetrix.io.scan("big.parquet") gives the rows,
+    row groups and files, and each column's type, smallest and largest value and
+    missing values, from the files' footers. Then read part of it:
+    Dataset.read("big.parquet", columns=["gdp", "cpi"], where="country in ['DEU', 'FRA']
+    and gdp > 0", span=("2000Q1", "2019Q4")). The time and entity columns are always
+    read; so are the columns the condition uses, dropped afterwards if not asked for.
+
+    What is pushed down to pyarrow: comparisons of a column with a value (x > 3,
+    country == 'DEU', x != 0), in [...] and not in [...], and, on the time axis and date
+    columns, < <= > >= with a period or date in quotes; joined by and (each part that
+    can be pushed is) or by or (when every part can). span= is pushed the same way. A
+    partition folder or a row group whose statistics show no row can match is not read,
+    so a condition on a column the file is sorted or partitioned by saves the most.
+    What is not pushed: arithmetic and functions (log(x) > 1), comparisons of two
+    columns, not, and ==, != and in on periods and dates. Those parts are applied to the
+    rows read, and the whole condition is then applied exactly as Dataset.select applies
+    it, so the rows kept are those reading the whole file and selecting would keep. The
+    load's provenance (meta.extra["loads"]) says what was read: the columns, condition
+    and span, the filter pushed down, the parts applied after reading, and the rows, row
+    groups and files read against those in the data.
+
+    In the app, File → Load data… on a Parquet file larger than 100 MB shows Part of a
+    large file: the columns to tick, a row condition and the first and last periods.
+
+    Projects keep a dataset as it was read: a selection is saved as selected, not the
+    whole file. For a read too large to copy into the project, untick Keep a copy in the
+    project (embed=False in code): the project keeps the file's path and a fingerprint
+    of its contents (from each file's size and footer), reads the file again on opening,
+    and refuses to open if the file has changed or gone, rather than compute other numbers
+    without saying so; load_project(path, changed_data="read") reads it as it is now.
+
+    Everything after reading is in memory as before: estimation, models and matrices
+    (dense) work on the rows and columns read. The known gaps page lists what a lazy
+    engine would add.
+    """, ("Apache Parquet. File format. https://parquet.apache.org/docs/file-format/",),
+    ("samples", "data-connectors", "programs-and-projects"))
 add_topic("algebraic-notation", "Algebraic notation", """
     Equations can be shown as an economist writes them: cₜ = β₀ + β₁ yₜ + β₂ cₜ₋₁ + εₜ
     for the formula c ~ y + c[-1]. Turn it on with View → Algebraic notation, or
