@@ -52,7 +52,7 @@ class MapStability(Command):
                                        "or template with priors on its parameters")]
     draws: Annotated[int, Widget("number", min=10, max=100000, step=100,
                                  help="draws from the priors; the shares' standard errors fall as 1/sqrt(draws)")] = 2000
-    seed: Annotated[int, Widget("number", min=0, max=2**31 - 1, help="the random seed, so the draws can be repeated")] = 0
+    seed: Annotated[int, Widget("number", min=0, max=2**31 - 1, advanced=True, help="the random seed, so the draws can be repeated")] = 0
     pvalue_ks: Annotated[float, Widget("number", min=1e-12, max=0.5, step=0.001, advanced=True,
                                        help="a parameter drives stability when its Smirnov p-value is below this (Dynare's pvalue_ks)")] = 0.001
     name: str = "stability"
