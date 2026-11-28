@@ -5,7 +5,10 @@ Contents::
     manifest.json     format version, package version, saved time, objects
     commands.json     the steps: each command's stable ID, schema version and field values
     session.py        the same commands as a Python script
-    data/<name>.parquet   every dataset the session started from (with metadata)
+    data/<name>.parquet   every dataset the session started from (with metadata), as read: a selection
+                          (Dataset.read(..., columns=, where=, span=)) is kept as selected, not the whole file;
+                          one read with embed=False is not copied: the manifest's "references" keep its path and
+                          fingerprint, and opening reads the file again, refusing if it has changed
     opened/<n>.pymxr  every saved result an Open result step read (pymetrix.saved), as it was read
     results/<step>.pkl    results of slow steps, so opening does not compute them again
     course/<n>/...    course material attached to the session: notes, notebooks and the files they use
@@ -158,6 +161,8 @@ def save_project(session: Session, path: str | Path, as_copy: bool = False) -> P
     needed = dict(zip(map(id, session.history), session.needed()))
     records = [r for r in session.history if r.ok or r.skipped or r.pruned or r.deferred]
     roots, info = _starting_points(session)
+    references = _references(roots)
+    roots = {n: ds for n, ds in roots.items() if n not in references}
     cache = _cache(session, records, needed)
     manifest = {
         "format_version": FORMAT_VERSION,
@@ -177,6 +182,8 @@ def save_project(session: Session, path: str | Path, as_copy: bool = False) -> P
     }
     if attachments:
         manifest["attachments"] = {key: sorted(files) for key, files in attachments.items()}
+    if references:
+        manifest["references"] = references  # large data kept as a reference (Dataset.read(..., embed=False)), not a copy
     opened = _opened(session, records)
     if opened:
         manifest["opened"] = {p: f"opened/{i}.pymxr" for i, p in enumerate(opened)}  # copies of the saved results opened
@@ -214,6 +221,36 @@ def save_project(session: Session, path: str | Path, as_copy: bool = False) -> P
 
         remember(manifest["cache"]["fingerprint"], f"{path.name} (saved results)")
     return path
+
+
+def _references(roots: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Datasets read with ``embed=False``: kept in the project as the file's path and fingerprint (the selection is in
+    the load step), not as a copy of the data."""
+    out = {}
+    for name, ds in roots.items():
+        request = ds.meta.vintage if isinstance(ds.meta.vintage, dict) else {}
+        if request.get("policy") == "file" and request.get("embed") is False and request.get("fingerprint"):
+            out[name] = {"path": request["path"], "source": request.get("source"), "fingerprint": request["fingerprint"]}
+    return out
+
+
+def _check_references(path: Path, manifest: dict[str, Any], changed_data: str) -> None:
+    """Files a project refers to (rather than embeds) must be there, unchanged: otherwise opening would compute other
+    numbers without saying so. ``changed_data="read"`` reads them as they are now."""
+    from ..errors import DataError
+    from ..io.selection import fingerprint
+
+    if changed_data not in ("refuse", "read"):
+        raise SpecificationError(f"changed_data is 'refuse' or 'read', not {changed_data!r}")
+    for name, ref in manifest.get("references", {}).items():
+        file = Path(ref["path"])
+        if not file.exists():
+            raise DataError(f"{path.name}: dataset {name} is kept as a reference to {file}, which does not exist; put the "
+                            "file back there to open the project")
+        if changed_data == "refuse" and fingerprint(file) != ref["fingerprint"]:
+            raise DataError(f"{path.name}: dataset {name} is kept as a reference to {file}, which has changed since the "
+                            "project was saved, so its results would change; restore the file, or open the project with "
+                            "load_project(path, changed_data='read') to read the file as it is now")
 
 
 def _attachments(session: Session) -> dict[str, dict[str, bytes]]:
@@ -296,12 +333,16 @@ def _trust_own_code(session: Session, records: list[CommandRecord], path: Path) 
         remember(code_fingerprint(steps), path.name)
 
 
-def load_project(path: str | Path, trust: bool | None = None) -> Session:
+def load_project(path: str | Path, trust: bool | None = None, changed_data: str = "refuse") -> Session:
     """Open a project: restore its data and replay its steps.
 
     ``trust``: None (default) runs the typed code only if it is trusted; True runs it and
     trusts it from now on; False never runs it. Code that is not run is kept in the
-    history, marked as not run, and saved again with the project."""
+    history, marked as not run, and saved again with the project.
+
+    ``changed_data``: a dataset kept as a reference to its file (``Dataset.read(..., embed=False)``) is read from the
+    file again; "refuse" (the default) raises ``DataError`` if the file's fingerprint differs from the one saved,
+    "read" reads it as it is now."""
     from ..figures import set_house_style
 
     set_house_style(None)  # a project's house style is the one its own steps set
@@ -316,6 +357,7 @@ def load_project(path: str | Path, trust: bool | None = None) -> Session:
             raise SpecificationError(f"{path.name} was saved by a newer version of pymetrix ({manifest.get('package_version', '?')}); "
                              f"upgrade pymetrix to open it")
         commands = json.loads(z.read("commands.json"))
+        _check_references(path, manifest, changed_data)
         datasets = {name: read_parquet(io.BytesIO(z.read(f"data/{name}.parquet"))) for name in manifest.get("datasets", [])}
         course_dirs = _unpack_courses(z, manifest.get("courses", []))
         opened = {p: z.read(name) for p, name in manifest.get("opened", {}).items()}  # plain files: no trust needed

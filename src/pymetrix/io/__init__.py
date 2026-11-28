@@ -7,6 +7,7 @@ a URI scheme such as ``sdmx://``, so the core depends on none of them.
 
 from .parquet import read_parquet, write_parquet
 from .registry import Connector, columns, connectors, read, register_reader, register_writer, write
+from .selection import ParquetScan, scan
 from .tabular import read_csv, read_excel, write_csv, write_excel
 
 
@@ -18,4 +19,4 @@ for _ext in (".xlsx", ".xls"):
     register_reader(_ext, read_excel)
 register_writer(".xlsx", write_excel)
 
-__all__ = ["Connector", "connectors", "read", "register_reader", "register_writer", "write"]
+__all__ = ["Connector", "ParquetScan", "connectors", "read", "register_reader", "register_writer", "scan", "write"]

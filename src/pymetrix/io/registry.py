@@ -66,7 +66,11 @@ def register_writer(key: str, fn: Writer) -> None:
 
 def _key(location: str) -> str:
     m = _SCHEME.match(location)
-    return m.group(1).lower() if m else Path(location).suffix.lower()
+    if m:
+        return m.group(1).lower()
+    if Path(location).is_dir():
+        return ".parquet"  # a folder of Parquet files (a partitioned dataset)
+    return Path(location).suffix.lower()
 
 
 def _lookup(table: dict[str, Any], location: str, what: str) -> Any:
@@ -85,6 +89,10 @@ def columns(source: str) -> list[str]:
     key = _key(source)
     try:
         if key == ".parquet":
+            if Path(source).is_dir():  # a partitioned folder: its files' columns and the partition columns
+                import pyarrow.dataset as pads
+
+                return list(pads.dataset(source, format="parquet", partitioning="hive").schema.names)
             import pyarrow.parquet as pq
 
             return list(pq.read_schema(source).names)
@@ -224,8 +232,11 @@ def _with_load(data: Dataset, source: str, options: dict[str, Any]) -> Dataset:
     entry = {"source": source, "retrieved": datetime.now().isoformat(timespec="seconds")}
     if options:
         entry["options"] = {k: str(v) for k, v in options.items()}
-    loads = [*list((data.meta.extra or {}).get("loads", [])), entry]
-    meta = replace(data.meta, extra={**dict(data.meta.extra or {}), "loads": loads})
+    extra = dict(data.meta.extra or {})
+    if "_selection" in extra:  # what a Parquet read with columns=, where= or span= read (pymetrix.io.selection)
+        entry["selection"] = extra.pop("_selection")
+    loads = [*list(extra.get("loads", [])), entry]
+    meta = replace(data.meta, extra={**extra, "loads": loads})
     return type(data)(data.frame, data.axes, data.variables, data.flags, meta)
 
 

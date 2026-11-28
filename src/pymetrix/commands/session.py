@@ -373,7 +373,8 @@ class Session:
             from ..io import columns
 
             path = values.get(spec.depends_on or "", "")
-            return [""] + columns(path) if path else [""]
+            blank = [] if spec.multiple else [""]  # a list to tick (Load data's columns of a large file) has no blank
+            return blank + columns(path) if path else blank
         if spec.kind == "dataset":
             from ..datasets import available
 

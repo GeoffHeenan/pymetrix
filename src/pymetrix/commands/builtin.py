@@ -83,6 +83,19 @@ def _code(obj: Any) -> str:
     return f"{type(obj).__name__}({', '.join(shown)})"
 
 
+class _LargeParquet:
+    """The paths for which Load data shows its "Part of a large file" fields: Parquet files and folders larger than
+    ``pymetrix.io.selection.LARGE`` (a ``show_if`` value list that is a test rather than a list)."""
+
+    def __contains__(self, path: object) -> bool:
+        from ..io.selection import is_large_parquet
+
+        return isinstance(path, str) and bool(path) and "://" not in path and is_large_parquet(path)
+
+    def __repr__(self) -> str:
+        return "large Parquet files"
+
+
 @command(menu="File/Load data...")
 @dataclass(frozen=True)
 class LoadData(Command):
@@ -96,6 +109,11 @@ class LoadData(Command):
     that follow the frequency (the HP smoothing parameter, band-pass cycle lengths) and the periods forecasts are
     dated in. Check the dataset's overview after loading: a frequency read wrongly, or a fiscal year
     taken for a calendar year, shifts every date without raising an error.
+
+    For a Parquet file larger than 100 MB, the dialog also offers Part of a large file: the columns to read, a row
+    condition and a span of periods. pyarrow then reads only those columns, and skips the row groups the condition
+    and span rule out; the dataset holds only the rows and columns selected, and projects keep that selection, not the
+    whole file. Untick Keep a copy in the project to keep only the file's path and fingerprint instead.
     """
 
     path: Annotated[str, Widget("file", source="Data files (*.parquet *.csv *.xlsx *.xls);;All files (*)",
@@ -103,10 +121,49 @@ class LoadData(Command):
     time: Annotated[str, Widget("column", depends_on="path", help="column of dates or periods (not needed for our Parquet files)")] = ""
     entity: Annotated[str, Widget("column", depends_on="path", help="column identifying countries, firms, households... (panels, cross-sections)")] = ""
     freq: Annotated[Literal["", "Y", "Y-JUN", "Q", "M", "W", "D"], Widget("choice", help="period frequency of the time column; Y-JUN = July-June fiscal year")] = ""
+    columns: Annotated[str, Widget("column", depends_on="path", multiple=True, show_if=("path", _LargeParquet()),
+                                   group="Part of a large file", label="Columns",
+                                   help="the series to read (none ticked: all); the time and entity columns are always read")] = ""
+    where: Annotated[str, Widget("text", show_if=("path", _LargeParquet()), group="Part of a large file", label="Rows where",
+                                 help="read only these rows, e.g. country in ['DEU', 'FRA'] and year >= 2000; row groups "
+                                      "the condition rules out are not read")] = ""
+    start: Annotated[str, Widget("text", show_if=("path", _LargeParquet()), group="Part of a large file", label="From",
+                                 help="the first period to read, e.g. 2000Q1 (empty: from the start)")] = ""
+    end: Annotated[str, Widget("text", show_if=("path", _LargeParquet()), group="Part of a large file", label="To",
+                               help="the last period to read, included (empty: to the end)")] = ""
+    embed: Annotated[bool, Widget("checkbox", show_if=("path", _LargeParquet()), group="Part of a large file",
+                                  label="Keep a copy in the project",
+                                  help="off: the project keeps the file's path and fingerprint, reads it again on "
+                                       "opening, and refuses if it has changed")] = True
     name: str = "data"
 
-    def _kw(self) -> dict[str, str]:
-        return {k: v for k, v in (("time", self.time), ("entity", self.entity), ("freq", self.freq)) if v}
+    def _parquet(self) -> bool:
+        from pathlib import Path
+
+        return self.path.lower().endswith(".parquet") or ("://" not in self.path and Path(self.path).is_dir())
+
+    def _kw(self) -> dict[str, Any]:
+        kw: dict[str, Any] = {k: v for k, v in (("time", self.time), ("entity", self.entity), ("freq", self.freq)) if v}
+        if self._parquet():  # the selection fields are offered for Parquet only; for other files they stay unused
+            if _names(self.columns):
+                kw["columns"] = _names(self.columns)
+            if self.where.strip():
+                kw["where"] = self.where.strip()
+            if _span(self.start, self.end):
+                kw["span"] = _span(self.start, self.end)
+            if not self.embed:
+                kw["embed"] = False
+        return kw
+
+    def validate(self, session: Session) -> list[str]:
+        if self._parquet() and self.where.strip():
+            from ..data.conditions import ConditionError, check_condition
+
+            try:
+                check_condition(self.where.strip())
+            except ConditionError as exc:
+                return [str(exc)]
+        return []
 
     def to_call(self) -> Any:
         from ..calls import make_call

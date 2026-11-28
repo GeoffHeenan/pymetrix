@@ -207,12 +207,22 @@ class Dataset:
 
     @classmethod
     @api("pymetrix:dataset.read", show=lambda arguments: {"vintage"} if "://" in str(arguments.get("source", "")) else set())
-    def read(cls, source: str, vintage: str = "latest", **kw: Any) -> Dataset:
+    def read(cls, source: str, vintage: str = "latest", *, columns: Sequence[str] | str | None = None, where: str | None = None,
+             span: Span | str | None = None, embed: bool = True, **kw: Any) -> Dataset:
         """Read a file (by its extension) or a connector's address (``fred://GDPC1``).
 
         ``vintage`` is which release of a connector's data to ask for: ``"latest"`` (the default, written out in
         generated code) or a date (``"2020-01-30"``, the data as published then, where the provider keeps
-        vintages). The request is kept in ``meta.vintage`` and in the provenance of every result from the data."""
+        vintages). The request is kept in ``meta.vintage`` and in the provenance of every result from the data.
+
+        For a Parquet file, or a folder of them (partitioned as ``year=2010/...``), ``columns``, ``where`` (a row
+        condition, as in ``select``) and ``span`` (``(start, end)`` on the time axis) read only part of it: pyarrow
+        skips the columns not named and the folders and row groups the condition rules out, and the condition is then
+        applied exactly (``pymetrix.io.selection``). What was read is kept in ``meta.extra["loads"]``.
+
+        ``embed=False`` asks projects to keep only a reference to the file (its path, the selection, and a fingerprint
+        of its contents) instead of a copy of the data read; opening the project reads the file again, and refuses if
+        the file has changed. For data too large to copy into every project."""
         from datetime import datetime
         from pathlib import Path
 
@@ -223,7 +233,14 @@ class Dataset:
             if not remote:
                 raise DataError(f"vintage= is for connectors (fred://, sdmx://...); {source} is a file")
             kw["vintage"] = vintage
-        data = read(source, **kw)
+        selection = {k: v for k, v in (("columns", columns), ("where", where), ("span", span)) if v is not None}
+        parquet = not remote and (Path(str(source)).is_dir() or str(source).lower().endswith(".parquet"))
+        if selection and not parquet:
+            raise DataError(f"columns=, where= and span= read part of a Parquet file or folder; {source} is not one: "
+                            "read it whole, then use keep() and select()")
+        if not embed and not parquet:
+            raise DataError(f"embed=False keeps a reference to a Parquet file or folder in projects; {source} is not one")
+        data = read(source, **selection, **kw)
         if remote:
             request = {"policy": "as_of", "date": str(vintage)} if vintage not in (None, "latest") else \
                 {"policy": "latest", "retrieved": datetime.now().isoformat(timespec="seconds")}
@@ -231,6 +248,10 @@ class Dataset:
             path = Path(str(source))
             modified = datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="seconds") if path.exists() else None
             request = {"policy": "file", "source": str(source), "modified": modified}
+            if not embed:
+                from ..io.selection import fingerprint
+
+                request.update(embed=False, path=str(path.resolve()), fingerprint=fingerprint(path))
         return Dataset(data.frame, data.axes, data.variables, data.flags, replace(data.meta, vintage=request))
 
     @renamed_arguments(target="path")
