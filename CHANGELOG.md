@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Extension API 1.11** (additive): **`pymetrix.translation`**, the translation framework, for a plugin that
+  translates programs written for other software (docs/design/r-translator.md, phase 0). The EViews plugin's
+  translator machinery that is not about EViews moved into core: the intermediate representation a statement
+  becomes, the report with a row per line (`ReportRow.source`; its column named by the language), `Translation`
+  (subclassed per language: its steps' source and project key), the readable script, steps mode, the outcome and its
+  statuses, the name allocator, the translation panel (`PanelSpec`, `translation_panel`) and checks for a front
+  end's tests (`pymetrix.translation.testing`). `Def` gains `result`, the one value a function returns.
+  `pymetrix.translation` is a stable module (`pymetrix.extension.STABLE`); `Translation`, `TranslationReport`,
+  `TranslationOutcome`, `TranslationPanelSpec` and `translation_panel` are also in `pymetrix.extension`. The help
+  topic "Writing a translator for another language" and `examples/translation_toy.py`, a toy language of two
+  statements, show a front end end to end. `pymetrix-eviews` now builds on it, with no change in what it does (its
+  modules keep their names; `ReportRow.eviews` stays). `plugins.API` is now `"1.11"`.
 - **HC0, HC2 and HC3 standard errors, and a time axis from a first period** (R's `vcovHC` and `ts`). `OLS(cov="hc3")`
   (and `"hc0"`, `"hc2"`; Standard errors in Estimate → Equation…) gives R's `sandwich::vcovHC` default; `"white"` is
   still HC1, and no default changed. HC2 and HC3 are for linear OLS, weighted or restricted; HC0 also for IV.

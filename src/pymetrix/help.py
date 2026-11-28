@@ -2001,6 +2001,44 @@ add_topic("custom-estimators", "Writing your own estimator or solver", """
     built-in one. The repository's examples folder has a ridge-regression estimator and
     a damped Newton solver; pymetrix.testing.check_entry checks yours.
     """, (), ("least-squares", "model-solution"))
+add_topic("translation-framework", "Writing a translator for another language", """
+    pymetrix.translation is the machinery behind the EViews plugin's program translator that is not about EViews,
+    for a plugin that translates programs written for other software (R, Stata). It is a stable module (extension
+    API 1.11). A front end reads its language; pymetrix.translation makes the three things a translation is, from
+    one representation, so they cannot drift apart: the readable script, each line of the program a comment above
+    the Python it became; the report, a row per line with text, with its status (translated, translated with a
+    note, left out, error) and the reason; and steps mode, the same work run as recorded steps in a session.
+
+    A front end does three things. It reads the program into a Source: its lines, its statements (each a Statement
+    with its text, first and last line) and its comments. It gives each statement an Outcome: a status, a reason and
+    the ops it becomes, from the intermediate representation: Step (a recorded call of pymetrix's API, made with
+    make_call: its function ID, the variable it is made on, the one it makes, and its arguments), Cmd (a recorded
+    command), Code (Python that is not a step: a scalar, a string), and For, While, If, Def, Invoke and Jump for
+    control flow. Text is an expression with the program's variables in it: an f-string in the script, their values
+    in steps mode. A statement that does not translate raises left(reason) or error(reason); left_reason(why,
+    equivalent) writes a reason with pymetrix's equivalent. Then render writes the script's body, report_rows the
+    report's rows, and a subclass of Translation, which names the language (the report's column), the steps' source
+    (recorded_by) and the key the project keeps the script under (attachments), runs the steps.
+
+    The repository's examples folder has a translator for a toy language of two statements,
+    examples/translation_toy.py: years 2001 2005 makes an annual dataset, let y = 2 * t + 1 a series, and -- starts
+    a comment; print is left out as display only, anything else is an error. Its translate_toy is the whole front
+    end, about forty lines:
+
+        t = translate_toy("years 2001 2005\\nlet t = obsnum()\\nlet y = 2 * t + 1\\nprint y\\n")
+        print(t.script)         # data = Dataset.empty("Y", "2001", "2005") ... under each line as a comment
+        t.report.summary()      # 3 translated, 1 left out, each with its reason
+        t.run(session)          # the same work as three recorded steps
+
+    In the app, translation_panel(PanelSpec(...)) makes the panel the EViews plugin registers as View → EViews
+    translation: a row per line in the status's colour, filters, the program beside the script, Copy, Copy script
+    and Run as steps. PanelSpec says the language, where the session's translations are and which dialog makes them.
+
+    For tests, pymetrix.translation.testing has assert_rows_cover (every line with text has exactly one row, every
+    row left out or in error a reason), status_counts (fix them per fixture program, so any change in the
+    translation shows) and assert_steps_equal_script (the script run as Python and the steps run in a session give
+    equal objects). docs/design/plugins.md lists the module's names; docs/design/r-translator.md is the plan for R.
+    """, (), ("custom-estimators",))
 add_topic("local-projections", "Local projections", """
     Local projections estimate impulse responses directly: for each horizon h, regress the
     response at t+h on the shock at t and on lags of the variables; the coefficient on the

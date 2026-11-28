@@ -33,13 +33,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from pymetrix.translation import WHILE_CAP  # passes of a while loop in steps mode before it stops (ProgramTranslation.run)
+
 from .ir import Code, Def, For, If, Invoke, Jump, Text, Var, While, name_code, quote
 from .parse import Program, Statement, parse_program
 from .report import ERROR, LEFT, NOTE, TRANSLATED
 
 __all__ = ["Flow", "Node", "PLACEHOLDER", "ProgramValues", "WHILE_CAP", "build", "dynamic_ops", "render_code"]
-
-WHILE_CAP = 10_000  # passes of a while loop in steps mode before it stops with an error (ProgramTranslation.run)
 
 PLACEHOLDER = re.compile(r"pmxrt(\d+)z")  # a program variable's value in a name, while a statement is translated
 

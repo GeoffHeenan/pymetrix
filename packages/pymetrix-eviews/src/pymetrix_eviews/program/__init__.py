@@ -16,6 +16,10 @@ program runs, subroutines (typed arguments, ``local``) and ``call``, included pr
 ``stop``, the program's arguments (``%0``, ``%1``) and names made from its variables (``{%s}``); the script keeps
 them as Python blocks and functions, and steps mode runs them in Python, each statement inside a recorded step.
 What has no pymetrix equivalent (graphs, tables, display) is left out with the reason: every line has a row.
+
+The parts that are not about EViews (the intermediate representation, the report, the script writer, steps mode and
+the panel) are core's ``pymetrix.translation`` (extension API 1.11); this package reads EViews and says what each
+statement becomes.
 """
 
 from __future__ import annotations
@@ -23,12 +27,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from pymetrix.translation import flatten, pymetrix_imports, render, report_rows
+
 from .control import WHILE_CAP, Flow, build, functions_of, ops_of
 from .data import Outcome, Translator, _Page, _Py, _UNKNOWN
 from .ir import Code, quote
 from .parse import Program, parse_program
-from .report import LEFT, NOTE, STATUSES, TRANSLATED, ProgramTranslation, ReportRow, TranslationReport
-from .script import render
+from .report import LANGUAGE, LEFT, NOTE, STATUSES, TRANSLATED, ProgramTranslation, ReportRow, TranslationReport
 
 __all__ = ["STATUSES", "WHILE_CAP", "ProgramTranslation", "ReportRow", "TranslationReport", "parse_program", "translate_program"]
 
@@ -83,8 +88,8 @@ def translate_program(source: Any, bundle: Any = None, *, read_options: dict[str
     for o in _flat(outcomes):
         if o.kind == "include" and getattr(o, "program", None) is not None:
             sources.setdefault(o.included_file, o.program.source)
-    return ProgramTranslation(script, TranslationReport(tuple(rows), name), name, ops, pages, tuple(functions), dict(given),
-                              arguments, sources, where)
+    return ProgramTranslation(script, TranslationReport(tuple(rows), name, LANGUAGE), name, ops, tuple(functions), dict(given),
+                              arguments, sources, where, pages=pages)
 
 
 def _given(translator: Translator, objects: Any) -> dict[str, Any]:
@@ -151,19 +156,7 @@ def _arguments(translator: Translator, args: Any, text: str) -> tuple[list[Any],
     return ops, arguments
 
 
-def _flat(outcomes: list[Any]) -> list[Any]:
-    out = []
-    for o in outcomes:
-        if o is None:
-            continue
-        out.append(o)
-        out += _flat(o.children)
-        if o.else_outcome is not None:
-            out.append(o.else_outcome)
-        out += _flat(o.orelse)
-        if o.closer is not None:
-            out.append(o.closer)
-    return out
+_flat = flatten  # every outcome, a block's body, else branch and end included (core's)
 
 
 def _finish(translator: Translator, outcomes: list[Outcome]) -> None:
@@ -192,71 +185,13 @@ def _finish(translator: Translator, outcomes: list[Outcome]) -> None:
             o.status = NOTE
 
 
-def _python(outcome: Outcome) -> str:
-    from .script import op_code
-
-    return "\n".join(op_code(op) for op in outcome.ops)
-
-
 def _rows(program: Program, outcomes: list[Any], name: str, file: str = "") -> list[ReportRow]:
     """A row per line with text of the program (``file`` '' for the main one), and after an ``include`` line, the
-    rows of the included program under its name."""
-    by_line: dict[int, tuple[Outcome, bool]] = {}
-    includes: dict[int, Outcome] = {}
-    for o in _flat(outcomes):
-        if o.file != file:
-            continue
-        if o.kind == "include" and o.status in (TRANSLATED, NOTE):
-            includes[o.statement.line] = o
-        for line in range(o.statement.line, o.statement.last_line + 1):
-            by_line.setdefault(line, (o, line == o.statement.line))
-    shown = file or name
-    rows = []
-    for number, raw in enumerate(program.lines, start=1):
-        if not raw.strip():
-            continue
-        found = by_line.get(number)
-        if found is None:
-            if number in program.comments:
-                rows.append(ReportRow(number, TRANSLATED, raw, "# " + program.comments[number], "a comment", shown))
-            else:
-                rows.append(ReportRow(number, TRANSLATED, raw, "", "", shown))
-            continue
-        o, first = found
-        if first:
-            rows.append(ReportRow(number, o.status, raw, _python(o), o.reason, shown))
-        else:
-            rows.append(ReportRow(number, o.status, raw, "", f"continues line {o.statement.line}", shown))
-        inc = includes.get(number) if first else None
-        if inc is not None and inc.children is not None:
-            sub_program = _program_of(inc)
-            if sub_program is not None:
-                rows += _rows(sub_program, inc.children, name, _file_of(inc))
-    return rows
+    rows of the included program under its name (core's ``report_rows``)."""
+    return report_rows(program, outcomes, name, file, ReportRow)
 
 
-def _program_of(o: Outcome) -> Program | None:
-    return getattr(o, "program", None)
-
-
-def _file_of(o: Outcome) -> str:
-    return getattr(o, "included_file", "")
-
-
-def _imports(text: str) -> list[str]:
-    """pymetrix's names the script's code uses (``Equation(``, ``Dataset.read``, ``read_eviews(``), outside comments."""
-    import re
-
-    import pymetrix
-
-    public = set(pymetrix.__all__)
-    code = "\n".join(line for line in text.split("\n") if not line.lstrip().startswith("#"))
-    # strings and trailing comments out, in one pass from the left: a comment's apostrophe (the program's names)
-    # does not open a string, and a # inside a string does not start a comment
-    code = re.sub(r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\'|#[^\n]*', lambda m: "" if m.group().startswith("#") else '""', code)
-    found = {m.group(1) for m in re.finditer(r"(?<![\w.])([A-Za-z_]\w*)\s*[.(]", code)}
-    order = ["Dataset", "Matrix", "Sample"]
-    return [n for n in order if n in found and n in public] + sorted(n for n in found if n in public and n not in order)
+_imports = pymetrix_imports  # pymetrix's names the script's code uses, outside comments and strings (core's)
 
 
 def _script(program: Program, outcomes: list[Any], functions: list[Any], flow: Flow, name: str, uses_bundle: bool,

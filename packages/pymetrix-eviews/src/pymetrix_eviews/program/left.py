@@ -8,6 +8,8 @@ Every statement is either translated or left out with one of these reasons: noth
 
 from __future__ import annotations
 
+from pymetrix.translation import left_reason  # a reason as the report gives it (core, extension API 1.11)
+
 __all__ = ["GAP_FUNCTIONS", "PROGRAM_FUNCTIONS", "PHASE2_COMMANDS", "PHASE3_WORDS", "PHASE4_COMMANDS", "PHASE4_METHODS",
            "STATISTICS", "left_reason"]
 
@@ -82,8 +84,3 @@ PROGRAM_FUNCTIONS = frozenset({
     "@option", "@inner", "@transpose", "@inverse", "@identity", "@vec", "@unvec", "@filledmatrix", "@filledvector",
     "@convert", "@zeros", "@ones", "@getmaindiagonal", "@makediagonal", "@rank", "@det", "@trace", "@cholesky",
 })
-
-
-def left_reason(why: str, equivalent: str = "") -> str:
-    """A reason as the report gives it: why, then pymetrix's equivalent where there is one."""
-    return f"{why}; in pymetrix: {equivalent}" if equivalent and equivalent != "none" else why

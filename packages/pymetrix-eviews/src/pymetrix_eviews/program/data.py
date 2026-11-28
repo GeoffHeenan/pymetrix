@@ -11,7 +11,6 @@ in a loop, a subroutine or from the data) is used by name, and a name made from 
 
 from __future__ import annotations
 
-import builtins
 import math
 import re
 from dataclasses import dataclass, field, replace
@@ -21,6 +20,7 @@ from typing import Any
 from pymetrix.extension import EViewsBinary, EViewsBrackets, EViewsCall, EViewsCoefficient, EViewsExpressionError, EViewsName
 from pymetrix.extension import EViewsNegative, EViewsNumber, parse_eviews_expression, render_eviews_expression
 from pymetrix.extension import walk_eviews_expression
+from pymetrix.translation import Outcome, Untranslated, allocate_name, reserved_names
 
 from ..bundle import _py_name
 from .estimation import ESTIMATORS, LEFT_ESTIMATORS, Estimation
@@ -45,12 +45,7 @@ _SCRIPT_NAMES = {"Dataset", "Matrix", "Sample", "pymetrix", "pymetrix_eviews", "
 _NOT_TRANSLATED = ("is read with g a series' name", "inside d, dlog, @pch or a moving window", "no seed is given")
 
 
-class _Out(Exception):
-    """A statement that does not translate: its status (left out or error) and the reason."""
-
-    def __init__(self, status: str, reason: str) -> None:
-        super().__init__(reason)
-        self.status, self.reason = status, reason
+_Out = Untranslated  # a statement that does not translate: its status (left out or error) and the reason
 
 
 def _left(reason: str) -> _Out:
@@ -82,27 +77,11 @@ class _Py:
     page: str = ""
 
 
-@dataclass
-class Outcome:
-    """One statement translated: its status, reason and ops; a block's also its body (``children``), its else branch
-    (``orelse``, after ``else_outcome``) and its end (``closer``); ``file`` the included program it is in."""
-
-    statement: Statement
-    status: str
-    reason: str = ""
-    ops: list[Op] = field(default_factory=list)
-    file: str = ""
-    kind: str = ""
-    children: list[Any] = field(default_factory=list)
-    orelse: list[Any] = field(default_factory=list)
-    else_outcome: Any = None
-    closer: Any = None
+# Outcome (core's): one statement translated, its status, reason and ops; a block's also its body, else branch and end
 
 
 def _public_names() -> set[str]:
-    import pymetrix
-
-    return {n for n in getattr(pymetrix, "__all__", ())} | {"data"} | {n for n in dir(builtins) if not n.startswith("_")}
+    return reserved_names("data")
 
 
 def _number_text(value: float) -> str:
@@ -182,16 +161,8 @@ class Translator(Estimation, Models, ProgramValues):
         """A Python variable for an EViews object, and a note when its name changed."""
         base = _py_name(eviews.lstrip("!%"))
         note = f"{eviews} is called {base} ({eviews.lstrip('!%').lower()} is a Python word)" if base != eviews.lstrip("!%").lower() else ""
-        if base in self.public or base in _SCRIPT_NAMES:
-            note = f"{eviews} is called {base}_v ({base} is a Python or pymetrix name)"
-            base = f"{base}_v"
-        name, i = base, 2
-        while name in self.taken and self.taken[name] != what:
-            name, i = f"{base}_{i}", i + 1
-        if name != base:
-            note = f"{eviews} is called {name} ({base} is taken)"
-        self.taken[name] = what
-        return name, note
+        name, changed = allocate_name(eviews, base, what, self.taken, self.public | _SCRIPT_NAMES)
+        return name, changed or note
 
     def _page_named(self, name: str) -> _Page:
         page = self.pages.get(name.lower())

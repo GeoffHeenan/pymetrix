@@ -18,7 +18,7 @@ def test_public_names_are_the_private_helpers():
     from pymetrix.models import eviews, source
     from pymetrix.plugins import API
 
-    assert API == "1.10"
+    assert tuple(map(int, API.split("."))) >= (1, 10)  # compare as numbers: 1.11 follows 1.10
     pairs = {"eviews_blank_comments": eviews._blank, "eviews_statements": eviews._statements,
              "parse_eviews_expression": eviews._parse, "render_eviews_expression": eviews._render,
              "walk_eviews_expression": eviews._walk, "EViewsExpressionError": eviews._Refused,

@@ -1,6 +1,7 @@
 # R scripts into pymetrix: the `pymetrix-r` plugin
 
-Design note, 28 November 2026 · a proposal for the owner to approve or change; nothing here is built · builds on
+Design note, 28 November 2026 · a proposal for the owner to approve or change; **phase 0 was approved and is
+done** (`pymetrix.translation` in core, extension API 1.11, section 1); the R front end is not built · builds on
 the EViews program translator ([eviews-plugin.md](eviews-plugin.md), section 2, and
 [`packages/pymetrix-eviews`](../../packages/pymetrix-eviews/README.md)), the core expression language (with
 `round`, `iif`, `isna`, `fillna` and `log10` since 0.1.0a21), the canonical definitions
@@ -95,6 +96,30 @@ module.
 
 **Phase 0 checks it:** the EViews plugin moves onto `pymetrix.translation`, and its seven test files pass
 unchanged, the FRB/US status counts included.
+
+**Phase 0: done.** `src/pymetrix/translation/` holds the IR (`ir.py`), the report and `Translation` (`report.py`),
+`Source`, `Statement`, `Outcome`, `Untranslated` and `report_rows` (`outcome.py`), the name allocator (`names.py`),
+the script writer (`script.py`), steps mode (`steps.py`), the panel (`panel.py`) and the test checks
+(`testing.py`); extension API 1.11 makes it a stable module, with its main names in `pymetrix.extension`
+([plugins.md](plugins.md)). The EViews plugin's modules keep their names as thin re-exports, and its test files
+pass unchanged, the FRB/US validation included. Where the build differs from the table above:
+
+- `Translation` is the base of `ProgramTranslation`; a front end gives `language`, `recorded_by`, `attachments`
+  and `while_cap` as class attributes and the names its steps' Python needs through `step_names()` (the EViews
+  plugin's `eviews_dates`). `ProgramTranslation` adds `pages`.
+- The script's header stays with each front end; `render` takes the comment's form (`comment=`), and
+  `pymetrix_imports` finds the names the header imports.
+- The panel is one class made from a `PanelSpec` (the language, where the session's translations are, the
+  translate dialog, its menu path), registered with `translation_panel(spec)`.
+- The test checks are in `pymetrix.translation.testing`, not `pymetrix.testing` (which plugins' tests also use,
+  but which imports more): `assert_rows_cover(translation)` reads the sources from the translation itself.
+- `Def.result` is a Python expression worked out in the function's own variables when it ends or reaches a
+  `return`; an R function is `local=True`, as its variables are its own. A `Def` has `returns` or `result`, not
+  both.
+- `report_rows` and `flatten` (the report's rows from the outcomes) moved too: they had nothing of EViews in them.
+  `ops_of` (the block walker) stays in the EViews plugin, as the note says.
+- `examples/translation_toy.py`, a toy language of two statements, is the worked example, run by
+  `tests/test_extension_translation.py`.
 
 ## 2. Parsing R
 
@@ -418,7 +443,7 @@ Rough figures for one developer who knows the codebase. Tests add about as much 
 
 | Phase | What | Lines | Days |
 | --- | --- | --- | --- |
-| 0 | `pymetrix.translation` in core (API 1.11); the EViews plugin moved onto it, its tests unchanged | 300 changed, 1,200 moved | 4–6 |
+| 0 (**done**) | `pymetrix.translation` in core (API 1.11); the EViews plugin moved onto it, its tests unchanged | 300 changed, 1,200 moved | 4–6 |
 | Core additions | HC0/HC2/HC3; a time axis from a start; a reference level | 400 | 5–8 |
 | 1 | The parser; data work (reading, dplyr, base, `ts`/`zoo`/`xts`, expressions); `library()` lines; the catalogue of what is left out | 2,000 | 15–20 |
 | 2 | Estimation and tests: formulas, `lm`, `glm`, `feols`, `plm`, `ivreg`, `sandwich`, `lmtest`, `car`, `urca`, `tseries`, `vars`, `forecast` | 1,500 | 15–20 |
@@ -458,7 +483,7 @@ checked against R from the start.
 
 ## 12. Open questions for the owner
 
-1. **Where the shared framework lives.** Core (`pymetrix.translation`, API 1.11), a shared plugin, or copied into
+1. **Where the shared framework lives** (decided: core, built in phase 0). Core (`pymetrix.translation`, API 1.11), a shared plugin, or copied into
    each plugin? *Recommendation:* core. It is small, has no dependencies, and plugins should depend on pymetrix
    only.
 2. **The parser.** Written in the plugin (A), R required (B), or tree-sitter (C)? *Recommendation:* A, with R's

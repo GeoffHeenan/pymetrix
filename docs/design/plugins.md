@@ -60,7 +60,7 @@ A plugin imports pymetrix's inside only through `pymetrix.extension`, under name
 and otherwise from the stable modules (`pymetrix.extension.STABLE`). The finance plugin's public-surface test, and
 the one `pymetrix-new-plugin` writes, hold a plugin to this. `pymetrix.plugins.API` is the extension API's version.
 Its major number is checked (`SUPPORTED_APIS`); a minor version only adds names, so a plugin written for 1.4 runs on
-1.10. The comment beside `API` in `plugins.py` and section 6 of the reference (`docs/reference/reference.md`,
+1.11. The comment beside `API` in `plugins.py` and section 6 of the reference (`docs/reference/reference.md`,
 `scripts/make_api_reference.py`) list what each minor version added. Compare versions as numbers, never as text:
 `1.10` follows `1.9`.
 
@@ -78,6 +78,28 @@ program exactly as `read_eviews` and `check_eviews` do; nothing in core changed.
 | `render_eviews_expression(node, scalars=(), frequency=None)` | the tree as pymetrix text, as `convert_expression` writes it |
 | `EViewsExpressionError` | what does not read: a `SpecificationError` with `.message`, `.at` and `.length` |
 | `Diagnostic`, `line_and_column(text, offset)` | a problem at a line and column (both from 1), as `ModelSource.check` reports them |
+
+**1.11 (additive): `pymetrix.translation`, the translation framework**, for a plugin that translates programs
+written for other software ([r-translator.md](r-translator.md), phase 0). The parts of the EViews plugin's program
+translator that are not about EViews moved into core; the plugin now builds on them, its behaviour unchanged.
+`pymetrix.translation` joins `STABLE`, so a plugin imports any of its names; the main ones are also in
+`pymetrix.extension`: `Translation`, `TranslationReport`, `TranslationOutcome` (`Outcome`), `TranslationPanelSpec`
+(`PanelSpec`) and `translation_panel`. The help topic "Writing a translator for another language" and
+`examples/translation_toy.py` (a toy language of two statements, run by `tests/test_extension_translation.py`)
+show a front end end to end.
+
+| Names | What they are |
+| --- | --- |
+| `Text`, `Var`, `Code`, `Step`, `Arg`, `Cmd`, `New`, `Attr`, `RefTo`, `Py`, `Spread`, `SampleSpec` | the intermediate representation: what a statement becomes, from which both the script and the steps are made (`literal`, `resolved`, `quote`, `name_code`, `step_code` write and resolve it) |
+| `For`, `While`, `If`, `Def`, `Invoke`, `Jump` | control flow: Python blocks in the script, run in Python in steps mode. `Def.returns` gives assigned parameters back (EViews passes arguments by reference); `Def.result` is the one value a function returns (new: R's last expression) |
+| `Source`, `Statement`, `Outcome`, `Untranslated`, `left`, `error`, `flatten` | what a front end makes: the program read, and each statement's status, reason and ops; a handler raises `left(reason)` or `error(reason)` |
+| `STATUSES` (`TRANSLATED`, `NOTE`, `LEFT`, `ERROR`), `left_reason`, `report_rows`, `ReportRow`, `TranslationReport` | the report: a row per line with text (`ReportRow.source`, the line's text; the EViews plugin's rows keep `.eviews`), the column named by the language |
+| `Translation` | the result: `script`, `report`, `run(session)`. A front end subclasses it with `language`, `recorded_by` (the steps' source), `attachments` (the project's key) and `while_cap`; `step_names()` adds names the steps' Python sees |
+| `render`, `op_code`, `body_lines`, `source_comment`, `pymetrix_imports` | the readable script: each line of the program a comment (`comment=` changes its form) above what it became |
+| `run_steps`, `step_call`, `StepFailed`, `WHILE_CAP` | steps mode |
+| `allocate_name`, `reserved_names` | Python names for the program's objects: `_v` for a Python or pymetrix name, `_2` for one taken |
+| `PanelSpec`, `translation_panel`, `panel_class`, `COLOURS` | the translation panel (Qt made on first use) |
+| `pymetrix.translation.testing`: `assert_rows_cover`, `status_counts`, `assert_steps_equal_script`, `assert_same` | checks for a front end's tests |
 
 ## Case 1: an institutional data store (PSETS)
 
