@@ -27,9 +27,16 @@ def app():
     return QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
+def _open_context(o: object) -> bool:
+    try:
+        return isinstance(o, zmq.Context) and not o.closed
+    except ReferenceError:  # a weakref.proxy whose object has gone (numba leaves some): not a context
+        return False
+
+
 def _open_contexts() -> int:
     gc.collect()
-    return sum(isinstance(o, zmq.Context) and not o.closed for o in gc.get_objects())
+    return sum(_open_context(o) for o in gc.get_objects())
 
 
 def _zmq_threads() -> int | None:
