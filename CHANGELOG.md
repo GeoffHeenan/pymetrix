@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Extension API 1.11** (additive): **`pymetrix.translation`**, the translation framework, for a plugin that
+  translates programs written for other software (docs/design/r-translator.md, phase 0). The EViews plugin's
+  translator machinery that is not about EViews moved into core: the intermediate representation a statement
+  becomes, the report with a row per line (`ReportRow.source`; its column named by the language), `Translation`
+  (subclassed per language: its steps' source and project key), the readable script, steps mode, the outcome and its
+  statuses, the name allocator, the translation panel (`PanelSpec`, `translation_panel`) and checks for a front
+  end's tests (`pymetrix.translation.testing`). `Def` gains `result`, the one value a function returns.
+  `pymetrix.translation` is a stable module (`pymetrix.extension.STABLE`); `Translation`, `TranslationReport`,
+  `TranslationOutcome`, `TranslationPanelSpec` and `translation_panel` are also in `pymetrix.extension`. The help
+  topic "Writing a translator for another language" and `examples/translation_toy.py`, a toy language of two
+  statements, show a front end end to end. `pymetrix-eviews` now builds on it, with no change in what it does (its
+  modules keep their names; `ReportRow.eviews` stays). `plugins.API` is now `"1.11"`.
 - **The task pages from a result and from a dialog's help.** A result's Next ▸ menu lists, after its next dialogs,
   the How do I… pages that carry on from that kind of result (an equation: estimate and test it, check its forecast
   record, make a report; a VAR: estimate a VAR, run a forecast round, check its record...), each opening in the

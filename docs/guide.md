@@ -4555,9 +4555,13 @@ translates EViews programs: `eviews_blank_comments` and `eviews_statements` (a p
 offsets), `parse_eviews_expression` (an expression as a tree of `EViewsNumber`, `EViewsName`, `EViewsCoefficient`,
 `EViewsCall`, `EViewsNegative`, `EViewsBinary` and `EViewsBrackets` nodes, each with its offset), `walk_eviews_expression`,
 `render_eviews_expression` (a tree as `convert_expression` writes it), `EViewsExpressionError` (what does not read,
-with `.at` and `.length`), and `Diagnostic` and `line_and_column` to report it at a line and column. Its other imports come from the stable modules,
+with `.at` and `.length`), and `Diagnostic` and `line_and_column` to report it at a line and column; and (API 1.11)
+`Translation`, `TranslationReport`, `TranslationOutcome`, `TranslationPanelSpec` and `translation_panel`, for a plugin
+that translates programs written for other software (the help topic "Writing a translator for another language";
+`examples/translation_toy.py`). Its other imports come from the stable modules,
 `pymetrix.extension.STABLE`: `pymetrix` itself, `errors`, `data`, `output`, `figures`, `estimation`, `statespace`,
-`metadata` and `commands`, and no name starting with `_`. The finance plugin is held to this by a test.
+`metadata`, `commands` and `translation` (the translation framework: the representation a statement becomes, the
+report, the script, steps mode and the panel), and no name starting with `_`. The finance plugin is held to this by a test.
 
 **Starting a plugin.** `pymetrix-new-plugin pymetrix-myname "What it does"` (or `pymetrix.plugin_template.new_plugin`)
 writes a working plugin laid out as the finance plugin is: a `pyproject.toml` with its entry points, a recorded call

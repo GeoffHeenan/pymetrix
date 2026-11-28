@@ -1,4 +1,4 @@
-"""The extension API (1.10): everything a plugin imports from pymetrix, besides the stable modules in ``STABLE``.
+"""The extension API (1.11): everything a plugin imports from pymetrix, besides the stable modules in ``STABLE``.
 
 A plugin registers its calls, dialogs, results' views, help, report templates, example datasets, workspace, menu and
 panels through this module alone, so pymetrix can change its internals without breaking plugins:
@@ -53,6 +53,17 @@ parses one expression into a tree of ``EViewsNumber``, ``EViewsName``, ``EViewsC
         lhs, _, rhs = text.partition("=")
         tree = parse_eviews_expression(rhs, at + len(lhs) + 1, {"c"})   # offsets in the whole program
         python = render_eviews_expression(tree, frequency="Q")
+
+A plugin that translates programs written for other software (EViews, R) builds on ``pymetrix.translation`` (1.11),
+a stable module: the intermediate representation a statement becomes, the report with a row per line, the readable
+script and steps mode made from the one representation, the translation panel, and checks for its tests
+(``pymetrix.translation.testing``). The plugin reads its language and gives each statement an outcome; a
+``Translation`` subclass names its language, its steps' source and its attachments' key. The main names are here
+too: ``Translation``, ``TranslationReport``, ``TranslationOutcome``, ``TranslationPanelSpec`` and
+``translation_panel``.
+
+    from pymetrix.translation import Outcome, Source, Step, Translation, render, report_rows
+    register("panels", AppPanel("R translation", translation_panel(TranslationPanelSpec("R", ...)), area="bottom"))
 """
 
 from __future__ import annotations
@@ -63,7 +74,8 @@ from typing import Any
 
 # the stable modules a plugin may import from, besides this one (their public names: none starting with "_")
 STABLE = ("pymetrix", "pymetrix.extension", "pymetrix.errors", "pymetrix.data", "pymetrix.output", "pymetrix.figures",
-          "pymetrix.estimation", "pymetrix.statespace", "pymetrix.metadata", "pymetrix.commands")
+          "pymetrix.estimation", "pymetrix.statespace", "pymetrix.metadata", "pymetrix.commands",
+          "pymetrix.translation")  # pymetrix.translation: 1.11
 
 # what plugins need from pymetrix's inside, under public names: name -> (module, attribute), loaded on first use
 _PUBLIC = {
@@ -111,6 +123,13 @@ _PUBLIC = {
     "EViewsBrackets": ("pymetrix.models.eviews", "_Par"),  # .x
     "Diagnostic": ("pymetrix.models.source", "Diagnostic"),  # a problem at a line and column (from 1), as check() reports
     "line_and_column": ("pymetrix.models.source", "_place"),  # (text, offset) -> (line, column), both from 1
+    # 1.11: the translation framework (the stable module pymetrix.translation has the rest), for a plugin that
+    # translates programs written for other software
+    "Translation": ("pymetrix.translation", "Translation"),  # a translation: script, report, run(session); subclassed per language
+    "TranslationReport": ("pymetrix.translation", "TranslationReport"),  # a row per line: status, text, Python, reason
+    "TranslationOutcome": ("pymetrix.translation", "Outcome"),  # one statement translated: status, reason, ops
+    "TranslationPanelSpec": ("pymetrix.translation", "PanelSpec"),  # what a language's translation panel shows
+    "translation_panel": ("pymetrix.translation", "translation_panel"),  # AppPanel(..., translation_panel(spec))
 }
 
 __all__ = ["STABLE", "AppInterface", "AppPanel", "ExampleDataset", "MenuLayout", "ReportNote", "Workspace", *_PUBLIC]

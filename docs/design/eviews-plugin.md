@@ -189,6 +189,10 @@ Replaying the project therefore needs the plugin, as a PSETS project needs `pyme
 
 ## 2. Programs: translation
 
+Since extension API 1.11 the parts of the translator that are not about EViews (the intermediate representation,
+the report, the script writer, steps mode and the panel) are core's `pymetrix.translation`, which the plugin builds
+on ([r-translator.md](r-translator.md), phase 0); its behaviour did not change.
+
 ### What comes out
 
 `translate_program(source, bundle=None)` returns a `ProgramTranslation` with three parts, all from one parse:

@@ -99,7 +99,7 @@ particle_filter,function,"particle_filter(solution, data, measurement, shock_sd=
 ParticleFilter,class,"ParticleFilter(loglike, loglike_path, filtered, quantiles, ess, resampled, particles, order, proposal='bootstrap', observables=(), seed=None, provenance=None, smoothed=None, smoothed_quantiles=None, smoothed_shocks=None, smooth_paths=0)",pymetrix,,,A particle filter's result: see the module docstring.
 PlannedError,class,PlannedError(),pymetrix,,,A feature that is planned but not built yet.
 plugin_table,function,plugin_table(),pymetrix,,,"Installed plugins, their status and what they provide, as a ``Table``."
-PluginInfo,class,"PluginInfo(name, version, api='1.10', requires=<factory>, license='', maintainer='', description='', install='')",pymetrix,,,"Who provides a set of extensions, what they need, and under which licence."
+PluginInfo,class,"PluginInfo(name, version, api='1.11', requires=<factory>, license='', maintainer='', description='', install='')",pymetrix,,,"Who provides a set of extensions, what they need, and under which licence."
 PointEstimate,class,"PointEstimate(names, values, cov=None, aliases=None)",pymetrix,scipy.stats.norm.ppf,scipy,"PointEstimate(names: 'tuple[str, ...]', values: 'np.ndarray', cov: 'np.ndarray | None' = None, aliases: 'Mapping[str, str] | None' = None)"
 Poisson,class,Poisson(),pymetrix,,,Poisson()
 PooledMeanGroup,class,"PooledMeanGroup(y_name, x_names, theta, theta_cov, phi, short_run, mg_theta, mg_theta_cov, loglike=0.0, lags=1, nobs=0)",pymetrix,scipy.stats.chi2.sf,scipy,"The pooled mean group: a common long run, unit-specific adjustment and short run."
