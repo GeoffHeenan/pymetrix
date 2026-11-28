@@ -189,7 +189,8 @@ blocking you, say so: that is how priorities get set.
     (none is recorded in the tests). Dynare's `dsge_var` option is used by `DynareModel.dsge_var()`, not by
     `estimate()`.
 - **Global sensitivity analysis** covers the prior stability mapping only (determinacy classes and Smirnov tests),
-  from random draws, not Dynare's Sobol sequence; not compared with Dynare's `dynare_sensitivity` output. Not done:
+  from random draws, not Dynare's Sobol sequence (Dynare's own draws are classified as Dynare classifies them: see the
+  validation page). Not done:
   Morris elementary effects, the reduced-form and RMSE mappings (`redform`, `rmse`), the posterior stability mapping,
   the correlation analysis of the parameters within each class, and Dynare's `prior_range` and `lik_only` options.
 - **Model files and other syntaxes.** Dynare files: `prior_trunc` bounds the parameters only when the file gives it

@@ -1,6 +1,7 @@
 """Prior stability mapping (global sensitivity analysis, Ratto 2008; Dynare's dynare_sensitivity).
 
-Checked against: the share of determinate draws where the determinacy region is known in closed form (the New Keynesian
+Checked against: Dynare 6.0's own stability mapping (its draws, classes, share and Smirnov statistic); the share of
+determinate draws where the determinacy region is known in closed form (the New Keynesian
 model's Taylor principle, phi_pi > 1 with phi_y = 0, and phi_pi + (1 - beta) phi_y / kappa > 1 with both), within
 four binomial standard errors; an AR(1) explosive beyond a = 1 and a model without a steady state for b <= 0; each
 draw's class against the model's own Blanchard-Kahn check (``LinearModel.solve``'s refusal); the Smirnov statistic and
@@ -68,6 +69,25 @@ def test_two_parameters_region_and_the_smirnov_test_against_scipy():
         assert st.smirnov.loc[name, "statistic"] == pytest.approx(ref.statistic, abs=1e-15)
         assert st.smirnov.loc[name, "p-value"] == pytest.approx(ref.pvalue, rel=1e-12)
     assert st.smirnov.loc["phi_pi", "drives"]
+
+
+def test_dynares_own_draws_classified_as_dynare_does():
+    """Dynare 6.0's dynare_sensitivity(stab=1, Nsam=2000) on the same model: its 2,000 quasi-random draws, each classified
+    here as Dynare did, its share (52.3%) and its Smirnov statistic for phi_pi (0.975, printed to three decimals)."""
+    import json
+    from pathlib import Path
+
+    rec = json.loads((Path(__file__).parent / "fixtures" / "dynare-stability-nk.json").read_text(encoding="utf-8"))
+    dyn = read_mod(rec["model"])
+    model, shocks = dyn.model, dyn.exogenous
+    ours = [classify(model, dict(zip(rec["params"], x)), shocks) for x in rec["draws"]]
+    assert ours == rec["classes"]
+    det = np.array([c == "determinate" for c in ours])
+    assert f"{det.mean():.1%}" == rec["printed"]["unique"]
+    phi_pi = np.array([x[0] for x in rec["draws"]])
+    d = stats.ks_2samp(phi_pi[det], phi_pi[~det]).statistic
+    assert round(d, 3) == rec["printed"]["smirnov_unique_phi_pi"][0]
+    assert _within(det.mean(), 0.525, len(det))  # and the closed form: phi_pi + 0.1 phi_y > 1
 
 
 def test_classes_against_the_blanchard_kahn_check():
