@@ -46,6 +46,7 @@ labbook = ["pymetrix-labbook"]  # the research lab book (packages/pymetrix-labbo
 guide = ["pymetrix-guide"]  # guided case studies in the desktop app (packages/pymetrix-guide)
 assistant = ["pymetrix-assistant"]  # an outside AI assistant working in the open app (packages/pymetrix-assistant)
 seasonal = ["pymetrix-seasonal"]  # X-13ARIMA-SEATS and TRAMO-SEATS (packages/pymetrix-seasonal); TRAMO-SEATS also needs [jdemetra]
+eviews = ["pymetrix-eviews"]  # EViews workfiles through a bundle, and EViews programs translated (packages/pymetrix-eviews)
 psets = ["pymetrix-psets"]  # psets:// addresses for PSETS databases (packages/pymetrix-psets); PSETS itself installs from its repository
 stats = []  # statsmodels is a core dependency since 0.1.0a6; kept so that older install commands still work
 panel = ["linearmodels>=6"]

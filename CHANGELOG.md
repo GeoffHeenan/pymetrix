@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **`pymetrix[eviews]`** installs the EViews plugin with pymetrix, as `pymetrix[finance]` and the others do.
+- **CI on Node 24.** The workflows use `actions/checkout@v5`, `setup-python@v6`, `setup-java@v5`, `cache@v5`,
+  `upload-artifact@v6` and `download-artifact@v7`, the first versions that run on Node 24, before GitHub stops
+  running Node 20.
+- **The FRB/US tests no longer fix numbers of one release of LONGBASE** (they run only with `PYMETRIX_FRBUS` set):
+  the optimal-control loss, the direction of the optimal funds rate in its first year and the size of the
+  threshold rule's leak at liftoff changed with the Fed's current data; the first-order conditions, the threshold
+  logic and the equations along each path are still checked.
+
 ## 0.1.0a21: the EViews plugin, more expression functions and task pages (27 November 2026)
 
 - **Projects keep data from a data service as it was read; File → Refresh data… reads it again.** A dataset from
