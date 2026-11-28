@@ -192,6 +192,9 @@ def kaplan_meier(data: Dataset, duration: str, event: str, group: str | None = N
         raise SpecificationError("Hall-Wellner bands are 95% only (alpha=0.05), as statsmodels gives them")
     if strata and not group:
         raise SpecificationError("strata are for the test across groups: give group= too")
+    if strata and entry:
+        # statsmodels' survdiff takes each stratum's rows but every subject's entry times, so the two cannot be combined
+        raise SpecificationError("the stratified test with entry times is not available: give strata or entry, not both")
     frame = _read(data, duration, event, [group or "", entry or "", strata or ""], "Kaplan-Meier")
     t = frame[duration].to_numpy(float)
     d = frame[event].to_numpy(float)

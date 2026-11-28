@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Nested and mixed logits, Kaplan-Meier and Cox models.** `nested_logit(data, choice, regressors, nests=...)` fits a
+  nested logit by full-information maximum likelihood in the form consistent with utility maximisation (RU2), with a
+  lambda per nest or one shared, and the likelihood-ratio test of IIA (every lambda 1 is the conditional logit,
+  exactly). `mixed_logit(..., random={"price": "lognormal", "time": "normal"}, panel="person", correlated=True)` fits
+  a random-parameters logit by simulated maximum likelihood with Halton or seeded pseudo-random draws (the number of
+  draws in `provenance.resolved`), with the coefficients' moments and each decision maker's conditional means. Both
+  take the conditional logit's long data and give its marginal effects and elasticities. `kaplan_meier` (curves by
+  group, intervals, medians, log-rank and weighted tests) and `cox_ph` (Breslow or Efron ties, strata, left
+  truncation, robust and clustered errors, baseline survival, Grambsch-Therneau tests) wrap `statsmodels.duration`.
+  In the app: **Estimate → Microeconometrics → Nested logit…**, **Mixed logit…**, **Kaplan-Meier survival…** and
+  **Cox proportional hazards…**. Checked against Biogeme's and xlogit's recorded estimates, lifelines', statsmodels and
+  the published Freireich leukaemia results.
 - **The task pages from a result and from a dialog's help.** A result's Next ▸ menu lists, after its next dialogs,
   the How do I… pages that carry on from that kind of result (an equation: estimate and test it, check its forecast
   record, make a report; a VAR: estimate a VAR, run a forecast round, check its record...), each opening in the

@@ -585,6 +585,18 @@
   "outcome": "<required>",
   "regressors": "<required>"
  },
+ "command pymetrix:fit_cox_ph (schema 1)": {
+  "cluster": "",
+  "cov": "hessian",
+  "data": "data",
+  "duration": "<required>",
+  "entry": "",
+  "event": "<required>",
+  "name": "cox",
+  "regressors": "<required>",
+  "strata": "",
+  "ties": "breslow"
+ },
  "command pymetrix:fit_dynamic_factor (schema 1)": {
   "factor_order": 2,
   "factors": 1,
@@ -699,6 +711,18 @@
   "outcome": "<required>",
   "regressors": "<required>"
  },
+ "command pymetrix:fit_kaplan_meier (schema 1)": {
+  "bands": false,
+  "data": "data",
+  "duration": "<required>",
+  "entry": "",
+  "event": "<required>",
+  "group": "",
+  "interval": "log-log",
+  "name": "km",
+  "strata": "",
+  "test": "logrank"
+ },
  "command pymetrix:fit_kernel_density (schema 1)": {
   "bandwidth": "silverman",
   "cut": 3.0,
@@ -760,6 +784,24 @@
   "name": "midas",
   "weights": "exp_almon"
  },
+ "command pymetrix:fit_mixed_logit (schema 1)": {
+  "alternative": "",
+  "alternative_constants": false,
+  "base": "",
+  "case": "",
+  "case_variables": "",
+  "choice": "<required>",
+  "correlated": false,
+  "cov": "hessian",
+  "data": "data",
+  "draw_type": "halton",
+  "draws": 500,
+  "name": "mixed",
+  "panel": "",
+  "random": "<required>",
+  "regressors": "<required>",
+  "seed": 0
+ },
  "command pymetrix:fit_msvar (schema 1)": {
   "data": "data",
   "end": "",
@@ -772,6 +814,20 @@
   "starts": 10,
   "switching": "intercept_variance",
   "variables": "<required>"
+ },
+ "command pymetrix:fit_nested_logit (schema 1)": {
+  "alternative": "",
+  "alternative_constants": false,
+  "base": "",
+  "case": "",
+  "case_variables": "",
+  "choice": "<required>",
+  "cov": "hessian",
+  "data": "data",
+  "dissimilarity": "free",
+  "name": "nested",
+  "nests": "<required>",
+  "regressors": "<required>"
  },
  "command pymetrix:fit_panel_mean_group (schema 1)": {
   "data": "data",

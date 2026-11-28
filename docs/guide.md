@@ -2578,6 +2578,29 @@ goes from 0 to 1 (for an attribute, one alternative's at a time), and `changes={
 variable rises by a chosen amount, with delta-method standard errors.
 In the app: **Estimate → Microeconometrics**, and **Next ▸ Marginal effects…** on a conditional logit.
 
+## Nested and mixed logit, and survival analysis
+
+```python
+nl = nested_logit(trips, "chosen", ["cost", "time"], nests="group", alternative_constants=True)
+nl.nest_table(); nl.iia_test                                          # each nest's lambda; LR test of every lambda = 1 (IIA)
+nested_logit(trips, "chosen", ["cost"], nests={"public": ["bus", "train"], "private": ["car"]}, dissimilarity="equal")
+ml = mixed_logit(shop, "chosen", ["mprice", "quality"], random={"mprice": "lognormal", "quality": "normal"},
+                 panel="person", correlated=True, draws=500)          # simulated ML, Halton draws
+ml.random_coefficients(); ml.individual; ml.marginal_effects()        # moments, each person's conditional means, effects
+km = kaplan_meier(data, "weeks", "relapse", group="drug")             # curves by group, log-rank test
+cox = cox_ph(data, "weeks", "relapse", ["drug", "age"], ties="efron", strata="site")
+cox.hazard_ratios(); cox.ph_test(); cox.baseline                      # Grambsch-Therneau test; baseline survival
+```
+
+Both choice models take the conditional logit's long data. The nested logit is in the form consistent with utility
+maximisation (RU2): with every lambda 1 it is the conditional logit, and its likelihood-ratio test of that is a test
+of IIA; a nest of one alternative has its lambda fixed at 1. The mixed logit's random coefficients are normal or
+lognormal (positive: enter the negative of a price), uncorrelated or correlated, one draw per decision maker with
+`panel=`; check the estimates with more draws. Survival data are one row per subject, a duration and a 0/1 event
+(0: censored), with an entry time for left truncation; Kaplan-Meier and Cox's model are statsmodels' (`SurvfuncRight`,
+`survdiff`, `PHReg`). In the app: **Estimate → Microeconometrics → Nested logit…**, **Mixed logit…**,
+**Kaplan-Meier survival…** and **Cox proportional hazards…**.
+
 ## Limited dependent variables and marginal effects
 
 ```python

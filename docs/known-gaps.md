@@ -37,14 +37,31 @@ blocking you, say so: that is how priorities get set.
   industries than regions. Interactive fixed effects need a balanced panel without gaps; the bias correction covers
   heteroskedasticity across units and over time only (not serial or cross-sectional correlation, Bai's D term), and
   the number of factors is chosen from the residuals of the fit with the most factors; there is no dynamic-panel
-  (Moon-Weidner) version or CCE comparison in one result. The conditional logits give no nested or mixed logit (IIA
-  is assumed), no ranked or multiple choices per case (a case with other than one choice is dropped), and the panel
+  (Moon-Weidner) version or CCE comparison in one result. The conditional logits give no ranked or multiple choices
+  per case (a case with other than one choice is dropped), and the panel
   logit's recursion is in pure Python, slow for long groups. Their marginal effects are derivatives and discrete changes
   (0/1 variables from 0 to 1, or any variable by a chosen amount from its value) averaged over the cases or at the
   means, with no effects at other user-chosen values (Stata's `at()`), no discrete change between two arbitrary
   values (x0 to x1) and no second differences (interactions); the panel logit has odds ratios, with effects and
   discrete changes only at a fixed effect the user chooses (the probabilities depend on the unidentified fixed
   effects).
+- **Nested and mixed logit:** the nested logit has two levels (no three-level trees, no cross-nested or other GEV
+  models), the RU2 form only (no RU1 or non-normalised form), FIML only (no sequential estimation), and no discrete
+  changes or effects dialog (its effects are on the result's tab and `marginal_effects()`). The mixed logit's random
+  coefficients are normal or lognormal only (no triangular, uniform or truncated normal), on attributes only (not on
+  alternative constants or case characteristics, so no error components), with no willingness-to-pay space, no
+  scrambled or shuffled Halton or other quasi-random sequences, no weights, no latent classes, and no check of
+  stability across numbers of draws (estimate again with more draws); its effects are averaged over the cases (not
+  at the means) and have no discrete changes. Neither has a test of IIA by Hausman and McFadden, or predictions for
+  new data.
+- **Survival analysis:** Kaplan-Meier and Cox's model only: no parametric duration models (Weibull, log-normal,
+  accelerated failure time), no time-varying covariates (counting-process data), no frailties, no competing risks or
+  cumulative incidence, no Nelson-Aalen curves of their own, no survival curves at chosen covariate values after Cox
+  (the baseline is at every regressor 0), and no exact partial likelihood for tied times (Breslow's and Efron's only). The Schoenfeld
+  residuals are statsmodels' (Breslow's risk-set averages, whichever ties), and the proportional-hazards test is
+  Grambsch and Therneau's approximation (as R's cox.zph before version 3 and lifelines), not the exact score test of
+  cox.zph since. Hall-Wellner bands are 95% only, and the stratified log-rank test cannot be combined with entry times
+  (statsmodels' survdiff mixes entry times across strata).
 - **Robust regression and restricted least squares:** `RobustLS` is M-estimation only (no S- or MM-estimators, so no
   protection against outlying regressors), with Huber's and Tukey's bisquare norms (not Hampel, Andrews or others),
   the MAD scale (not Huber's proposal 2) and the H1 covariance (not H2 or H3, nor robust or clustered sandwiches);
