@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pymetrix-ha"
+dynamic = ["version"]
+description = "Heterogeneous-agent macro models for pymetrix by the sequence-space Jacobian method (sequence-jacobian)"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE", "THIRD-PARTY-NOTICES.md"]  # in the sdist and the wheel: the example adapts sequence-jacobian's notebook (MIT)
+requires-python = ">=3.11"
+authors = [{ name = "Geoffrey Heenan" }]
+# sequence-jacobian 1.0.0 declares no dependencies of its own (its setup.cfg asks for numpy, scipy and numba), so they
+# are declared here; numba at the floor the core's [fast] extra uses, numpy and scipy at the core's floors
+dependencies = ["pymetrix>=0.1.0a21", "sequence-jacobian>=1.0,<2", "numba>=0.60", "numpy>=1.26", "scipy>=1.11"]
+
+[project.urls]
+Homepage = "https://github.com/GeoffHeenan/pymetrix"
+Source = "https://github.com/GeoffHeenan/pymetrix/tree/main/packages/pymetrix-ha"
+Issues = "https://github.com/GeoffHeenan/pymetrix/issues"
+Changelog = "https://github.com/GeoffHeenan/pymetrix/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest>=9.0.3"]
+
+# importing the package registers its help topic; sequence-jacobian and numba load only when a model is solved
+[project.entry-points."pymetrix.plugins"]
+ha = "pymetrix_ha:register"
+
+[tool.hatch.version]
+path = "src/pymetrix_ha/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pymetrix_ha"]
