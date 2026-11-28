@@ -123,6 +123,7 @@ class LoadData(Command):
     time: Annotated[str, Widget("column", depends_on="path", help="column of dates or periods (not needed for our Parquet files)")] = ""
     entity: Annotated[str, Widget("column", depends_on="path", help="column identifying countries, firms, households... (panels, cross-sections)")] = ""
     freq: Annotated[Literal["", "Y", "Y-JUN", "Q", "M", "W", "D"], Widget("choice", help="period frequency of the time column; Y-JUN = July-June fiscal year")] = ""
+    name: str = "data"
     columns: Annotated[str, Widget("column", depends_on="path", multiple=True, show_if=("path", _LargeParquet()),
                                    group="Part of a large file", label="Columns",
                                    help="the series to read (none ticked: all); the time and entity columns are always read")] = ""
@@ -137,7 +138,6 @@ class LoadData(Command):
                                   label="Keep a copy in the project",
                                   help="off: the project keeps the file's path and fingerprint, reads it again on "
                                        "opening, and refuses if it has changed")] = True
-    name: str = "data"
 
     def _parquet(self) -> bool:
         from pathlib import Path
