@@ -155,6 +155,8 @@ TRANSLATIONS: tuple[Translation, ...] = (
                 "mod.solve().irf(20)"),
     Translation("Dynare", ("order=2",), "second-order solution", "Model → Solution → Second-order solution…",
                 "mod.solve(order=2)"),
+    Translation("Dynare", ("order=3",), "third-order solution", "Model → Solution → Second-order solution…",
+                "mod.solve(order=3)"),
     Translation("Dynare", ("estimated_params", "estimation", "varobs"), "estimate the model",
                 "Model → Estimation → Estimate model…", "est = mod.estimate()"),
     Translation("Dynare", ("mh_replic",), "Metropolis-Hastings", "Model → Estimation → Metropolis-Hastings…",

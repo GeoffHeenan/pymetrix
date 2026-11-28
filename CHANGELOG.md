@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Third-order perturbation.** `solve(order=3)` on a template, a Dynare or an IRIS model (or `third_order(model,
+  shocks, shock_sd)`) gives Dynare's `stoch_simul(order=3)` decision rules: the cubic terms and the corrections for
+  risk to the responses to states and shocks (ghxxx, ghxxu, ghxuu, ghuuu, ghxss, ghuss). Simulations are pruned
+  (Andreasen, Fernández-Villaverde and Rubio-Ramírez 2018) unless `pruning=False`; responses start from the
+  stochastic steady state or a given state, and are generalised with `replications`; `moments()` simulates. Every
+  term, and simulated paths, agree with Dynare 6.0's to about 1e-13. In the app: Model → Solution → Second-order
+  solution…, Order 3. Not estimated at third order.
 - **The task pages from a result and from a dialog's help.** A result's Next ▸ menu lists, after its next dialogs,
   the How do I… pages that carry on from that kind of result (an equation: estimate and test it, check its forecast
   record, make a report; a VAR: estimate a VAR, run a forecast round, check its record...), each opening in the

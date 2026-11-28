@@ -24,7 +24,7 @@ the equations up to the third. Each order's unknown derivatives are found block 
 2004 and Kim, Kim, Schaumburg and Sims 2008 for the second order; Levintal 2017 for higher ones): for each number
 ``c`` of derivatives in ``sigma``, first those in the states only, a generalised Sylvester equation
 ``A X + A0 X (P_s kron ... kron P_s) = R`` solved on the Schur form of the state transition one Kronecker factor at a
-time, then those with shocks, a linear system each. Odd numbers of ``sigma`` derivatives come out zero. The expectation over next period's shocks is
+time, then those with shocks, a linear system each. Odd numbers of ``sigma`` derivatives are zero. The expectation over next period's shocks is
 exact: the residual's derivatives are polynomials of degree three or less in the shocks, and they are averaged over
 ``2k`` points that match the shocks' mean, covariance and (zero) third moments.
 
@@ -84,39 +84,25 @@ class ThirdOrderSolution:
     def _index(self, names: Sequence[str]) -> list[int]:
         return [self.variables.index(v) for v in names]
 
-    def _tensors(self) -> dict[str, np.ndarray]:
-        ns, k, n = len(self.states), len(self.shocks), len(self.variables)
-        cached = self.__dict__.get("_tensor_cache")
-        if cached is None:
-            cached = {"xx": self.ghxx.reshape(n, ns, ns), "xu": self.ghxu.reshape(n, ns, k), "uu": self.ghuu.reshape(n, k, k),
-                      "xxx": self.ghxxx.reshape(n, ns, ns, ns), "xxu": self.ghxxu.reshape(n, ns, ns, k),
-                      "xuu": self.ghxuu.reshape(n, ns, k, k), "uuu": self.ghuuu.reshape(n, k, k, k)}
-            object.__setattr__(self, "_tensor_cache", cached)
-        return cached
-
     def _parts(self, sf: np.ndarray, ss_: np.ndarray, sr: np.ndarray, u: np.ndarray, sigma2: float = 1.0
                ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """One pruned step (Andreasen et al. 2018): the first-, second- and third-order parts of x(t) from those parts
         of the states and the shocks; each argument is (paths x size)."""
-        t = self._tensors()
         xf = sf @ self.ghx.T + u @ self.ghu.T
-        xs = (ss_ @ self.ghx.T + 0.5 * np.einsum("nij,mi,mj->mn", t["xx"], sf, sf) + np.einsum("nij,mi,mj->mn", t["xu"], sf, u)
-              + 0.5 * np.einsum("nij,mi,mj->mn", t["uu"], u, u) + 0.5 * sigma2 * self.ghs2)
-        xr = (sr @ self.ghx.T + np.einsum("nij,mi,mj->mn", t["xx"], sf, ss_) + np.einsum("nij,mi,mj->mn", t["xu"], ss_, u)
-              + np.einsum("nijl,mi,mj,ml->mn", t["xxx"], sf, sf, sf) / 6 + 0.5 * np.einsum("nijl,mi,mj,ml->mn", t["xxu"], sf, sf, u)
-              + 0.5 * np.einsum("nijl,mi,mj,ml->mn", t["xuu"], sf, u, u) + np.einsum("nijl,mi,mj,ml->mn", t["uuu"], u, u, u) / 6
+        xs = (ss_ @ self.ghx.T + 0.5 * _kron(sf, sf) @ self.ghxx.T + _kron(sf, u) @ self.ghxu.T
+              + 0.5 * _kron(u, u) @ self.ghuu.T + 0.5 * sigma2 * self.ghs2)
+        xr = (sr @ self.ghx.T + _kron(sf, ss_) @ self.ghxx.T + _kron(ss_, u) @ self.ghxu.T
+              + _kron(sf, sf, sf) @ self.ghxxx.T / 6 + 0.5 * _kron(sf, sf, u) @ self.ghxxu.T
+              + 0.5 * _kron(sf, u, u) @ self.ghxuu.T + _kron(u, u, u) @ self.ghuuu.T / 6
               + sigma2 * (0.5 * sf @ self.ghxss.T + 0.5 * u @ self.ghuss.T) + sigma2**1.5 * self.ghsss / 6)
         return xf, xs, xr
 
     def _rule(self, s: np.ndarray, u: np.ndarray, sigma2: float = 1.0) -> np.ndarray:
         """The decision rule itself (no pruning): x(t) from the whole state; (paths x size) arrays."""
-        t = self._tensors()
         return (s @ self.ghx.T + u @ self.ghu.T
-                + 0.5 * (np.einsum("nij,mi,mj->mn", t["xx"], s, s) + 2 * np.einsum("nij,mi,mj->mn", t["xu"], s, u)
-                         + np.einsum("nij,mi,mj->mn", t["uu"], u, u) + sigma2 * self.ghs2)
-                + (np.einsum("nijl,mi,mj,ml->mn", t["xxx"], s, s, s) + 3 * np.einsum("nijl,mi,mj,ml->mn", t["xxu"], s, s, u)
-                   + 3 * np.einsum("nijl,mi,mj,ml->mn", t["xuu"], s, u, u) + np.einsum("nijl,mi,mj,ml->mn", t["uuu"], u, u, u)
-                   + 3 * sigma2 * (s @ self.ghxss.T + u @ self.ghuss.T) + sigma2**1.5 * self.ghsss) / 6)
+                + 0.5 * (_kron(s, s) @ self.ghxx.T + 2 * _kron(s, u) @ self.ghxu.T + _kron(u, u) @ self.ghuu.T + sigma2 * self.ghs2)
+                + (_kron(s, s, s) @ self.ghxxx.T + 3 * _kron(s, s, u) @ self.ghxxu.T + 3 * _kron(s, u, u) @ self.ghxuu.T
+                   + _kron(u, u, u) @ self.ghuuu.T + 3 * sigma2 * (s @ self.ghxss.T + u @ self.ghuss.T) + sigma2**1.5 * self.ghsss) / 6)
 
     def _run(self, U: np.ndarray, pruning: bool, start: tuple[np.ndarray, ...] | None = None) -> tuple[np.ndarray, tuple[np.ndarray, ...]]:
         """Paths (periods x paths x n, deviations) for shocks U (periods x paths x k), from ``start`` (the state's
@@ -316,6 +302,14 @@ def _derivatives(residuals: list[Any], variables: tuple[str, ...], shocks: tuple
 
 # -- tensor helpers --------------------------------------------------------------------------------------------------
 
+def _kron(*rows: np.ndarray) -> np.ndarray:
+    """Row by row Kronecker products of (paths x size) arrays."""
+    out = rows[0]
+    for r in rows[1:]:
+        out = (out[:, :, None] * r[:, None, :]).reshape(len(out), -1)
+    return out
+
+
 def _modes(X: np.ndarray, M: np.ndarray, axes: Sequence[int]) -> np.ndarray:
     """X with M applied along each of ``axes`` (X[..., i, ...] -> sum_i X[..., i, ...] M[i, j])."""
     for ax in axes:
@@ -325,7 +319,7 @@ def _modes(X: np.ndarray, M: np.ndarray, axes: Sequence[int]) -> np.ndarray:
 
 def _sym3(T: np.ndarray) -> np.ndarray:
     """T(i, j, l) + T(i, l, j) + T(j, l, i) for T symmetric in its first two indices (after the equation's)."""
-    return T + np.einsum("nilj->nijl", T) + np.einsum("njli->nijl", T)
+    return T + T.transpose(0, 1, 3, 2) + T.transpose(0, 3, 1, 2)
 
 
 def _kron_sylvester(D: np.ndarray, T: np.ndarray, F: np.ndarray, power: int, scale: complex = 1.0) -> np.ndarray:
@@ -337,16 +331,16 @@ def _kron_sylvester(D: np.ndarray, T: np.ndarray, F: np.ndarray, power: int, sca
     ns = T.shape[0]
     rest = ns ** (power - 1)
     Fr = F.reshape(n, ns, rest)
-    Y = np.zeros((n, ns, rest), dtype=complex)
+    Y = np.zeros((ns, n * rest), dtype=complex)  # the first index first, so that the sums below are products
     for i in range(ns):
         rhs = Fr[:, i]
         if i:
-            S = np.tensordot(Y[:, :i], T[:i, i], axes=([1], [0]))  # n x rest
+            S = (T[:i, i] @ Y[:i]).reshape(n, rest)
             if power > 1:
                 S = _modes(S.reshape((n,) + (ns,) * (power - 1)), T, range(1, power)).reshape(n, rest)
             rhs = rhs - scale * (D @ S)
-        Y[:, i] = _kron_sylvester(D, T, rhs, power - 1, scale * T[i, i])
-    return Y.reshape(n, -1)
+        Y[i] = _kron_sylvester(D, T, rhs, power - 1, scale * T[i, i]).reshape(-1)
+    return Y.reshape(ns, n, rest).transpose(1, 0, 2).reshape(n, -1)
 
 
 # -- the solution ----------------------------------------------------------------------------------------------------
@@ -373,11 +367,16 @@ class _Expansion:
         self.Eu[:, ns:ns + k] = np.eye(k)
 
     def residual(self, G: list[np.ndarray], p: int) -> np.ndarray:
-        """E[d^p f / dv^p] with the rule's derivatives G[0..p-1] (G[p-1] partly known: the rest zero)."""
+        """E[d^p f / dv^p] with the rule's derivatives G[0..p-1] (G[p-1] partly known: the rest zero). Only next
+        period's variables depend on the shocks then; what is linear in them is averaged before it is contracted."""
         n, ns, k, nv, L = self.n, self.ns, self.k, self.nv, self.L
         G1 = G[0]
         ghx = G1[:, :ns]
-        out = np.zeros((self.f1.shape[0],) + (nv,) * p)
+        f1, f2 = self.f1, self.f2
+        m = len(self.nodes)
+        out = np.zeros((f1.shape[0],) + (nv,) * p)
+        X_sum = np.zeros((n,) + (nv,) * p)  # next period's variables' p-th derivatives, summed over the points
+        cross = np.zeros((f1.shape[0],) + (nv,) * p)  # f_zz (z_vv kron z_v), before symmetrising
         for eps in self.nodes:
             M = np.zeros((nv, nv))
             M[:ns] = G1[L]
@@ -385,28 +384,32 @@ class _Expansion:
             M[nv - 1, nv - 1] = 1.0
             Zv = np.vstack([G1 @ M, G1, self.EL, self.Eu])
             if p == 1:
-                out += self.f1 @ Zv
+                out += f1 @ Zv
                 continue
             G2 = G[1]
-            Xvv = _modes(G2, M, (1, 2)) + np.tensordot(ghx, G2[L], axes=1)
-            zero2 = np.zeros((n + k, nv, nv))
-            Zvv = np.concatenate([Xvv, G2, zero2])
-            H = np.einsum("npq,qa->npa", self.f2, Zv)
+            Xvv = _modes(G2, M, (1, 2))
             if p == 2:
-                out += np.einsum("npa,pb->nba", H, Zv) + np.tensordot(self.f1, Zvv, axes=1)
+                X_sum += Xvv
+                out += (f2 @ Zv).transpose(0, 2, 1) @ Zv
                 continue
+            Xvv = Xvv + np.tensordot(ghx, G2[L], axes=1)
             G3 = G[2]
-            Xvvv = (_modes(G3, M, (1, 2, 3)) + _sym3(np.einsum("nab,aij,bl->nijl", G2[:, :ns, :], G2[L], M))
-                    + np.tensordot(ghx, G3[L], axes=1))
-            Zvvv = np.concatenate([Xvvv, G3, np.zeros((n + k, nv, nv, nv))])
-            F = np.tensordot(self.f1, Zvvv, axes=1) + _sym3(np.einsum("npl,pij->nijl", H, Zvv))
+            X_sum += _modes(G3, M, (1, 2, 3)) + _sym3(np.tensordot(G2[:, :ns, :] @ M, G2[L], axes=([1], [0])).transpose(0, 2, 3, 1))
+            H = f2[:, :2 * n] @ Zv  # n x 2n x nv: only x(t+1) and x(t) have second derivatives in v
+            cross += np.tensordot(H[:, :n], Xvv, axes=([1], [0])) + np.tensordot(H[:, n:], G2, axes=([1], [0]))
             e, i, j, l, val = self.f3
             for eq in np.unique(e):
                 sel = e == eq
                 W = (val[sel, None] * Zv[i[sel]])[:, :, None] * Zv[j[sel]][:, None, :]
-                F[eq] += (W.reshape(W.shape[0], -1).T @ Zv[l[sel]]).reshape(nv, nv, nv)
-            out += F
-        return out / len(self.nodes)
+                out[eq] += (W.reshape(W.shape[0], -1).T @ Zv[l[sel]]).reshape(nv, nv, nv)
+        if p == 1:
+            return out / m
+        Gp = G[p - 1]
+        X = X_sum / m + np.tensordot(ghx, Gp[L], axes=1)
+        out = out / m + np.tensordot(f1[:, :n], X, axes=1) + np.tensordot(f1[:, n:2 * n], Gp, axes=1)
+        if p == 3:
+            out += _sym3((cross / m).transpose(0, 2, 3, 1))
+        return out
 
 
 def _solve_order(ex: _Expansion, G: list[np.ndarray], p: int, A: np.ndarray, A0: np.ndarray, PL: np.ndarray) -> np.ndarray:
@@ -422,7 +425,7 @@ def _solve_order(ex: _Expansion, G: list[np.ndarray], p: int, A: np.ndarray, A0:
     count_sig = sum((g == 2).astype(int) for g in grids)
     Gp = np.zeros((n,) + (nv,) * p)
     work = [*G, Gp]
-    for c in range(p + 1):
+    for c in range(0, p + 1, 2):  # odd numbers of sigma derivatives are zero: the shocks are symmetric
         a = p - c
         R = ex.residual(work, p)
         lists = [list(range(n))] + [S] * a + [sig] * c

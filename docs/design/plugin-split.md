@@ -280,8 +280,8 @@ need micro data and are slow and fragile to estimate. They fit as:
 
 Central banks that use them (the Fed, the ECB, the Bank of England) tend to keep them as satellite models. So, for
 PyMetrix: a policy-scenario module whose responses are laid over a forecast round's baseline as an alternative
-scenario. Lower priority than closing the gaps with Dynare (third-order perturbation, sequential Monte Carlo and
-particle-filter estimation, global sensitivity analysis) and the forecasting extras; its audience is mainly research
+scenario. Lower priority than closing the gaps with Dynare (sequential Monte Carlo and particle-filter estimation,
+global sensitivity analysis) and the forecasting extras; its audience is mainly research
 departments, not forecasting desks.
 
 ### Policy analysis in PyMetrix
