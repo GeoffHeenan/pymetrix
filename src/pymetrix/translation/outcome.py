@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
+from ..errors import PyMetrixError
 from .report import ERROR, LEFT, TRANSLATED, ReportRow
 
 __all__ = ["Outcome", "Source", "Statement", "Untranslated", "error", "flatten", "left", "report_rows"]
@@ -53,7 +54,7 @@ class Outcome:
     closer: Any = None
 
 
-class Untranslated(Exception):
+class Untranslated(PyMetrixError):
     """A statement that does not translate: its ``status`` (left out or error) and the ``reason``."""
 
     def __init__(self, status: str, reason: str) -> None:

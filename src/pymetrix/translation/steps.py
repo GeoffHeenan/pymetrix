@@ -16,6 +16,7 @@ import dataclasses
 from collections import ChainMap
 from typing import Any
 
+from ..errors import PyMetrixError
 from .ir import Cmd, Code, Def, For, If, Invoke, Jump, Step, Text, While, resolved
 
 __all__ = ["WHILE_CAP", "StepFailed", "run_steps", "step_call"]
@@ -67,7 +68,7 @@ def step_call(step: Step, env: Any, recorded_by: str = "translation") -> Any:
     return call
 
 
-class StepFailed(Exception):
+class StepFailed(PyMetrixError):
     """A step that failed in steps mode: ``line`` and ``file`` (an included program's name, or '') say where."""
 
     def __init__(self, message: str, line: int, file: str) -> None:
@@ -75,15 +76,15 @@ class StepFailed(Exception):
         self.line, self.file = line, file
 
 
-class _Break(Exception):
+class _Break(PyMetrixError):
     pass
 
 
-class _Return(Exception):
+class _Return(PyMetrixError):
     pass
 
 
-class _Stop(Exception):
+class _Stop(PyMetrixError):
     pass
 
 
