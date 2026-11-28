@@ -180,3 +180,17 @@ def test_double_ml_propensity_from_a_boosted_classifier():
     data = Dataset.from_frame(pd.DataFrame(X, columns=["x1", "x2", "x3"]).assign(d=d, y=y, id=range(n)), entity="id")
     fit = double_ml(data, "y", "d", ["x1", "x2", "x3"], model="irm", learner="lightgbm", folds=3)
     assert "LightGBM" in fit.learners["m(X) = P(D=1|X)"] and abs(fit.theta - 1.0) < 0.5
+
+
+def test_a_library_that_will_not_load_names_the_fix(monkeypatch):
+    """Installed but its compiled library missing a runtime (LightGBM without OpenMP on a Mac): the error says so."""
+    import importlib
+
+    from pymetrix.adapters import require
+
+    def broken(name, *args, **kwargs):
+        raise OSError("dlopen(lib_lightgbm.dylib): Library not loaded: @rpath/libomp.dylib")
+
+    monkeypatch.setattr(importlib, "import_module", broken)
+    with pytest.raises(ImportError, match="brew install libomp"):
+        require("lightgbm")
