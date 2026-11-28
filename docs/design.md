@@ -675,6 +675,18 @@ NumPy, pandas and SciPy are in the session namespace as `np`, `pd` and `sp`; scr
   call (from the chain's own stream, reset with the chain) makes it PMMH, the same draws in any process. The
   guided proposal is the conditional normal of the shocks given the data with the measurement linearised at the
   steady state (one matrix per period for all particles), corrected exactly by importance weights.
+- **Third-order perturbation (28 November 2026).** Written natively (`pymetrix.models.third_order`): no maintained
+  Python library solves DSGE models to third order (Dynare's k-order solver is C++ inside a GPL MATLAB/Octave
+  toolbox). Rather than hand-derived formulas for each third-order block, the expected residual's derivatives in
+  (states, shocks, sigma) come from one chain rule through next period's variables, with the decision rule's
+  current-order derivatives partly filled; each block is then the residual with the block at zero, solved for
+  (a Kronecker Sylvester equation for the state-only blocks, a linear system for those with shocks). The expectation
+  over next period's shocks is a 2k-point rule matching the shocks' first three moments, exact for the cubic
+  polynomials that arise, so no moment tensors are written out. Tensors are full and unfolded (simple, symmetric by
+  construction); folding them, as Dynare does, is the step to take if larger models need it. The order-2 terms it
+  produces equal `second_order`'s, which is kept unchanged (the particle filter uses it). The dialog is an Order
+  choice on the existing second-order dialog, not a new command, so no command ID changes. Checked against Dynare
+  6.0 run locally from Ubuntu's package (coefficients, simulated paths, pruned mean and variance).
 - **The analytic gradient of the Kalman likelihood (1 November 2026).** `pymetrix.models.kalman_score` differentiates
   the whole map from parameters to log likelihood in forward mode, all parameters at once: the steady state by the
   implicit-function theorem on the static residuals (so it holds however the steady state was found), the

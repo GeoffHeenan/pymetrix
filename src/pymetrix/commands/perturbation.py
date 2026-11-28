@@ -25,7 +25,7 @@ class SolveSecondOrder(Command):
     states and shocks; its result adds moments from a long pruned simulation.
     """
 
-    topics: ClassVar[tuple[str, ...]] = ("forward-looking-models",)
+    topics: ClassVar[tuple[str, ...]] = ("perturbation", "forward-looking-models")
 
     source: Annotated[str, Widget("object", source="Template,DynareModel", help="a template, Dynare or IRIS model")]
     name: str = "second"

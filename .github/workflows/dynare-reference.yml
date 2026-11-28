@@ -1,5 +1,6 @@
 # Reference output from Dynare itself, for pymetrix's validation: case fs2000 (Bayesian estimation), rbc_order2
-# (second-order perturbation of tests/fixtures/dynare/rbc_order2.mod, pymetrix's own model file), occbin_zlb (OccBin and
+# (second-order perturbation of tests/fixtures/dynare/rbc_order2.mod, pymetrix's own model file), rbc_order3 (third order:
+# rbc_order3.mod and rbc_order3_habit.mod, with pruned moments and simulated paths), occbin_zlb (OccBin and
 # perfect foresight with a zero lower bound: tests/fixtures/dynare/nk_zlb.mod and nk_zlb_pf.mod, pymetrix's own) or sw2007 (Smets and
 # Wouters 2007, from Johannes Pfeifer's DSGE_mod at a pinned commit: the log posterior and first-order solution at the
 # published mode, Dynare's own mode, and Metropolis-Hastings when mh_replic is not 0; GPL files, numbers only kept).
@@ -18,7 +19,7 @@ on:
       case:
         description: "which reference to produce"
         type: choice
-        options: ["fs2000", "rbc_order2", "occbin_zlb", "sw2007", "sw2007_points"]
+        options: ["fs2000", "rbc_order2", "rbc_order3", "occbin_zlb", "sw2007", "sw2007_points"]
         default: "fs2000"
       mh_replic:
         description: "Metropolis-Hastings draws per chain"
@@ -223,6 +224,79 @@ jobs:
         with:
           name: dynare-rbc-order2
           path: run/dynare-rbc-order2.json
+          if-no-files-found: warn
+
+  rbc_order3:
+    if: inputs.case == 'rbc_order3'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Octave and Dynare
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends octave octave-statistics dynare
+      - name: Run Dynare
+        run: |
+          mkdir run && cp tests/fixtures/dynare/rbc_order3.mod tests/fixtures/dynare/rbc_order3_habit.mod run/ && cd run
+          sed 's/stoch_simul(order=3,/stoch_simul(order=3, pruning,/' rbc_order3.mod > rbc_order3_pruned.mod
+          cat > export_dr.m <<'EOF'
+          function out = export_dr(M_, oo_)
+            % the decision rule (order_var rows; state_var columns, from nstatic and nspred at order 3)
+            dr = oo_.dr;
+            out = struct();
+            out.dynare_version = dynare_version();
+            out.endo_names = cellstr(M_.endo_names)';
+            out.exo_names = cellstr(M_.exo_names)';
+            out.order_var = dr.order_var(:)';
+            out.state_var = dr.order_var(M_.nstatic+1:M_.nstatic+M_.nspred)(:)';
+            out.order = 3;
+            out.steady_state = oo_.steady_state(:)';
+            out.Sigma_e = M_.Sigma_e;
+            names = {'ghx', 'ghu', 'ghxx', 'ghxu', 'ghuu', 'ghs2', 'ghxxx', 'ghxxu', 'ghxuu', 'ghuuu', 'ghxss', 'ghuss'};
+            for i = 1:numel(names)
+              out.(names{i}) = dr.(names{i});
+            end
+          end
+          EOF
+          cat > save_json.m <<'EOF'
+          function save_json(out, file)
+            fid = fopen(file, 'w');
+            fputs(fid, jsonencode(out));
+            fclose(fid);
+          end
+          EOF
+          dirname "$(find /usr -name dynare.m -path '*matlab*' | head -1)" > dynare_path.txt
+          cat > driver.m <<'EOF'
+          addpath(strtrim(fileread('dynare_path.txt')));
+          try
+            dynare rbc_order3_habit noclearall nolog nograph console
+            save_json(export_dr(M_, oo_), 'dynare-rbc-order3-habit.json');
+            dynare rbc_order3_pruned noclearall nolog nograph console
+            out = export_dr(M_, oo_);
+            out.pruned_mean = oo_.mean(:)';
+            out.pruned_var = oo_.var;
+            % paths for fixed shocks from the steady state, with and without pruning (the first row is the start)
+            ex = [0.03 -0.02; -0.01 0.04; 0 0; 0.02 0.01; -0.04 -0.03; 0 0; 0 0; 0.01 0];
+            sim = struct();
+            sim.shocks = ex;
+            options_.pruning = false;
+            sim.plain = simult_(M_, options_, oo_.dr.ys, oo_.dr, ex, 3)';
+            options_.pruning = true;
+            sim.pruned = simult_(M_, options_, oo_.dr.ys, oo_.dr, ex, 3)';
+            out.simulation = sim;
+            save_json(out, 'dynare-rbc-order3.json');
+          catch err
+            disp(['ERROR: ' err.message]);
+            exit(1);
+          end
+          EOF
+          octave-cli --quiet driver.m
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: dynare-rbc-order3
+          path: run/dynare-rbc-order3*.json
           if-no-files-found: warn
 
   occbin_zlb:

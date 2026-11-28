@@ -2836,7 +2836,7 @@ shocks (Dynare's `stoch_simul(order=3)`; ghxxx, ghxxu, ghxuu, ghuuu, ghxss, ghus
 s = templates.rbc().solve(order=3)
 s.simulate(200, seed=1)                        # pruned (Andreasen et al.); pruning=False for the plain rule
 s.irf(20, replications=500)                    # generalised responses, averaged over the other shocks
-s.irf(20, state={"k": 40})                     # from a given state rather than the stochastic steady state
+s.irf(20, state={"k": 30})                     # from a given state rather than the stochastic steady state
 s.moments()                                    # mean, standard deviation, skewness, kurtosis: a long simulation
 ```
 
