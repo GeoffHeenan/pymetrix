@@ -4,8 +4,8 @@ pymetrix's own code, documentation and simulated data are under the BSD-3-Clause
 This page lists the material from elsewhere that the repository and its packages bundle, or download when asked,
 with where it comes from and the terms it is under. Each bundled dataset also records its source in its own
 metadata (`Dataset.example(name).meta.license`).
-The finance and seasonal plugins ship their own `THIRD-PARTY-NOTICES.md` with the parts of this page that concern
-them, in their sdists and wheels.
+The finance, seasonal and heterogeneous-agent plugins ship their own `THIRD-PARTY-NOTICES.md` with the parts of this
+page that concern them, in their sdists and wheels.
 
 ## Bundled datasets
 
@@ -105,6 +105,13 @@ Not in the repository: J.-L. Brillet's *Structural Econometric Modelling: Method
 under EViews* is its author's copyright, so the tests that read the book's EViews programs
 (`tests/test_eviews_syntax.py`) read the reader's own copies from the folder named by `PYMETRIX_BRILLET`, and skip
 without it.
+
+## Code adapted from elsewhere
+
+- **sequence-jacobian's Krusell-Smith notebook** (`pymetrix-ha`, `packages/pymetrix-ha/src/pymetrix_ha/examples/_krusell_smith.py`):
+  the example's blocks are adapted from the notebook (`notebooks/krusell_smith.ipynb`, commit eb4ac4c), under the MIT
+  licence, "Copyright (c) 2022 Sequence-Jacobian Team"; the plugin's `THIRD-PARTY-NOTICES.md` reproduces the licence.
+  sequence-jacobian itself is a dependency installed from PyPI, not shipped.
 
 ## Downloaded at run time, not shipped
 

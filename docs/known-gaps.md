@@ -53,6 +53,19 @@ blocking you, say so: that is how priorities get set.
   not offered on GMM, ML or the wrapped estimators; no test of the restrictions is reported with the fit (use
   `fit.test("wald", ...)` on the unrestricted fit). A coefficient a restriction fixes has a zero standard error, so
   its t statistic is undefined.
+- **Heterogeneous-agent models** (`pymetrix-ha`, phase 1 of docs/design/heterogeneous-agents.md) are code only:
+  no dialog, result views, figures of the distribution or policies, or saving and replaying a model in a project.
+  Models are sequence-jacobian's Python blocks; there are no standard household blocks of the plugin's own and no
+  one- or two-asset HANK examples (phase 2). Not yet built:
+  - decompositions by channel and distributional responses (phase 2);
+  - moments, simulation and variance decompositions from the MA representation (phase 2);
+  - estimation: the likelihood, missing data, `mcmc`, recovery checks (phase 3);
+  - model text for the aggregate equations, and transitions on dated data as scenarios (phase 4).
+  Responses are first order in aggregate shocks; transitions are nonlinear but perfect foresight. There is no
+  aggregate risk beyond first order, no occasionally binding aggregate constraint, and no estimation of household
+  parameters by MCMC. Continuous-time and life-cycle models are not covered. The checks against pymetrix's
+  perfect foresight and Kalman likelihood in the representative-agent limit wait for phases 2 and 3. numba's
+  threads are not yet set to match `set_blas_threads`.
 - **Not started:** third-order perturbation. GMM on moment functions (`MomentGMM`) is code only, with numerical
   derivatives, and has no dialog (a Python function cannot be a dialog field).
 - **Regression without a formula** (`pymetrix.ols`) is least squares only (no IV, ML or fixed effects to absorb:

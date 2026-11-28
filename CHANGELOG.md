@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Heterogeneous-agent models: a new plugin, `pymetrix-ha`** (`packages/pymetrix-ha`, 0.1.0a1; `pymetrix[ha]`, not in
+  `[all]`: it brings numba). It wraps sequence-jacobian 1.0 (Auclert, Bardóczy, Rognlie and Straub 2021), phase 1 of
+  docs/design/heterogeneous-agents.md, in code only:
+  - `HAModel` over sequence-jacobian's blocks, with the calibration, steady-state and equilibrium problems and AR(1)
+    shocks; the blocks are checked when the model is made.
+  - Its results are pymetrix objects. The steady state (`HASteadyState`) is a table with its checks; block and
+    general-equilibrium Jacobians are arrays by output and input. Impulse responses are an `IRF`; a nonlinear
+    perfect-foresight transition is a `Solution`, with the linear one beside it.
+  - Every tolerance is passed explicitly (`HAOptions`, the library's own defaults), and the library's printing is
+    kept in provenance. Provenance also records the grids and each block's source fingerprint.
+  - Blocks run by `exec`, which the library cannot read, work through `blocks_from_source`.
+  - The Krusell-Smith example reproduces the numbers the package's notebook prints, and equals the library called
+    directly. A help topic, *Heterogeneous-agent models*.
 - **The task pages from a result and from a dialog's help.** A result's Next ▸ menu lists, after its next dialogs,
   the How do I… pages that carry on from that kind of result (an equation: estimate and test it, check its forecast
   record, make a report; a VAR: estimate a VAR, run a forecast round, check its record...), each opening in the

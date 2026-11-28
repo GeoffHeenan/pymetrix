@@ -3520,6 +3520,25 @@ drawn as when solved alone (`shock_sd` by equation, seed plus the country's posi
 jointly, so a shock in one country reaches its partners within the draw. `sol.solution("DE").simulation` holds the
 draws, links included. Coefficient draws, GARCH errors and first-order solutions are not drawn with links.
 
+## Heterogeneous-agent models (the pymetrix-ha plugin)
+
+Models whose households differ in income and wealth, such as Krusell and Smith's, are in the `pymetrix-ha` plugin
+(`pip install -e packages/pymetrix-ha` in a clone; experimental, code only). It wraps sequence-jacobian:
+
+```python
+from pymetrix_ha.examples import krusell_smith
+
+ks = krusell_smith()                    # sequence-jacobian's Krusell-Smith notebook, as an HAModel
+ss = ks.steady_state()                  # ss.table(): the aggregates, the unknowns found, the targets met
+lin = ks.linearize(ss)                  # the general-equilibrium Jacobians G
+lin.irf(40).plot()                      # impulse responses, a pymetrix IRF
+path = ks.solve(steady=ss)              # the nonlinear transition after a TFP shock, a Solution
+```
+
+Your own model is `HAModel(blocks, calibration=..., steady_state=..., equilibrium=..., shocks=...)`, with blocks
+written as sequence-jacobian's `@simple` and `@het` functions. The help topic *Heterogeneous-agent models* covers
+the method, writing blocks and what is checked.
+
 ## Inspecting and checking a model
 
 ```python

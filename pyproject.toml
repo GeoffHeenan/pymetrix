@@ -48,6 +48,7 @@ assistant = ["pymetrix-assistant"]  # an outside AI assistant working in the ope
 seasonal = ["pymetrix-seasonal"]  # X-13ARIMA-SEATS and TRAMO-SEATS (packages/pymetrix-seasonal); TRAMO-SEATS also needs [jdemetra]
 eviews = ["pymetrix-eviews"]  # EViews workfiles through a bundle, and EViews programs translated (packages/pymetrix-eviews)
 psets = ["pymetrix-psets"]  # psets:// addresses for PSETS databases (packages/pymetrix-psets); PSETS itself installs from its repository
+ha = ["pymetrix-ha"]  # heterogeneous-agent models by sequence-jacobian (packages/pymetrix-ha); brings numba, so not in all
 stats = []  # statsmodels is a core dependency since 0.1.0a6; kept so that older install commands still work
 panel = ["linearmodels>=6"]
 arch = ["arch>=7"]
@@ -86,7 +87,7 @@ packages = ["src/pymetrix", "src/pymetrix_app"]
 only-include = ["src/pymetrix", "src/pymetrix_app", "PYPI.md", "CHANGELOG.md", "LICENSE", "THIRD-PARTY-NOTICES.md"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "packages/pymetrix-finance/tests", "packages/pymetrix-labbook/tests", "packages/pymetrix-guide/tests", "packages/pymetrix-assistant/tests", "packages/pymetrix-psets/tests", "packages/pymetrix-seasonal/tests", "packages/pymetrix-eviews/tests"]
+testpaths = ["tests", "packages/pymetrix-finance/tests", "packages/pymetrix-labbook/tests", "packages/pymetrix-guide/tests", "packages/pymetrix-assistant/tests", "packages/pymetrix-psets/tests", "packages/pymetrix-seasonal/tests", "packages/pymetrix-eviews/tests", "packages/pymetrix-ha/tests"]
 pythonpath = ["src"]
 filterwarnings = ["ignore:.*returns a plain tuple:FutureWarning", "ignore:For consistency across implementations:PendingDeprecationWarning"]
 markers = ["timing: a wall-clock check, with generous slack (best of three runs) so a loaded machine does not fail it"]

@@ -20,8 +20,8 @@ add_help_topic("heterogeneous-agents", "Heterogeneous-agent models (pymetrix-ha)
     insure, so that who holds wealth changes how the economy responds to a shock. Krusell and Smith (1998) is the
     standard example. The pymetrix-ha plugin solves such models with sequence-jacobian, the package of Auclert,
     Bardóczy, Rognlie and Straub (2021), and returns pymetrix results. Install it with
-    `pip install "pymetrix[ha]"`; it brings numba, which compiles the household routines the first time they run
-    in a session (a few seconds).
+    `pip install "pymetrix[ha]"` (in a clone, `pip install -e packages/pymetrix-ha`). It brings numba, which
+    compiles the household routines the first time they run in a session (a few seconds).
 
     **The method.** A model is a set of blocks:
     - *Simple blocks* are aggregate equations, written as a Python function (`K(-1)` for a lag, `r(+1)` for a lead).
