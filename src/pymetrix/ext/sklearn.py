@@ -406,6 +406,9 @@ class FittedLearner(BackendResult):
     provenance: Any = None
 
     needs_backend: ClassVar[bool] = True  # predictions call the fitted scikit-learn estimator: kept when pickled; projects recompute it
+    next_steps: ClassVar[tuple[tuple[str, str, str, str], ...]] = (
+        ("SHAP values…", "ExplainLearner", "fit", "estimate"), ("Forecast…", "Forecast", "fit", "forecast"),
+        ("Conformal intervals…", "ConformalForecast", "fit", "forecast"), ("Backtest…", "RunBacktest", "fit", "forecast"))
 
     @property
     def backend_result(self) -> Any:
@@ -455,6 +458,18 @@ class FittedLearner(BackendResult):
         rows = [[float(result.importances_mean[j]), float(result.importances_std[j])] for j in order]
         return Table(["rise in MSE", "sd"], rows, index=[self.names[j] for j in order], index_name="regressor",
                      title="Permutation importance", notes=(f"{reps} shuffles of each regressor; larger means the learner relies on it more.",))
+
+    def shap(self, data: Dataset | None = None, span: Any = None, **options: Any) -> Any:
+        """SHAP values: each regressor's contribution to each prediction (``pymetrix.shap_values``; needs ``shap``)."""
+        from ..ml_explain import shap_values
+
+        return shap_values(self, data, span, **options)
+
+    def conformal(self, data: Dataset, span: tuple[Any, Any], alpha: float = 0.1, **options: Any) -> Any:
+        """Conformal (1 - alpha) prediction intervals over ``span`` (``pymetrix.conformal``): split, CQR or adaptive."""
+        from ..ml_conformal import conformal
+
+        return conformal(self, data, span, alpha, **options)
 
     def _features(self, data: Dataset) -> pd.DataFrame:
         from ..estimation.design import as_series
@@ -567,7 +582,8 @@ def _learn(method: Any, eq: Equation, data: Dataset, span: Any, where: Any, weig
         raise SpecificationError(f"{method.label} takes numeric regressors (no categorical terms)")
     X, y = d.X[:, regressors], d.y
     errors, tested = [], []
-    with specs.ADAPTER.run(method.adapter_spec, method) as run:
+    adapter, plugin = getattr(method, "backend_adapter", specs.ADAPTER), getattr(method, "plugin_info", PLUGIN)  # LightGBM, XGBoost: their own
+    with adapter.run(method.adapter_spec, method) as run:
         for train, test in time_series_folds(len(y), method.folds):
             model = method._model(run)
             model.fit(X[train], y[train])
@@ -576,7 +592,7 @@ def _learn(method: Any, eq: Equation, data: Dataset, span: Any, where: Any, weig
         cv_resid = pd.Series(np.concatenate(errors), index=d.index[np.concatenate(tested)], name="cv error")
         model = method._model(run)
         model.fit(X, y)
-    prov = with_backend(provenance(eq, method, data, d.index, d.dropped), run.record, plugin=f"{PLUGIN.name} {PLUGIN.version}")
+    prov = with_backend(provenance(eq, method, data, d.index, d.dropped), run.record, plugin=f"{plugin.name} {plugin.version}")
     prov = replace(prov, seed=getattr(method, "seed", None))
     return FittedLearner(eq, method, model, names, pd.Series(y, index=d.index, name=eq.require_dependent()),
                          pd.DataFrame(X, index=d.index, columns=names), float(np.sqrt(np.mean(cv_resid.to_numpy() ** 2))), cv_resid, prov)

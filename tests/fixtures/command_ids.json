@@ -51,6 +51,8 @@
   "pymetrix:propensity_weighting": 1,
   "pymetrix:regression_discontinuity": 1,
   "pymetrix:double_machine_learning": 1,
+  "pymetrix:explain_learner": 1,
+  "pymetrix:conformal_forecast": 1,
   "pymetrix:shift_share_iv": 1,
   "pymetrix:fit_interactive_fe": 1,
   "pymetrix:fit_conditional_logit": 1,

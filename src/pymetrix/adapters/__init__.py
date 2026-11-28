@@ -10,7 +10,7 @@ import importlib
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
-EXTRAS = {"linearmodels": "panel", "arch": "arch", "sklearn": "ml", "mcp": "mcp", "openpyxl": "excel",
+EXTRAS = {"linearmodels": "panel", "arch": "arch", "sklearn": "ml", "lightgbm": "lightgbm", "xgboost": "xgboost", "shap": "shap","mcp": "mcp", "openpyxl": "excel",
           "docx": "report", "PySide6": "qt", "ipywidgets": "jupyter"}
 
 
