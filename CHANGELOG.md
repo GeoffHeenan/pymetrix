@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The task pages from a result and from a dialog's help.** A result's Next ▸ menu lists, after its next dialogs,
+  the How do I… pages that carry on from that kind of result (an equation: estimate and test it, check its forecast
+  record, make a report; a VAR: estimate a VAR, run a forecast round, check its record...), each opening in the
+  help. A dialog's help lists the pages whose steps open it, found from the menu paths the pages write.
 - **`pymetrix[eviews]`** installs the EViews plugin with pymetrix, as `pymetrix[finance]` and the others do.
 - **CI on Node 24.** The workflows use `actions/checkout@v5`, `setup-python@v6`, `setup-java@v5`, `cache@v5`,
   `upload-artifact@v6` and `download-artifact@v7`, the first versions that run on Node 24, before GitHub stops

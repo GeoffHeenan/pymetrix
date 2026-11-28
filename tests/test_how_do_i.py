@@ -1138,3 +1138,23 @@ def test_ctrl_k_finds_each_page(window):
     titles = [e.title for e in rank(entries, "how do i")]
     assert "Help → How do I…" in titles and "How do I…" in titles
     assert rank(entries, "var")[0].title == "Estimate → VARs and local projections → VAR…"  # menu items still lead
+
+
+def test_a_dialogs_help_lists_the_task_pages_that_open_it():
+    """A dialog's help page ends its description with the task pages whose steps in the app open it (found from the
+    menu paths each page writes), and leaves out the dialog the pages open only to have example data."""
+    from pymetrix.commands import FitVAR, LoadExample, Reconcile, RunBacktest
+    from pymetrix.help import help_page
+    from pymetrix.howto import dialogs, pages, pages_for_dialog
+
+    by_id = {p.id: p for p in pages()}
+    assert "FitVAR" in dialogs(by_id["howto-estimate-a-var"]) and "Reconcile" in dialogs(by_id["howto-reconcile-components-to-a-total"])
+    assert [p.id for p in pages_for_dialog("RunBacktest")] == ["howto-check-a-forecasts-record"]
+    assert {p.id for p in pages_for_dialog("FitVAR")} >= {"howto-estimate-a-var", "howto-run-a-forecast-round"}
+    text = help_page(FitVAR).to_markdown()
+    assert "## How do I…" in text and "(pymetrix:topic/howto-estimate-a-var)" in text
+    assert "(pymetrix:topic/howto-reconcile-components-to-a-total)" in help_page(Reconcile).to_markdown()
+    assert "(pymetrix:topic/howto-check-a-forecasts-record)" in help_page(RunBacktest).to_markdown()
+    assert pages_for_dialog("LoadExample") == [] and "How do I…" not in help_page(LoadExample).to_markdown()
+    for p in pages():  # every dialog a page opens is a dialog of the app
+        assert all(d for d in dialogs(p)), p.id

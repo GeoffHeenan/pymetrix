@@ -150,6 +150,8 @@ class HelpPage:
             out += ["", f"{h}# Example", "", "```python", self.example, "```"]
         if self.link:
             out += _notes_markdown(self.link, f"{h}#")
+        if self.group == "commands" and self.key:
+            out += _howto_markdown(self.key, f"{h}#")
         for label, options in self.choices:
             out += ["", f"**{label}:** " + ", ".join(f"[{t}]({u})" for t, u in options)]
         if self.settings:
@@ -630,6 +632,19 @@ def _notes_markdown(page_link: str, h: str = "##") -> list[str]:
     if not found:
         return []
     return ["", f"{h} Course material", ""] + [f"- [{n.title}]({n.link}) ({'example notebook, ' if n.kind == 'notebook' else ''}{n.course})" for n in found]
+
+
+def _howto_markdown(command: str, h: str = "##") -> list[str]:
+    """The task pages ("How do I…") whose steps open the dialog ``command``, for its help page."""
+    from .commands import COMMANDS
+    from .howto import pages_for_dialog
+
+    tail = command.rsplit(":", 1)[-1]  # the help's key, "pymetrix:fitvar", is the class's name in lower case
+    name = next((i.cls.__name__ for i in COMMANDS.values() if i.cls.__name__.lower() == tail), tail)
+    found = pages_for_dialog(name)
+    if not found:
+        return []
+    return ["", f"{h} How do I…", ""] + [f"- [{p.title}]({link('topic', p.id)}): {p.summary}" for p in found]
 
 
 def note_markdown(note: Note) -> str:

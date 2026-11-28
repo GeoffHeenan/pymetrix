@@ -20,7 +20,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-__all__ = ["INDEX", "INDEX_TITLE", "Page", "add_topics", "help_text", "index_text", "is_howto", "pages", "section"]
+__all__ = ["INDEX", "INDEX_TITLE", "Page", "add_topics", "dialogs", "help_text", "index_text", "is_howto", "pages", "pages_for_dialog",
+           "section"]
 
 FOLDER = Path(__file__).resolve().parent
 INDEX = "how-do-i"  # the index topic's id
@@ -54,6 +55,28 @@ def pages() -> list[Page]:
         out.append(Page(PREFIX + path.stem, title, str(meta.get("summary", "")), str(meta.get("audience", "")),
                         int(meta.get("order", 99)), path, text, str(meta.get("plugin", ""))))
     return sorted(out, key=lambda p: (p.order, p.title))
+
+
+# dialogs a page opens only to have data to work on: their help does not list every page that starts with them
+SETUP_DIALOGS = frozenset({"LoadExample"})
+
+
+def dialogs(page: Page) -> tuple[str, ...]:
+    """The dialogs (command class names) a page's In the app section opens, by the menu paths it writes."""
+    from ..commands import COMMANDS
+    from ..commands.menus import menu_order
+
+    found = re.search(r"^## In the app\n(.*?)(?=^## |\Z)", page.text, re.MULTILINE | re.DOTALL)
+    steps = found.group(1) if found else ""
+    used = [info.cls.__name__ for info, path in menu_order(list(COMMANDS.values())) if path in steps]
+    return tuple(dict.fromkeys(used))
+
+
+def pages_for_dialog(command: str) -> list[Page]:
+    """The pages whose steps in the app open the dialog ``command`` (a command class name): its help lists them."""
+    if command in SETUP_DIALOGS:
+        return []
+    return [p for p in pages() if command in dialogs(p)]
 
 
 def is_howto(topic_id: str) -> bool:

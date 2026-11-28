@@ -2670,6 +2670,9 @@ def object_view(obj: Any, parent: Any = None, name: str = "", code: str = "", ed
             button.setPopupMode(Qt.QToolButton.ToolButtonPopupMode.InstantPopup)
             menu = Qt.QMenu(button)
             for label, run in next_steps or ():
+                if label is None:  # the dialogs, then the task pages
+                    menu.addSeparator()
+                    continue
                 menu.addAction(label).triggered.connect(lambda _=False, r=run: r())
             button.setMenu(menu)
             tabs.next_menu = menu
@@ -2708,6 +2711,9 @@ def object_view(obj: Any, parent: Any = None, name: str = "", code: str = "", ed
             button.setPopupMode(Qt.QToolButton.ToolButtonPopupMode.InstantPopup)
             menu = Qt.QMenu(button)
             for label, run in next_steps or ():
+                if label is None:  # the dialogs, then the task pages
+                    menu.addSeparator()
+                    continue
                 menu.addAction(label).triggered.connect(lambda _=False, r=run: r())
             button.setMenu(menu)
             tabs.next_menu = menu
@@ -3872,8 +3878,9 @@ def main_window(session: Session) -> Any:
         return dialog
 
     def next_steps_for(name: str) -> list[tuple[str, Any]]:
-        """A result's Next menu: each step opens its dialog with the result filled in, in that stage's workspace."""
-        from .next_steps import prefilled, steps_for
+        """A result's Next menu: each step opens its dialog with the result filled in, in that stage's workspace;
+        below a separator, the task pages ("How do I…") that carry on from that kind of result open in the help."""
+        from .next_steps import pages_for, prefilled, steps_for
 
         def go(cls: type, field: str, stage: str) -> None:
             if getattr(window, "workspace", "all") != "all":  # in All, stay there
@@ -3881,7 +3888,10 @@ def main_window(session: Session) -> Any:
             initial = prefilled(cls, **{field: name})
             run_dialog(cls, initial=initial) if initial is not None else run_dialog(cls)
 
-        return [(label, lambda c=cls, f=field, w=ws: go(c, f, w)) for label, cls, field, ws in steps_for(current()[name])]
+        obj = current()[name]
+        steps: list[tuple[Any, Any]] = [(label, lambda c=cls, f=field, w=ws: go(c, f, w)) for label, cls, field, ws in steps_for(obj)]
+        pages = [(f"How do I… {title}", lambda u=url: window.open_help(u)) for title, url in pages_for(obj)]
+        return steps + ([(None, None)] if steps and pages else []) + pages
 
     def add_to_report(source: str, tab: str | None) -> None:
         """Put a result's tab (or, without one, the result) in the report outline, and say so."""

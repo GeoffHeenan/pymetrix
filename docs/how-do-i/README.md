@@ -101,14 +101,13 @@ file a page's code reads is shown in a fenced block whose info string is `text <
   the help contents (`ui/palette.py`, from `help.contents()`), so a page is found once it is a help topic, with no
   separate registration. "residuals", "cointegration short", "dynare" and "how do i" find them.
 - **Help search** finds them by any words of their text, as it finds every topic.
-- **Next ▸ (proposed, not built).** A result's Next ▸ menu (`ui/next_steps.py`) offers the next dialogs for its
-  type. A second part of the menu, after a separator, could offer the task pages for that type: a table
-  `NEXT_PAGES = {"FittedEquation": ("howto-estimate-and-test-an-equation",), "Template": (...), "DynareModel": (...),
-  "TestResult": (...)}` and the menu builder in `ui/qt.py` adding "How do I…: <title>" items that open the topic.
-  It needs a new kind of entry beside the dialogs (the table today is dialogs only, and its test expects each
-  entry to open one), so it is left for a change of its own.
-- **Dialog help (proposed).** A dialog's help page could list the task pages that use it, as it lists course
-  material (`help.notes_for`): front matter `links: [commands/FitEquation]`, as course notes have.
+- **Next ▸.** A result's Next ▸ menu (`ui/next_steps.py`) offers the next dialogs for its type and then, after a
+  separator, the task pages that carry on from that type ("How do I… Estimate a VAR, then impulse responses and a
+  forecast"), each opening its help topic. The pages are a table, `NEXT_PAGES`, by type; a test checks that each page
+  it names exists and that its steps open one of the type's next dialogs or the dialog that makes such a result.
+- **Dialog help.** A dialog's help page has a "How do I…" section listing the task pages whose In the app steps open
+  it, found from the menu paths each page writes (`howto.dialogs`), so the list follows the pages with nothing to
+  keep in step. File → Load example data… is left out: most pages open it only to have data.
 
 ## One source: Markdown files in the package
 

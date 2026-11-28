@@ -4,6 +4,9 @@ The stages connect through their objects more than through menus: a dataset is e
 equation is tested, plotted, forecast with and backtested, a VAR gives impulse responses, a model is estimated and
 analysed. Each result window's **Next** menu offers those steps; choosing one opens its dialog with the result filled
 in, in the workspace of that stage (unless All is in use). ``NEXT_STEPS`` is the table, by type.
+
+Below a separator, the same menu offers the task pages ("How do I…", ``pymetrix.howto``) that carry on from that
+type of result: ``NEXT_PAGES``, by type, opens each in the help.
 """
 
 from __future__ import annotations
@@ -11,7 +14,7 @@ from __future__ import annotations
 import dataclasses
 from typing import Any
 
-__all__ = ["NEXT_STEPS", "prefilled", "steps_for"]
+__all__ = ["NEXT_PAGES", "NEXT_STEPS", "pages_for", "prefilled", "steps_for"]
 
 # result type -> (label, command class, the field that takes the result, workspace)
 NEXT_STEPS: dict[str, tuple[tuple[str, str, str, str], ...]] = {
@@ -71,6 +74,35 @@ NEXT_STEPS["Backtest"] = (("Superior predictive ability…", "SuperiorPredictive
 NEXT_STEPS["FittedSmoothTransitionAR"] = (("Forecast…", "Forecast", "fit", "forecast"),)
 # a solved linear (rational-expectations) model: its impulse responses (Model > Analysis > Impulse responses)
 NEXT_STEPS["LinearSolution"] = (("Impulse responses…", "ModelImpulseResponses", "solution", "model"),)
+
+# result type -> the task pages that carry on from it (their file names in pymetrix/howto), most likely first
+NEXT_PAGES: dict[str, tuple[str, ...]] = {
+    "Dataset": ("estimate-and-test-an-equation", "estimate-a-var", "seasonally-adjust-a-series",
+                "cointegration-in-a-short-sample", "reconcile-components-to-a-total"),
+    "FittedEquation": ("estimate-and-test-an-equation", "check-a-forecasts-record", "make-a-report"),
+    "FittedVAR": ("estimate-a-var", "run-a-forecast-round", "check-a-forecasts-record"),
+    "TestResult": ("cointegration-in-a-short-sample",),
+    "Equation": ("bring-in-an-eviews-model", "solve-a-large-backward-looking-model"),
+    "EViewsXmlModel": ("solve-a-large-backward-looking-model",),
+    "Template": ("bring-in-an-iris-or-dynare-model",),
+    "DynareModel": ("bring-in-an-iris-or-dynare-model",),
+    "Solution": ("run-a-forecast-round", "solve-a-large-backward-looking-model"),
+    "ForecastRound": ("run-a-forecast-round",),
+    "Backtest": ("check-a-forecasts-record",),
+}
+
+
+def pages_for(obj: Any) -> list[tuple[str, str]]:
+    """The task pages for ``obj``'s Next menu: (title, help link), by its type (or a base type's)."""
+    from ..help import link
+    from ..howto import PREFIX, pages
+
+    known = {p.id: p.title for p in pages()}
+    for kind in (c.__name__ for c in type(obj).__mro__):
+        if kind in NEXT_PAGES:
+            return [(known[PREFIX + n], link("topic", PREFIX + n)) for n in NEXT_PAGES[kind] if PREFIX + n in known]
+    return []
+
 
 def steps_for(obj: Any) -> list[tuple[str, type, str, str]]:
     """The next steps for ``obj``: (label, command class, field, workspace), by its type (or a base type's)."""
