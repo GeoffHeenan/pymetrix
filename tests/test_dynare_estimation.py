@@ -129,8 +129,8 @@ def test_the_sample_options_and_logdata(tmp_path):
 def test_estimation_errors(tmp_path):
     with pytest.raises(ModelError, match="corr"):
         read_mod(AR.replace("stderr e, inv_gamma_pdf, 0.1, inf;", "corr e, e, normal_pdf, 0, 0.1;"))
-    with pytest.raises(ModelError, match="generalised prior bounds"):
-        read_mod(AR.replace("rho, beta_pdf, 0.6, 0.1;", "rho, beta_pdf, 0.6, 0.1, -1, 1;"))
+    with pytest.raises(ModelError, match="the mean must lie between low and high"):  # generalised bounds are read (test_dynare_priors)
+        read_mod(AR.replace("rho, beta_pdf, 0.6, 0.1;", "rho, beta_pdf, 0.6, 0.1, 1, 2;"))
     with pytest.raises(ModelError, match="not a parameter"):
         read_mod(AR.replace("rho, beta_pdf", "zeta, beta_pdf"))
     with pytest.raises(ModelError, match="stderr must name a shock"):

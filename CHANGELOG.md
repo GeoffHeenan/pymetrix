@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Dynare files: correlated measurement errors, generalised priors, Dynare 6's macro operations.** `corr y, c = r`
+  (or a covariance) on two observed variables in a shocks block is the correlation of their measurement errors, used
+  by the Kalman filter, estimation and its analytic gradient; `corr y, c, ...` in `estimated_params` estimates it
+  (`corr_y_c`; for any model, `MeasurementMap(error_corr=...)`, estimated when `corr_<series>_<series>` is named).
+  Priors with a third and fourth parameter are Dynare's generalised distributions (`GeneralisedBeta`,
+  `ShiftedGamma`, `ShiftedInvGamma1`, `ShiftedInvGamma2`; a normal's are bounds), and `prior_trunc` bounds the
+  parameters by their priors' quantiles. The macro processor reads set operations on arrays (`|`, `&`, `-`, `*`,
+  `^`), type tests, casts, `sum`, `gamma`, `erf`, `normcdf`/`normpdf` and `@#line`. Two changes to what macros write:
+  `@{...}` writes numbers to 15 significant digits and strings inside arrays without quotes, and `==` compares type
+  and value (`1 == true` is false), as Dynare 6.0's preprocessor does. Checked against Dynare 6.0's likelihood,
+  prior densities, prior bounds and preprocessor.
 - **The task pages from a result and from a dialog's help.** A result's Next ▸ menu lists, after its next dialogs,
   the How do I… pages that carry on from that kind of result (an equation: estimate and test it, check its forecast
   record, make a report; a VAR: estimate a VAR, run a forecast round, check its record...), each opening in the

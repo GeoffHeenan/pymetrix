@@ -189,6 +189,9 @@ class _Engine:
         missing = sorted(measurement.variables() - set(rules.variables))
         if missing:
             raise ModelError(f"{', '.join(missing)} are not variables of the model")
+        if any(r != 0 for r in (getattr(measurement, "error_corr", None) or {}).values()):
+            raise ModelError("the particle filter weighs each series' measurement error on its own: correlated measurement errors "
+                             "(error_corr) are not supported here; use the Kalman filter")
         self.measurement = measurement
         params = dict(measurement.params)
         self.exprs = [m.rhs.substitute(params) for m in measurement.measurements]

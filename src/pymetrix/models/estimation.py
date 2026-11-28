@@ -407,6 +407,16 @@ class _Likelihood:
         corr = getattr(self, "corr", None) or {}
         return {self.corr_pairs[n]: float(values.get(n, v)) for n, v in corr.items()}
 
+    def measurement_at(self, values: Mapping[str, float]) -> Any:
+        """The measurement map with its errors' sizes (``sd_<series>``) and correlations (``corr_<series>_<series>``) at
+        these values."""
+        from .covariance import corr_pairs
+
+        errs = {o: values.get(f"sd_{o}", self.errors[f"sd_{o}"]) for o in self.measurement.observables}
+        pairs = corr_pairs(self.measurement.observables)
+        corr = {pairs[n]: float(values.get(n, v)) for n, v in self.errors.items() if n in pairs}
+        return self.measurement.with_errors(errs, corr or None)
+
     def build(self, values: Mapping[str, float], start: Any = None, fresh: bool = False) -> tuple[Any, Any, Any]:
         """The model, its solution and its state-space form at these values.
 
@@ -426,8 +436,7 @@ class _Likelihood:
             solution = linear.solve(start=self.__dict__.get("_warm"))
             object.__setattr__(self, "_warm", solution)  # the next trial value starts from this solution
         sds = {s: values.get(f"sd_{s}", self.sd[f"sd_{s}"]) for s in self.shocks}
-        errs = {o: values.get(f"sd_{o}", self.errors[f"sd_{o}"]) for o in self.measurement.observables}
-        system = solution.system(self.measurement.with_errors(errs), sds, shock_corr=self.shock_corr(values) or None)
+        system = solution.system(self.measurement_at(values), sds, shock_corr=self.shock_corr(values) or None)
         return m, solution, system
 
     def build_occbin(self, values: Mapping[str, float]) -> tuple[Any, Any]:
@@ -446,8 +455,7 @@ class _Likelihood:
         pw = _Piecewise(m, self.shocks, dict(self.guess), self.horizon, regimes=regimes, first=first, freq=freq, length=length)
         pw.tie = True
         sds = {s: values.get(f"sd_{s}", self.sd[f"sd_{s}"]) for s in self.shocks}
-        errs = {o: values.get(f"sd_{o}", self.errors[f"sd_{o}"]) for o in self.measurement.observables}
-        return pw, pw.solution.system(self.measurement.with_errors(errs), sds, shock_corr=self.shock_corr(values) or None)
+        return pw, pw.solution.system(self.measurement_at(values), sds, shock_corr=self.shock_corr(values) or None)
 
     def build_nonlinear(self, values: Mapping[str, float]) -> tuple[Any, Any, dict[str, float], Any]:
         """The model, its solution of the estimation's order (a ``SecondOrderSolution`` at order 2), the shock sizes and
@@ -455,14 +463,13 @@ class _Likelihood:
         m = self._base().with_parameters({n: v for n, v in values.items() if n in self.structural})
         ss = m.steady_state(guess=dict(self.guess) or None, growth=self.growth)
         sds = {s: values.get(f"sd_{s}", self.sd[f"sd_{s}"]) for s in self.shocks}
-        errs = {o: values.get(f"sd_{o}", self.errors[f"sd_{o}"]) for o in self.measurement.observables}
         if getattr(self, "order", 1) == 2:
             from .perturbation import second_order
 
             solution = second_order(m, self.shocks, sds, steady=ss, shock_corr=self.shock_corr(values) or None)
         else:
             solution = m.linearize(ss, shocks=self.shocks).solve()
-        return m, solution, sds, self.measurement.with_errors(errs)
+        return m, solution, sds, self.measurement_at(values)
 
     def particle_loglike(self, values: Mapping[str, float]) -> float:
         """The particle filter's log likelihood at these values, with the estimation's seed (common random numbers),
@@ -775,6 +782,10 @@ def _setup(model: Any, measurement: Any, shocks: Sequence[str] | None, shock_sd:
     from .regimes import regime_values
 
     pairs = corr_pairs(shocks)
+    # correlations of measurement errors, corr_<series>_<series> (the series in the map's order): free only if named
+    error_pairs = {n: p for n, p in corr_pairs(measurement.observables).items() if n not in pairs}
+    known = getattr(measurement, "error_corr", None) or {}
+    errors.update({n: float(known.get(p, 0.0)) for n, p in error_pairs.items()})
     given = normalise(shocks, shock_corr)
     unnamed = [p for p in given if f"corr_{p[0]}_{p[1]}" not in pairs]
     if unnamed:
@@ -795,7 +806,7 @@ def _setup(model: Any, measurement: Any, shocks: Sequence[str] | None, shock_sd:
             raise ModelError(f"{', '.join(fitted)} are {params[fitted[0]].status} (fitted equation by equation, or fixed); "
                              "only calibrated parameters and shock sizes are estimated here")
         raise ModelError(f"{', '.join(unknown)} are not parameters, shock sizes (sd_<shock>), correlations of shocks "
-                         f"(corr_<shock>_<shock>, in the order {', '.join(shocks)}), measurement errors (sd_<series>) "
+                         f"(corr_<shock>_<shock>, in the order {', '.join(shocks)}), measurement errors (sd_<series>, corr_<series>_<series>) "
                          "or regimes' values (<parameter>@<regime>) of this model")
     if not free:
         raise ModelError("nothing to estimate")
@@ -811,11 +822,11 @@ def _setup(model: Any, measurement: Any, shocks: Sequence[str] | None, shock_sd:
             low, high = spec.limits
         else:
             own = n.split("@", 1)[0]  # a regime's value: its parameter's bounds
-            low, high = (params[n].bounds if n in params else (-1.0, 1.0) if n in corr
+            low, high = (params[n].bounds if n in params else (-1.0, 1.0) if n in corr or n in error_pairs
                          else params[own].bounds if "@" in n and own in params
                          else (-np.inf, np.inf) if "@" in n else (0.0, np.inf))
         limits[n] = tuple((bounds or {}).get(n, (low, high)))
-        if n in corr:  # a correlation stays within (-1, 1), whatever bounds are given
+        if n in corr or n in error_pairs:  # a correlation stays within (-1, 1), whatever bounds are given
             limits[n] = (max(limits[n][0], -1.0), min(limits[n][1], 1.0))
         support = getattr(priors.get(n), "support", (-np.inf, np.inf))  # a parameter stays where its prior is positive
         limits[n] = (max(limits[n][0], support[0]), min(limits[n][1], support[1]))
@@ -981,7 +992,7 @@ def _estimate(model: Any, data: Any, measurement: Any, shocks: Sequence[str] | N
     if priors:
         stats["logpost"] = float(loglike + log_prior(values))
     shock_sizes = {s: values.get(f"sd_{s}", sd[f"sd_{s}"]) for s in shocks}
-    used_measurement = measurement.with_errors({o: values.get(f"sd_{o}", errors[f"sd_{o}"]) for o in measurement.observables})
+    used_measurement = lik.measurement_at(values)
     sources = list(measurement.data_series())
     method = ("posterior mode" if priors else "maximum likelihood") + (" (OccBin filter)" if occbin else "")
     if particle:

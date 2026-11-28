@@ -1950,6 +1950,40 @@ add_topic("forward-looking-models", "Forward-looking models", """
           "Juillard, M. (1996). Dynare: a program for the resolution and simulation of dynamic models with forward variables through the use of a relaxation algorithm. CEPREMAP.",
           "Galí, J. (2015). Monetary Policy, Inflation, and the Business Cycle, 2nd ed."),
           ("model-solution", "state-space"))
+add_topic("dynare-files", "Dynare files: measurement errors, generalised priors and macros", """
+    A Dynare file read with read_mod (Model > Import > Dynare file...) keeps Dynare's
+    meaning in three places that are easy to miss.
+
+    Measurement errors. In the shocks block, stderr or var on a varobs variable is the
+    size of its measurement error, and corr y, c = 0.3 (or var y, c = covariance) on two
+    varobs variables is the correlation of their errors. The Kalman filter's
+    measurement-error covariance is then H = D C D, D the errors' standard deviations
+    and C their correlations, as the shocks' covariance is built. In estimated_params,
+    corr y, c, ... estimates that correlation, named corr_y_c (the two in varobs order),
+    within (-1, 1). For a model of your own, MeasurementMap(..., error_corr={("y", "c"):
+    0.3}); naming corr_y_c in estimate= estimates it.
+
+    Generalised priors. A prior line's third and fourth numbers after the mean and
+    standard deviation make Dynare's generalised distributions, and the mean and
+    standard deviation are those of the generalised distribution: beta_pdf with 3 and 4
+    is a beta on (3, 4) (GeneralisedBeta); gamma_pdf, inv_gamma_pdf and inv_gamma2_pdf
+    with a third number are shifted to start there (ShiftedGamma, ShiftedInvGamma1,
+    ShiftedInvGamma2); for normal_pdf the two are bounds. estimation(prior_trunc=p) keeps
+    each parameter between its prior's p and 1 - p quantiles, as Dynare's estimation
+    does; without the option no such bounds are set (Dynare's default is 1e-10, which
+    matters only far in the tails). One difference: Dynare 6.0's shifted inv_gamma2_pdf
+    takes its scale from the mean before the shift, so its mean is the mean given plus
+    the shift; pymetrix keeps the mean given, as Dynare's manual describes the prior.
+
+    Macros. Besides @#define, @#if, @#for and @#include, Dynare 6's operations on arrays
+    work: a | b (union: a, then what of b is not in it), a & b (intersection), a - b
+    (difference), a * b and a ^ n (Cartesian product and power, arrays of tuples), with
+    & binding tighter than |; the type tests isreal, isstring, isboolean, istuple and
+    isarray; the casts (real), (string), (bool), (tuple) and (array). @{...} writes numbers
+    to 15 significant digits and strings without quotes, as Dynare's preprocessor.
+    @#line is accepted; problems are still reported at the model file's lines.
+    """, ("Adjemian, S., Juillard, M., Karamé, F., Mutschler, W., Pfeifer, J., Ratto, M., Rion, N. and Villemot, S. (2024). Dynare: reference manual, version 6. Dynare Working Papers 80, CEPREMAP.",),
+          ("model-solution", "state-space"))
 add_topic("likelihood-gradient", "The gradient of a model's likelihood", """
     Estimating a linearised model means climbing its log likelihood (or log posterior) in
     the parameters, and the No-U-Turn sampler moves along its slope: both need the

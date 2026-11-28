@@ -1,0 +1,24 @@
+// Correlated measurement errors and generalised priors. Dynare 6.0 (Octave 8.4.0) output: tests/fixtures/dynare-me-corr-priors.json
+var x y c;
+varexo e;
+parameters rho alpha;
+rho = 0.7; alpha = 0.5;
+model(linear);
+x = rho*x(-1) + e;
+y = x;
+c = alpha*x;
+end;
+shocks;
+var e; stderr 0.5;
+var y; stderr 0.3;
+var c; stderr 0.2;
+end;
+estimated_params;
+rho, 0.65, , , beta_pdf, 0.6, 0.1, -0.5, 1;
+alpha, 0.55, , , gamma_pdf, 0.6, 0.1, 0.2;
+stderr e, 0.45, , , inv_gamma_pdf, 0.6, 0.3, 0.1;
+stderr y, 0.35, , , inv_gamma2_pdf, 0.4, 0.2, 0.05;
+corr y, c, 0.35, , , normal_pdf, 0.3, 0.1;
+end;
+varobs y c;
+estimation(datafile=me_corr_data, mode_compute=0, mh_replic=0, lik_init=1);

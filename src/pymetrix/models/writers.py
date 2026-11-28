@@ -218,7 +218,11 @@ def _quote(text: str, syntax: str) -> str:
 
 
 _DYNARE_SHAPES = {"Normal": "normal_pdf", "Beta": "beta_pdf", "Gamma": "gamma_pdf", "InvGamma1": "inv_gamma1_pdf",
-                  "InvGamma": "inv_gamma2_pdf", "Uniform": "uniform_pdf"}
+                  "InvGamma": "inv_gamma2_pdf", "Uniform": "uniform_pdf", "GeneralisedBeta": "beta_pdf",
+                  "ShiftedGamma": "gamma_pdf", "ShiftedInvGamma1": "inv_gamma1_pdf", "ShiftedInvGamma2": "inv_gamma2_pdf"}
+# the generalised priors in pymetrix's syntax: the shape with its third (and fourth) number, beta(0.6, 0.1, -0.5, 1)
+_SOURCE_SHAPES = {"InvGamma": "invgamma2", "GeneralisedBeta": "beta", "ShiftedGamma": "gamma", "ShiftedInvGamma1": "invgamma1",
+                  "ShiftedInvGamma2": "invgamma2"}
 
 
 def _options_text(spec: Any) -> str:
@@ -230,7 +234,7 @@ def _options_text(spec: Any) -> str:
         parts.append(f"bounds {_number(spec.bounds[0]) if np.isfinite(spec.bounds[0]) else '-inf'} "
                      f"{_number(spec.bounds[1]) if np.isfinite(spec.bounds[1]) else 'inf'}")
     if spec.prior is not None:
-        name = {"InvGamma": "invgamma2"}.get(type(spec.prior).__name__, type(spec.prior).__name__.lower())
+        name = _SOURCE_SHAPES.get(type(spec.prior).__name__, type(spec.prior).__name__.lower())
         parts.append(f"prior {name}({', '.join(_number(v) if np.isfinite(v) else repr(float(v)) for v in vars(spec.prior).values())})")
     if spec.start is not None:
         parts.append(f"start {_number(spec.start)}")

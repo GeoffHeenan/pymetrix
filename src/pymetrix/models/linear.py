@@ -557,7 +557,7 @@ class LinearSolution:
         for v in self.variables:  # auxiliary variables equal their variable in the steady state
             steady.setdefault(v, steady.get(v.rsplit("_", 1)[0], 0.0))
         Z, d = measurement.linearize(keys, steady)
-        H = np.diag([float(measurement.errors.get(o, 0.0)) ** 2 for o in measurement.observables])
+        H = measurement.error_covariance()  # diagonal unless error_corr correlates two series' errors
         Qcov = np.diag([float(shock_sd.get(s, 1.0)) ** 2 for s in self.shocks])
         corr = {k: v for k, v in normalise(self.shocks, shock_corr).items() if v != 0}
         if corr:

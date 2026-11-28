@@ -532,7 +532,7 @@ def _score_filter(y: np.ndarray, T: np.ndarray, RQR: np.ndarray, Z: np.ndarray, 
 def loglike_score(lik: Any, values: Mapping[str, float]) -> tuple[float, np.ndarray]:
     """The log likelihood at ``values`` (the estimated parameters by name, as ``lik.free``) and its gradient in them,
     in the order of ``lik.free``. Raises ``NoGradient`` where the analytic gradient does not apply."""
-    from .covariance import correlation_matrix
+    from .covariance import corr_pairs, correlation_matrix
 
     reason = supported(lik)
     if reason:
@@ -548,6 +548,7 @@ def loglike_score(lik: Any, values: Mapping[str, float]) -> tuple[float, np.ndar
     columns = {n: free.index(n) for n in structural}
     kinds: dict[int, tuple[str, Any]] = {}
     pairs = getattr(lik, "corr_pairs", {}) or {}
+    error_pairs = {n: p for n, p in corr_pairs(observables).items() if n not in pairs}
     for j, name in enumerate(free):
         if name in lik.structural:
             continue
@@ -559,6 +560,9 @@ def loglike_score(lik: Any, values: Mapping[str, float]) -> tuple[float, np.ndar
         if name in pairs:
             a_, b_ = pairs[name]
             hits.append(("corr", (shocks.index(a_), shocks.index(b_))))
+        if name in error_pairs:  # a correlation of two series' measurement errors
+            a_, b_ = error_pairs[name]
+            hits.append(("error corr", (observables.index(a_), observables.index(b_))))
         if len(hits) != 1:
             raise NoGradient(f"{name} is not a parameter the analytic gradient knows")
         kinds[j] = hits[0]
@@ -585,9 +589,19 @@ def loglike_score(lik: Any, values: Mapping[str, float]) -> tuple[float, np.ndar
     sd = np.sqrt(np.diag(Q))
     C = correlation_matrix(shocks, system.shock_corr) if system.shock_corr else None
     C = np.eye(len(shocks)) if C is None else C
+    # H = D_e C_e D_e, as MeasurementMap.error_covariance builds it
+    sd_e = np.array([float(system.measurement.errors.get(o, 0.0)) for o in observables])
+    C_e = np.eye(len(observables))
+    for (a_, b_), r in (getattr(system.measurement, "error_corr", None) or {}).items():
+        C_e[observables.index(a_), observables.index(b_)] = C_e[observables.index(b_), observables.index(a_)] = r
     for j, (kind, at) in kinds.items():
         if kind == "error":
-            dH[j, at, at] = 2 * float(system.measurement.errors.get(observables[at], 0.0))
+            row = C_e[at] * sd_e
+            dH[j, at, :] += row
+            dH[j, :, at] += row
+        elif kind == "error corr":
+            a_, b_ = at
+            dH[j, a_, b_] = dH[j, b_, a_] = sd_e[a_] * sd_e[b_]
         elif kind == "shock":
             row = C[at] * sd
             dQc[j, at, :] += row

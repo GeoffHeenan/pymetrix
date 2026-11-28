@@ -14,22 +14,31 @@ steady state), and ``shocks``: ``stderr`` or variances (on a ``varobs`` variable
 covariance ``var e1, e2 = 0.01;`` (divided by the two standard deviations), kept in ``shock_corr`` as
 ``{("e1", "e2"): 0.3}`` and used wherever the shocks' sizes are (see ``pymetrix.models.covariance``: the filter's
 covariance, draws, moments; impulse responses and variance decompositions orthogonalised by Cholesky in the
-order of ``varexo``, as ``stoch_simul``). Macro-processor directives (``@#define``, ``@#if``, ``@#for``,
+order of ``varexo``, as ``stoch_simul``). ``corr y, c = 0.3;`` (or ``var y, c = cov;``) on two ``varobs`` variables is
+the correlation of their measurement errors, as in Dynare: kept in ``measurement_corr`` and used in the filter's
+measurement-error covariance (``MeasurementMap.error_corr``). Macro-processor directives (``@#define``, ``@#if``, ``@#for``,
 ``@#include``, ``@{...}``...) are carried out first, as Dynare's preprocessor does: see
 ``pymetrix.models.dynare_macros``; ``@#include`` needs the model read from its file. Commands such as ``steady``,
-``check`` and ``stoch_simul`` are listed in ``commands`` but not run. Not read: correlations of measurement errors,
-generalised prior bounds, and stoch_simul's options (``solve(order=2)`` gives the second order).
+``check`` and ``stoch_simul`` are listed in ``commands`` but not run. Not read: stoch_simul's options
+(``solve(order=2)`` gives the second order).
 
 For estimation: ``estimated_params`` (all three forms: initial values and bounds, priors, or both;
 ``stderr`` for shock sizes, named ``sd_<shock>`` in pymetrix, and for a ``varobs`` variable's measurement error,
 ``sd_<variable>``; ``corr e1, e2`` for correlations of shocks, named ``corr_<e1>_<e2>`` with the two in ``varexo``
-order, within (-1, 1)), ``varobs``, and the ``estimation(...)``
+order, within (-1, 1), and of two ``varobs`` variables' measurement errors, ``corr_<y>_<c>`` in ``varobs`` order),
+``varobs``, and the ``estimation(...)``
 options (kept in ``options``; ``datafile``, ``first_obs``, ``nobs``, ``presample``, ``lik_init`` (1, 2 or 3), ``loglinear``
-and ``logdata`` are used; ``dsge_var`` and ``dsge_varlag`` by ``dsge_var()``, a DSGE-VAR with its prior weight fixed or
+and ``logdata`` are used; ``prior_trunc`` bounds each estimated parameter by its prior's ``prior_trunc`` and
+``1 - prior_trunc`` quantiles, as Dynare's estimation (without it, no such bounds: Dynare's default is 1e-10); ``dsge_var`` and ``dsge_varlag`` by ``dsge_var()``, a DSGE-VAR with its prior weight fixed or
 estimated as ``dsge_prior_weight``).
 Dynare's prior shapes map to pymetrix's: ``normal_pdf`` -> ``Normal``, ``beta_pdf`` -> ``Beta``, ``gamma_pdf``
 -> ``Gamma``, ``inv_gamma_pdf``/``inv_gamma1_pdf`` -> ``InvGamma1``, ``inv_gamma2_pdf`` -> ``InvGamma2``,
-``uniform_pdf`` -> ``Uniform`` (from its mean and standard deviation, or its bounds).
+``uniform_pdf`` -> ``Uniform`` (from its mean and standard deviation, or its bounds). The third and fourth prior
+parameters give Dynare's generalised distributions, the mean and standard deviation those of the generalised one:
+``beta_pdf`` on (low, high) -> ``GeneralisedBeta``; ``gamma_pdf``, ``inv_gamma1_pdf`` and ``inv_gamma2_pdf`` shifted to
+start at the third -> ``ShiftedGamma``, ``ShiftedInvGamma1``, ``ShiftedInvGamma2`` (their fourth is ignored, as Dynare
+does); a normal's are bounds. Dynare 6.0's shifted ``inv_gamma2_pdf`` takes its scale from the mean before the shift, so
+its mean is the mean given plus the shift; pymetrix keeps the mean given, as the manual states.
 
     dyn = read_mod("fs2000.mod")
     fit = dyn.estimate()                 # posterior mode, on the file's datafile, priors and observables
@@ -145,6 +154,7 @@ class DynareModel:
     labels: dict[str, str] = field(default_factory=dict)  # long_name descriptions of the variables and shocks
     measurement_sd: dict[str, float] = field(default_factory=dict)  # measurement errors: stderr of a varobs variable in shocks
     shock_corr: dict[tuple[str, str], float] = field(default_factory=dict)  # correlations of the shocks (corr in shocks)
+    measurement_corr: dict[tuple[str, str], float] = field(default_factory=dict)  # correlations of measurement errors (varobs order)
 
     @property
     def guess(self) -> dict[str, float]:
@@ -273,8 +283,12 @@ class DynareModel:
         ``sd_<variable>`` for those estimated."""
         from .measurement import MeasurementMap
 
+        from .covariance import corr_pairs
+
         errors = {**self.measurement_sd, **{n[3:]: v for n, v in point.items() if n.startswith("sd_") and n[3:] in self.varobs}}
-        return MeasurementMap.direct(list(self.varobs), errors)
+        pairs = corr_pairs(self.varobs)
+        corr = {**getattr(self, "measurement_corr", {}), **{pairs[n]: float(v) for n, v in point.items() if n in pairs}}
+        return MeasurementMap.direct(list(self.varobs), errors, corr)
 
     def _shock_sd(self, point: dict[str, float]) -> dict[str, float]:
         return {**self.shock_sd, **{n[3:]: v for n, v in point.items() if n.startswith("sd_") and n[3:] in self.exogenous}}
@@ -470,8 +484,14 @@ def read_mod(source: str | Path) -> DynareModel:
         text_eq = f"{body[0]} {'~' if used_params else '='} {body[1]}"
         texts.append(text_eq)
         eqs.append(Equation(text_eq, params=used_params) if used_params else Equation(text_eq))
-    shock_corr = _shock_corr(pairs, exo, shock_sd)
-    priors, estimated, start, bounds = _estimated_params(estimated_lines, param_names, exo, params, endo)
+    unknown = [v for v in varobs if v not in endo]
+    if unknown:
+        raise ModelError(f"varobs names {unknown}, which are not variables of the model")
+    shock_corr = _shock_corr([q for q in pairs if not {q[1], q[2]} <= set(endo)], exo, shock_sd)
+    measurement_corr = _measurement_corr([q for q in pairs if {q[1], q[2]} <= set(endo)], varobs, measurement_sd)
+    priors, estimated, start, bounds = _estimated_params(estimated_lines, param_names, exo, params, endo, varobs)
+    if "prior_trunc" in options:  # given in estimation(...): the priors' tails cut off as bounds
+        bounds = _truncated(priors, bounds, float(options["prior_trunc"]))
     used_params = {p for e in eqs for p in e.param_names}
     named = ([p for p in param_names if p in used_params] + [f"sd_{x}" for x in exo] + [f"sd_{v}" for v in varobs if v in endo]
              + [n for n in estimated if n.startswith("corr_")])
@@ -479,16 +499,13 @@ def read_mod(source: str | Path) -> DynareModel:
                    bounds=bounds.get(n, (-math.inf, math.inf)), start=start.get(n), prior=priors.get(n))
              for n in named if n in decorated or n in priors or n in bounds or n in start]
     model = Model(eqs, params={p: params[p] for p in param_names if p in used_params} or None, specs=specs)
-    unknown = [v for v in varobs if v not in endo]
-    if unknown:
-        raise ModelError(f"varobs names {unknown}, which are not variables of the model")
     unobserved = sorted({*measurement_sd, *(n[3:] for n in estimated if n.startswith("sd_") and n[3:] in endo)} - set(varobs))
     if unobserved:
         raise ModelError(f"measurement errors (stderr) on {unobserved}, which are not in varobs")
     labels = {n: long_name for n, (_, long_name) in decorated.items() if long_name and (n in endo or n in exo)}
     return DynareModel(tuple(endo), tuple(exo), params, tuple(texts), initval, shock_sd, tuple(commands),
                        str(path) if path is not None else "", model, priors, tuple(estimated), start, bounds, tuple(varobs),
-                       options, loglinear, labels, measurement_sd, shock_corr)
+                       options, loglinear, labels, measurement_sd, shock_corr, measurement_corr)
 
 
 def _split_top(text: str) -> list[str]:
@@ -537,9 +554,10 @@ def _logs(expr: str, endo: list[str]) -> str:
 
 
 def _estimated_params(lines: list[str], param_names: list[str], exo: list[str], values: dict[str, float],
-                      endo: Sequence[str] = ()) -> tuple[dict[str, Any], list[str], dict[str, float], dict[str, tuple[float, float]]]:
-    """Priors, names (shock sizes as sd_<shock>, measurement errors as sd_<variable>), initial values and bounds from
-    ``estimated_params`` lines."""
+                      endo: Sequence[str] = (), varobs: Sequence[str] = ()
+                      ) -> tuple[dict[str, Any], list[str], dict[str, float], dict[str, tuple[float, float]]]:
+    """Priors, names (shock sizes as sd_<shock>, measurement errors as sd_<variable>, correlations as corr_<a>_<b>),
+    initial values and bounds from ``estimated_params`` lines."""
     from ..estimation import priors as P
 
     priors: dict[str, Any] = {}
@@ -555,9 +573,10 @@ def _estimated_params(lines: list[str], param_names: list[str], exo: list[str], 
         head = fields[0].split()
         if head[0] == "corr":  # corr e1, e2, ...: the correlation of two shocks, corr_<e1>_<e2> (in varexo order)
             if len(head) != 2 or len(fields) < 2 or len(fields[1].split()) != 1:
-                raise ModelError(f"corr names two shocks (varexo): {line!r}")
+                raise ModelError(f"corr names two shocks (varexo) or two observed variables (varobs): {line!r}")
             a, b = head[1], fields[1].strip()
-            name = corr_name(a, b, exo)
+            # of two observed variables: the correlation of their measurement errors, corr_<a>_<b> in varobs order
+            name = measurement_corr_name(a, b, varobs) if a in endo and b in endo else corr_name(a, b, exo)
             fields = [f"corr {a}", *fields[2:]]
             bounds.setdefault(name, (-1.0, 1.0))  # as Dynare: within (-1, 1) unless narrower bounds are given
         elif head[0] == "stderr":
@@ -595,12 +614,47 @@ def _estimated_params(lines: list[str], param_names: list[str], exo: list[str], 
             else:
                 if mean is None or sd is None:
                     raise ModelError(f"the prior for {name} needs a mean and a standard deviation")
-                if any(v is not None and not math.isnan(v) for v in (p3, p4)):
-                    raise ModelError(f"generalised prior bounds (third and fourth prior parameters) for {name} are not supported yet")
-                prior = getattr(P, shape)(mean, sd)
+                low, high = (None if v is None or math.isnan(v) else v for v in (p3, p4))
+                prior = _generalised(shape, mean, sd, low, high, name)
+                if shape == "Normal" and (low is not None or high is not None):  # a normal's are bounds (as Dynare's prior_bounds)
+                    old = bounds.get(name, (-math.inf, math.inf))
+                    bounds[name] = (max(old[0], -math.inf if low is None else low), min(old[1], math.inf if high is None else high))
             priors[name] = prior
         names.append(name)
     return priors, names, start, bounds
+
+
+def _generalised(shape: str, mean: float, sd: float, low: float | None, high: float | None, name: str) -> Any:
+    """A prior with Dynare's third and fourth prior parameters: a beta on (low, high) (default (0, 1)), a gamma or inverse
+    gamma shifted to start at low (default 0; Dynare ignores their fourth), a normal as it is (its are bounds). The mean
+    and standard deviation are of the generalised distribution, as in Dynare."""
+    from ..errors import SpecificationError
+    from ..estimation import priors as P
+
+    try:
+        if shape == "Beta" and (low not in (None, 0.0) or high not in (None, 1.0)):
+            return P.GeneralisedBeta(mean, sd, 0.0 if low is None else low, 1.0 if high is None else high)
+        shifted = {"Gamma": P.ShiftedGamma, "InvGamma1": P.ShiftedInvGamma1, "InvGamma2": P.ShiftedInvGamma2}
+        if shape in shifted and low not in (None, 0.0):
+            return shifted[shape](mean, sd, low)
+        return getattr(P, shape)(mean, sd)
+    except SpecificationError as exc:
+        raise ModelError(f"the prior for {name}: {exc}") from None
+
+
+def _truncated(priors: dict[str, Any], bounds: dict[str, tuple[float, float]], trunc: float) -> dict[str, tuple[float, float]]:
+    """Dynare's ``prior_trunc``: each prior's parameter kept between its ``trunc`` and ``1 - trunc`` quantiles, within any
+    bounds given (``prior_trunc=0``: the prior's support)."""
+    from ..estimation.priors import quantile
+
+    if not 0 <= trunc < 0.5:
+        raise ModelError(f"prior_trunc={trunc:g}: a probability from 0 up to 0.5")
+    out = dict(bounds)
+    for name, prior in priors.items():
+        lo, hi = getattr(prior, "support", (-math.inf, math.inf)) if trunc == 0 else (quantile(prior, trunc), quantile(prior, 1 - trunc))
+        old = out.get(name, (-math.inf, math.inf))
+        out[name] = (max(old[0], lo), min(old[1], hi))
+    return out
 
 
 def corr_name(a: str, b: str, shocks: list[str] | tuple[str, ...]) -> str:
@@ -614,6 +668,44 @@ def corr_name(a: str, b: str, shocks: list[str] | tuple[str, ...]) -> str:
         raise ModelError(f"corr {a}, {b}: a correlation is between two different shocks (stderr {a} for its size)")
     first, second = sorted((a, b), key=list(shocks).index)
     return f"corr_{first}_{second}"
+
+
+def measurement_corr_name(a: str, b: str, varobs: Sequence[str]) -> str:
+    """The name of the correlation of two observed variables' measurement errors as an estimated parameter:
+    ``corr_<first>_<second>``, the two in the order of ``varobs``."""
+    from .covariance import corr_pairs
+
+    unobserved = [v for v in (a, b) if v not in varobs]
+    if unobserved:
+        raise ModelError(f"corr {a}, {b}: a correlation of measurement errors is between observed variables, and "
+                         f"{', '.join(unobserved)} {'is' if len(unobserved) == 1 else 'are'} not in varobs")
+    if a == b:
+        raise ModelError(f"corr {a}, {b}: a correlation is between two different variables (stderr {a} for its size)")
+    first, second = sorted((a, b), key=list(varobs).index)
+    name = f"corr_{first}_{second}"
+    if name not in corr_pairs(varobs):
+        raise ModelError(f"corr {a}, {b}: the name {name} would name another pair of observed variables too (rename a variable)")
+    return name
+
+
+def _measurement_corr(pairs: list[tuple[str, str, str, float]], varobs: Sequence[str],
+                      measurement_sd: dict[str, float]) -> dict[tuple[str, str], float]:
+    """The correlations of measurement errors in the shocks block (``corr y, c = r`` or ``var y, c = cov`` on two
+    observed variables, as Dynare), in varobs order. Each within (-1, 1)."""
+    out: dict[tuple[str, str], float] = {}
+    for kind, a, b, value in pairs:
+        measurement_corr_name(a, b, varobs)  # refuses unobserved variables and a variable with itself
+        first, second = sorted((a, b), key=list(varobs).index)
+        if kind == "var":
+            sizes = [measurement_sd.get(v) for v in (a, b)]
+            if any(sd is None or sd <= 0 for sd in sizes):
+                raise ModelError(f"var {a}, {b} = {value:g}: a covariance of measurement errors needs their variances "
+                                 f"(stderr {a} and stderr {b}) in the shocks block")
+            value = value / (sizes[0] * sizes[1])
+        if not -1 < value < 1:
+            raise ModelError(f"the correlation of the measurement errors of {a} and {b} is {value:g}, outside (-1, 1)")
+        out[(first, second)] = float(value)
+    return out
 
 
 def _shock_corr(pairs: list[tuple[str, str, str, float]], exo: list[str], shock_sd: dict[str, float]) -> dict[tuple[str, str], float]:

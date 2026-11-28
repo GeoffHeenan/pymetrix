@@ -2682,7 +2682,16 @@ Dynare's macro processor runs first, as Dynare's preprocessor does: `@#define`, 
 `@#ifdef`, `@#for` loops over arrays (`@#for c in ["us", "ea"]`, `@#for (a, b) in ...`), `@#include` (next to the
 model file, so read the file by its path), `@#echo` and `@#error`. A directive the reader does not know, an unclosed
 `@#if` or `@#for` and an include not found are errors with their line; the model editor shows them there, and the
-problems of the expanded model at the lines they come from.
+problems of the expanded model at the lines they come from. Dynare 6's operations on arrays work too: union `a | b`,
+intersection `a & b`, difference `a - b`, Cartesian product `a * b` and power `a ^ 2`, the type tests `isreal`,
+`isstring`, `isboolean`, `istuple` and `isarray`, and the casts `(real)`, `(string)`, `(bool)`, `(tuple)`, `(array)`.
+
+A `corr y, c = 0.3;` (or `var y, c = cov;`) on two `varobs` variables is the correlation of their measurement errors,
+in `dyn.measurement_corr` and the filter's measurement-error covariance; `corr y, c, ...` in `estimated_params`
+estimates it as `corr_y_c`. For any model, `MeasurementMap(..., error_corr={("y", "c"): 0.3})`. The third and fourth
+prior parameters of `estimated_params` give Dynare's generalised priors (a beta on (low, high), a gamma or inverse
+gamma shifted to start at low; `GeneralisedBeta`, `ShiftedGamma`...), and `estimation(prior_trunc=0.01)` bounds each
+parameter by its prior's quantiles, as Dynare.
 
 Correlated shocks are read from the shocks block (`corr e1, e2 = 0.3;`, or a covariance `var e1, e2 = 0.01;`) into
 `dyn.shock_corr`, and pass wherever the shock sizes do:

@@ -35,7 +35,7 @@ def test_expressions():
 
 def test_define_and_substitution():
     text = '@#define N = 3\n@#define name = "us"\n@#define rho = 0.5 + 0.25\n@#define list = [1, 2.5, "z"]\nx_@{name} = @{rho}*@{N + 1}; @{list}\n'
-    assert _expand(text) == "x_us = 0.75*4; [1, 2.5, \"z\"]\n"  # directives leave no line
+    assert _expand(text) == "x_us = 0.75*4; [1, 2.5, z]\n"  # directives leave no line; strings unquoted, as Dynare 6.0
     assert _expand("@#define t = 1 > 0\n@{t} @{!t}") == "true false"
     assert _expand("@#define f(a, b) = a*10 + b\n@{f(2, 3)}") == "23"
     assert _expand("@#define long = 1 + \\\n  2\n@{long}") == "3"  # a directive continued on the next line

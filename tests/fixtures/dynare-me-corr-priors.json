@@ -1,0 +1,36 @@
+{
+ "dynare_version": "6.0",
+ "octave_version": "8.4.0",
+ "how": "dynare me_corr_priors.mod with options_.debug=1 (estimation at the initial values, mode_compute=0): -oo_.likelihood_at_initial_parameters; priordens(x_i, ...) of each parameter alone; prior_bounds(bayestopt_, 0.01). The fixed case: the shocks block with corr y, c = 0.4 and estimated_params rho, 0.65; alpha, 0.55 (maximum likelihood).",
+ "fixed_corr_loglike": -43.7027482597267,
+ "logpost": -38.1576968699249,
+ "log_prior": {
+  "sd_e": 1.02941128217997,
+  "sd_y": 1.06768529267792,
+  "corr_y_c": 1.25864655978937,
+  "rho": 1.32381343693504,
+  "alpha": 1.37546801450192
+ },
+ "bounds_prior_trunc_0.01": {
+  "sd_e": [
+   0.305558710809967,
+   1.70536826539206
+  ],
+  "sd_y": [
+   0.188888091020558,
+   1.29101344500635
+  ],
+  "corr_y_c": [
+   0.0673652125959158,
+   0.532634787404084
+  ],
+  "rho": [
+   0.347272258426413,
+   0.805539089576968
+  ],
+  "alpha": [
+   0.404527694345823,
+   0.868572147952942
+  ]
+ }
+}
