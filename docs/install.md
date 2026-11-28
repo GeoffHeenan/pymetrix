@@ -1,9 +1,10 @@
 # Installing pymetrix
 
 pymetrix needs Python 3.11 or later (3.13 is the main test platform) on Windows, macOS or Linux. It
-is on PyPI as a pre-release (0.1.0a20: `pip install --pre pymetrix`, or `"pymetrix[all]"`), and the same builds are
-attached to releases of the GitHub repository. The plugins pymetrix-seasonal, pymetrix-finance, pymetrix-guide,
-pymetrix-labbook and pymetrix-assistant are on PyPI too (0.1.0a1, `pip install --pre pymetrix-finance`, say).
+is on PyPI as a pre-release (0.1.0a21: `pip install --pre pymetrix`, or `"pymetrix[all]"`), and the same builds are
+attached to releases of the GitHub repository. The plugins pymetrix-eviews, pymetrix-seasonal, pymetrix-finance,
+pymetrix-guide, pymetrix-labbook and pymetrix-assistant are on PyPI too (0.1.0a1, `pip install --pre pymetrix-finance`,
+say).
 Install into a virtual environment of its own, so nothing else on your machine changes.
 
 ## System requirements
@@ -48,17 +49,17 @@ source pymetrix-env/bin/activate
 python -m pip install --pre "pymetrix[all]"
 ```
 
-**Or from the release's wheel.** Download `pymetrix-0.1.0a20-py3-none-any.whl` from the release page,
+**Or from the release's wheel.** Download `pymetrix-0.1.0a21-py3-none-any.whl` from the release page,
 then, in the folder where it is:
 
 ```bash
-python -m pip install "pymetrix-0.1.0a20-py3-none-any.whl[all]"
+python -m pip install "pymetrix-0.1.0a21-py3-none-any.whl[all]"
 ```
 
 **Or straight from the repository**, if you have access to it (git must be installed):
 
 ```bash
-python -m pip install "pymetrix[all] @ git+https://github.com/GeoffHeenan/pymetrix@v0.1.0a20"
+python -m pip install "pymetrix[all] @ git+https://github.com/GeoffHeenan/pymetrix@v0.1.0a21"
 ```
 
 `[all]` adds the desktop app (PySide6), linearmodels, arch, scikit-learn, Jupyter forms and the report
@@ -75,12 +76,12 @@ libraries, once: `python -c "import pymetrix_seasonal.jdemetra as j; j.install()
 named by `JDPLUS_PATH`.
 
 **The finance plugin** (value at risk, multivariate GARCH, copulas, portfolios, options, yield curves, credit) is a
-package of its own, `pymetrix-finance`. From the repository: `python -m pip install
-"pymetrix-finance @ git+https://github.com/GeoffHeenan/pymetrix#subdirectory=packages/pymetrix-finance"` (or, in a
-clone, `python -m pip install -e packages/pymetrix-finance`); once it is on the package index, `pymetrix[finance]`.
+package of its own, `pymetrix-finance`: `python -m pip install --pre pymetrix-finance` (or `"pymetrix[finance]"`), or,
+in a clone, `python -m pip install -e packages/pymetrix-finance`.
 
-**EViews workfiles** come in through the EViews plugin, `pymetrix-eviews`, a package of its own: in a clone,
-`python -m pip install -e packages/pymetrix-eviews` (or `"pymetrix-eviews @ git+https://github.com/GeoffHeenan/pymetrix#subdirectory=packages/pymetrix-eviews"`).
+**EViews workfiles and programs** come in through the EViews plugin, `pymetrix-eviews`, a package of its own:
+`python -m pip install --pre pymetrix-eviews` (0.1.0a1, which needs pymetrix 0.1.0a21), or, in a clone,
+`python -m pip install -e packages/pymetrix-eviews`.
 Its export program, run in EViews, writes a bundle that File → Import EViews workfile… reads. The program is experimental (it
 has not been run in EViews); saving the workfile from EViews as CSV or Excel needs no plugin and is the supported way.
 

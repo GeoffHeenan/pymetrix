@@ -207,7 +207,8 @@ translates as the package writes it.
 ## Installing
 
 ```bash
-pip install -e packages/pymetrix-eviews    # from the pymetrix repository
+pip install --pre pymetrix-eviews          # from PyPI (0.1.0a1 needs pymetrix 0.1.0a21)
+pip install -e packages/pymetrix-eviews    # or from a clone of the pymetrix repository
 ```
 
 It needs nothing beyond pymetrix. Its tests (`pip install -e "packages/pymetrix-eviews[test]"`) check the hand-made

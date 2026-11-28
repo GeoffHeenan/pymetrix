@@ -10,7 +10,7 @@ openness without assembling their work from notebooks, spreadsheets, GUI package
 scripts. It covers much of what EViews and MATLAB/IRIS are used for, and it is open source
 (BSD-3-Clause).
 
-> **Status: development build (0.1.0a20, on PyPI as a pre-release).** One developer so far; public and open source (BSD-3-Clause), and
+> **Status: development build (0.1.0a21, on PyPI as a pre-release).** One developer so far; public and open source (BSD-3-Clause), and
 > reviews, bug reports and contributions are welcome ahead of 0.1 ([CONTRIBUTING.md](CONTRIBUTING.md)). The core
 > works and is tested on Windows and Linux; see [known gaps](docs/known-gaps.md) for what is missing or rough, and
 > the [changelog](CHANGELOG.md).
@@ -44,8 +44,8 @@ every detail.
 
 ## Install
 
-On PyPI as a pre-release: `pip install --pre "pymetrix[all]"` (0.1.0a20; the plugins pymetrix-seasonal, -finance,
--guide, -labbook and -assistant too, 0.1.0a1). Reviewers: [installing pymetrix](docs/install.md) covers PyPI, the
+On PyPI as a pre-release: `pip install --pre "pymetrix[all]"` (0.1.0a21; the plugins pymetrix-eviews, -seasonal,
+-finance, -guide, -labbook and -assistant too, 0.1.0a1). Reviewers: [installing pymetrix](docs/install.md) covers PyPI, the
 wheel attached to each release, installing from this repository, and Codespaces. From a clone, with Python 3.11 or
 later:
 

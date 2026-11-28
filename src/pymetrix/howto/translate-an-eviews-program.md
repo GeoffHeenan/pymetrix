@@ -14,9 +14,8 @@ EViews. All of this is the `pymetrix-eviews` plugin's, a separate install.
 
 ## Before you start
 
-- The plugin, `pymetrix-eviews`. It is not on PyPI yet: install it from the repository, with
-  `pip install -e packages/pymetrix-eviews` in a clone of pymetrix. Once it is published, `pip install --pre
-  pymetrix-eviews`. Restart the app and, when it asks about the new plugin, choose Enable: the `pymetrix-eviews`
+- The plugin, `pymetrix-eviews`: `pip install --pre pymetrix-eviews` (or, in a clone of pymetrix,
+  `pip install -e packages/pymetrix-eviews`). Restart the app and, when it asks about the new plugin, choose Enable: the `pymetrix-eviews`
   plugin adds File → Translate EViews program…, File → Import EViews workfile… and the View → EViews translation
   panel.
 - The workfile's data, as the program's `wfopen` expects them. The supported way is to save the page from EViews as
