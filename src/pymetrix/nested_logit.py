@@ -18,6 +18,10 @@ it is fixed at 1. Estimation is full-information maximum likelihood (FIML), the 
 together, with analytic gradients, quasi-Newton steps and Newton steps at the end on a central-difference Hessian;
 standard errors are from the inverse Hessian, or clustered by case (a sandwich). The likelihood-ratio test of every
 lambda = 1 (the conditional logit, fitted too) is a test of IIA against this nesting.
+
+Written natively: the likelihood is in closed form, statsmodels has no nested logit, and Biogeme (which has one, and
+agrees: tests/test_nested_logit.py) needs Python 3.12, JAX and PyMC, takes wide data through its own expression
+language, and is not under an open-source licence.
 """
 
 from __future__ import annotations

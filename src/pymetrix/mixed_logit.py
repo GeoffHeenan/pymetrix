@@ -27,6 +27,10 @@ check them with more draws. The number of draws, their kind and the points dropp
 Each decision maker's conditional mean of a random coefficient, E[beta_n | their choices] =
 sum_r beta^r prod_t L_nt(beta^r) / sum_r prod_t L_nt(beta^r) (Revelt and Train 2000; Train 2009, chapter 11), is in
 ``individual``.
+
+Written natively: xlogit (MIT, the one light library) matches this code on the same draws (tests/test_mixed_logit.py)
+but has no correlated coefficients, seeds NumPy's global generator, assumes every case has the same alternatives and
+has had no release since 2023; Biogeme needs Python 3.12, JAX and PyMC and is not under an open-source licence.
 """
 
 from __future__ import annotations
