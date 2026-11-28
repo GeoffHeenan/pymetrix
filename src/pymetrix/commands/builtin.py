@@ -116,6 +116,8 @@ class LoadData(Command):
     whole file. Untick Keep a copy in the project to keep only the file's path and fingerprint instead.
     """
 
+    topics: ClassVar[tuple[str, ...]] = ("large-data",)
+
     path: Annotated[str, Widget("file", source="Data files (*.parquet *.csv *.xlsx *.xls);;All files (*)",
                                 help="a Parquet, CSV or Excel file; PyMetrix's Parquet files keep their axes and metadata")]
     time: Annotated[str, Widget("column", depends_on="path", help="column of dates or periods (not needed for our Parquet files)")] = ""

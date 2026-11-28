@@ -4119,6 +4119,32 @@ sample…**, `ls` **Equation…**, `sstate` **Check model…**, `stoch_simul` **
 those down. The names come from the tables of the help pages **Coming from EViews** and **Coming from MATLAB/IRIS
 and Dynare** (`pymetrix.coming_from`), so the palette and the pages agree.
 
+## Large Parquet files: reading part of one
+
+A dataset lives in memory, so a Parquet file too large to read whole is read in part. Look first, from the metadata
+only, then read the columns and rows needed:
+
+```python
+from pymetrix.io import scan
+
+print(scan("trade.parquet"))     # rows, row groups, files; each column's type, min, max and missing values
+trade = Dataset.read("trade.parquet", columns=["exports", "imports"],
+                     where="reporter in ['DEU', 'FRA'] and exports > 0", span=("2000", "2019"),
+                     time="year", entity=["reporter", "partner"], freq="Y")
+trade.meta.extra["loads"][-1]["selection"]   # what was read: filter pushed down, rows and row groups read of those in the file
+Dataset.read("trade_by_year/", where="year >= '2015'", time="year", entity="reporter", freq="Y")  # a partitioned folder
+```
+
+pyarrow reads only the columns named (and the time, entity and condition columns), and skips the partition folders
+and row groups whose statistics rule the condition out: comparisons with values, `in [...]`, and order comparisons
+with a period or date on the time axis are pushed down; arithmetic, functions, `not` and comparisons of two columns
+are applied after reading. The whole condition is then applied exactly as `select(where=...)` applies it, so the
+result is the same as reading everything and selecting. In the app, **File → Load data…** on a Parquet file larger than
+100 MB shows **Part of a large file**: the columns to tick, **Rows where**, **From** and **To**. A project keeps the
+data as read, so a selection is saved, not the file; untick **Keep a copy in the project** (`embed=False`) to keep
+only the file's path and fingerprint: opening the project reads the file again and refuses if it has changed
+(`load_project(path, changed_data="read")` reads it as it is). Help topic: **Large Parquet data**.
+
 ## Large datasets: working sets and searchable lists
 
 A dataset with hundreds or thousands of series makes every list of series long. Two things keep the app manageable:

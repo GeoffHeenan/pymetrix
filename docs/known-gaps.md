@@ -442,6 +442,17 @@ blocking you, say so: that is how priorities get set.
   are refused. A time axis compares with text in order (`time >= '2000Q1'`) but not with `==`, `!=` or `in`, as
   before. The dialogs' check as you type reads a condition with pymetrix's formula parser, so it can flag a valid
   condition (`country in ['DEU']`) that runs.
+- **Large Parquet data** (`Dataset.read(path, columns=, where=, span=)`, `pymetrix.io.scan`) only reads less: what is
+  read is held in memory as any dataset is, and estimation, models, matrices (dense: there are no sparse ones) and
+  each calculation step work on it in memory, one step at a time. Only Parquet files and folders take a selection
+  (read a CSV or Excel file whole, then `keep` and `select`); arithmetic, functions, `not`, comparisons of two
+  columns and `==`, `!=` and `in` on periods and dates are applied after reading, not pushed down. A folder must be
+  partitioned the hive way (`year=2010/`); the Load data dialog picks a file, not a folder (a folder is read in code),
+  and offers its Part of a large file fields above a fixed 100 MB. Object stores (`s3://`, `gs://`) are not read.
+  A project's reference to a file (`embed=False`) is its absolute path, checked by a fingerprint of each file's size
+  and footer, not a hash of every byte. There is no lazy engine: polars or DuckDB (not dependencies) would add
+  group-bys, joins and aggregation over data larger than memory, computed before anything is loaded, which pymetrix
+  does not do (aggregate after reading a selection).
 - **Assignment within a sample and empty datasets** (`with_series(..., within=...)`, `Dataset.empty`). Formulas have
   no missing-value literal (EViews' `na` inside an expression, as in `@recode(x > 0, x, na)`): a series of missing
   values is `with_series(y=None)`, and missing values in some rows `with_series(y=None, within=...)`. A formula that
