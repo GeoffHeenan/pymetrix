@@ -773,6 +773,14 @@ equations without standard errors; the learners report their cross-validated err
 which is also their forecast standard error one step ahead. Bagging needs no extra
 package. The methods are in the Method list of **Estimate → Equation…**.
 
+LightGBM and XGBoost (`pip install pymetrix[lightgbm]`, `pymetrix[xgboost]`) are learners too:
+`eq.fit(data, method=LightGBM())` or `XGBoost(depth=3)`, with the same summary, importance and forecasts, also as
+double ML's learners. `gb.shap()` (`pip install pymetrix[shap]`) splits each prediction into each regressor's
+contribution (SHAP values, exact for trees), and `gb.conformal(data, ("2025Q1", "2025Q4"), alpha=0.1)` gives
+conformal intervals, calibrated on the end of the sample; `method="aci"` adapts them to series whose errors change,
+and `conformal(fit, ...)` works for any equation. **Estimate → Machine learning → SHAP values…** and
+**Conformal intervals…** in the app.
+
 ## Exponential smoothing
 
 ```python
@@ -2565,7 +2573,7 @@ me.table("wifi", "discrete change")                                   # P(row) w
 Double machine learning learns the controls' part of the outcome and the treatment by cross-fitting and solves a
 Neyman-orthogonal score; with least-squares learners and no cross-fitting (`folds=1`) the partially linear estimate
 is ordinary least squares. The learners `"lasso"`, `"forest"` and `"boosting"` need scikit-learn (`pip install
-pymetrix[ml]`); `cluster=` keeps clusters whole in folds and clusters the errors. A shift-share IV builds the
+pymetrix[ml]`), `"lightgbm"` and `"xgboost"` LightGBM or XGBoost; `cluster=` keeps clusters whole in folds and clusters the errors. A shift-share IV builds the
 instrument from shares and shocks; its AKM and BHJ errors allow regions with similar shares to share shocks, and the
 Rotemberg weights say which industries drive the estimate. Interactive fixed effects need a balanced panel with many
 units and periods; with no factors they are pooled least squares or two-way fixed effects. After a choice logit,

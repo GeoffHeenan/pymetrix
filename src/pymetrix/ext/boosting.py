@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 LIGHTGBM_PLUGIN = PluginInfo(
     name="pymetrix-lightgbm",
     version=__version__,
-    requires={"lightgbm": ">=4.6"},
+    requires={"lightgbm": ">=4.6", "sklearn": ">=1.3"},
     license="BSD-3-Clause",
     maintainer="Geoffrey Heenan",
     description="Gradient-boosted trees from LightGBM",
@@ -44,7 +44,7 @@ LIGHTGBM_PLUGIN = PluginInfo(
 XGBOOST_PLUGIN = PluginInfo(
     name="pymetrix-xgboost",
     version=__version__,
-    requires={"xgboost": ">=2.1.4"},
+    requires={"xgboost": ">=2.1.4", "sklearn": ">=1.3"},
     license="BSD-3-Clause",
     maintainer="Geoffrey Heenan",
     description="Gradient-boosted trees from XGBoost",
@@ -97,7 +97,7 @@ class LightGBM:
         ("Friedman, J. H. (2001). Greedy function approximation: a gradient boosting machine. Annals of Statistics 29(5), 1189-1232. "
          "doi:10.1214/aos/1013203451"),
     )
-    requires: ClassVar[tuple[str, ...]] = ("lightgbm",)
+    requires: ClassVar[tuple[str, ...]] = ("lightgbm", "sklearn")
     wraps: ClassVar[str] = "lightgbm.LGBMRegressor"
     adapter_spec: ClassVar[AdapterSpec] = lgbm_specs.LIGHTGBM
     backend_adapter: ClassVar[Adapter] = lgbm_specs.ADAPTER
@@ -179,7 +179,7 @@ class XGBoost:
         ("Friedman, J. H. (2001). Greedy function approximation: a gradient boosting machine. Annals of Statistics 29(5), 1189-1232. "
          "doi:10.1214/aos/1013203451"),
     )
-    requires: ClassVar[tuple[str, ...]] = ("xgboost",)
+    requires: ClassVar[tuple[str, ...]] = ("xgboost", "sklearn")
     wraps: ClassVar[str] = "xgboost.XGBRegressor"
     adapter_spec: ClassVar[AdapterSpec] = xgb_specs.XGBOOST
     backend_adapter: ClassVar[Adapter] = xgb_specs.ADAPTER

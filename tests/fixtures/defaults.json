@@ -238,6 +238,18 @@
   "start": "<required>",
   "update_posterior": false
  },
+ "command pymetrix:conformal_forecast (schema 1)": {
+  "alpha": 0.1,
+  "calibration": 0.25,
+  "data": "data",
+  "end": "<required>",
+  "fit": "<required>",
+  "gamma": 0.005,
+  "method": "split",
+  "name": "intervals",
+  "start": "<required>",
+  "window": 0
+ },
  "command pymetrix:convert_frequency (schema 1)": {
   "data": "data",
   "freq": "Q",
@@ -428,6 +440,17 @@
   "start": "",
   "starts": 1,
   "workers": null
+ },
+ "command pymetrix:explain_learner (schema 1)": {
+  "background": 100,
+  "data": "",
+  "end": "",
+  "evaluations": 0,
+  "explainer": "auto",
+  "fit": "<required>",
+  "name": "shap",
+  "seed": 0,
+  "start": ""
  },
  "command pymetrix:export_model (schema 1)": {
   "form": "program",

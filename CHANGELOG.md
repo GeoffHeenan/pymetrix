@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **LightGBM and XGBoost learners, SHAP values and conformal intervals.** `LightGBM()` and `XGBoost()` (extras
+  `[lightgbm]`, `[xgboost]`) fit equations as the scikit-learn learners do, on one thread in the libraries'
+  reproducible modes, and are double ML's learners `"lightgbm"` and `"xgboost"`. `shap_values(fit)` or `fit.shap()`
+  (extra `[shap]`) gives each regressor's contribution to each prediction: TreeSHAP for trees, exact or seeded
+  permutation explainers otherwise. `conformal(fit, data, span)` gives split-conformal intervals for any estimated
+  equation, conformalised quantile regression for boosted trees, and adaptive conformal inference for series that
+  are not exchangeable. Estimate → Machine learning → SHAP values… and Conformal intervals…; a learner's Next ▸
+  menu offers them, with Forecast… and Backtest….
 - **The task pages from a result and from a dialog's help.** A result's Next ▸ menu lists, after its next dialogs,
   the How do I… pages that carry on from that kind of result (an equation: estimate and test it, check its forecast
   record, make a report; a VAR: estimate a VAR, run a forecast round, check its record...), each opening in the

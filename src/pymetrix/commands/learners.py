@@ -51,7 +51,7 @@ class ExplainLearner(_Call):
         from pymetrix import Dataset, Equation, RandomForest, shap_values
 
         data = Dataset.example("sample_macro")
-        fit = Equation("dlog(c) ~ dlog(y) + dlog(c)[-1] + r[-1]").fit(data, method=RandomForest(trees=50))
+        fit = Equation("dlog(c) ~ dlog(y) + dlog(c)[-1] + dlog(i)[-1]").fit(data, method=RandomForest(trees=50))
         sv = shap_values(fit)               # TreeSHAP: exact, for each period of the sample
         print(sv.summary())                 # mean |SHAP| by regressor
         sv.values.tail()                    # each regressor's contribution, period by period
