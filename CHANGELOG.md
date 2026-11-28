@@ -58,7 +58,7 @@
   stochastic steady state or a given state, and are generalised with `replications`; `moments()` simulates. Every
   term, and simulated paths, agree with Dynare 6.0's to about 1e-13. In the app: Model → Solution → Second-order
   solution…, Order 3. Not estimated at third order.
-- **Reading part of a large Parquet file.** `Dataset.read("big.parquet", columns=[...], where="...", span=(...))`
+- **Reading part of a large Parquet file.** `Dataset.read("big.parquet", columns=[...], where="year >= 2015", span=(...))`
   reads only the columns asked for and, through `pyarrow.dataset`, skips the partition folders (a folder partitioned
   as `year=2010/country=DEU/` reads too) and row groups whose statistics rule the condition out; the condition is
   pymetrix's row-condition syntax, pushed down where it translates (comparisons, `in [...]`, and/or) and applied
