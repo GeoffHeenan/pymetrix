@@ -72,7 +72,7 @@ MENU_LAYOUT: dict[str, list[Any]] = {
                       "OccasionallyBinding", "OccBinFilterCommand"]),
         SEPARATOR,
         ("Estimation", ["Calibrate", SEPARATOR, "EstimateModel", "RunMCMC", "RunSMC", SEPARATOR, "EstimateDSGEVAR"]),
-        ("Analysis", [("ModelImpulseResponses", "Impulse responses..."), SEPARATOR, "CheckIdentification", SEPARATOR, "StateSpaceForm", "KalmanFilter",
+        ("Analysis", [("ModelImpulseResponses", "Impulse responses..."), SEPARATOR, "CheckIdentification", "MapStability", SEPARATOR, "StateSpaceForm", "KalmanFilter",
                       "DataContributions", "ShockDecomposition", SEPARATOR, "ForecastModel"]),
         SEPARATOR,
         ("Policy", ["SolveOptimalPolicy", "OptimalSimpleRule", "OptimalControlCommand"]),

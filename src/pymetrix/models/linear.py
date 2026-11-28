@@ -133,10 +133,13 @@ def steady_state(model: Model, exogenous: Mapping[str, float] | None = None, gue
     found = _newton_step(F, J, x0)  # one exact step solves a linear model (most Dynare imports): no root search
     if found is None:
         found = optimize.root(F, x0, jac=J, method="hybr", options={"xtol": 1e-12})
-    if not found.success or np.max(np.abs(F(found.x))) > 1e-8:
+    def off(x: np.ndarray) -> bool:  # a residual not a number (log of a negative value...) is off too
+        return not bool(np.all(np.abs(F(x)) <= 1e-8))
+
+    if not found.success or off(found.x):
         found = optimize.root(F, x0, jac=J, method="lm", options={"xtol": 1e-14})
-    if np.max(np.abs(F(found.x))) > 1e-8:
-        worst = int(np.argmax(np.abs(F(found.x))))
+    if off(found.x):
+        worst = int(np.argmax(np.nan_to_num(np.abs(F(found.x)), nan=np.inf)))
         raise ModelError(f"no steady state found from these starting values (equation {model._system.equations[worst].name!r} "
                          f"off by {F(found.x)[worst]:.3g}); give guess={{...}}, or check the model has one")
     solved = {u: (0.0 if abs(v) < 1e-14 else float(v)) for u, v in zip(endo, found.x)}

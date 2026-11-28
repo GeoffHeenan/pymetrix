@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Prior stability mapping** (Model → Analysis → Stability mapping…, `stability_mapping`): global sensitivity
+  analysis of a linearised model, as Dynare's `dynare_sensitivity` (Ratto 2008). Parameters drawn from their priors
+  are classified as determinate, indeterminate, explosive, without a steady state or without a solution, and each
+  parameter's Smirnov test (SciPy's `ks_2samp`) compares its determinate draws with the others; the results show the
+  shares, the tests and each parameter's cumulative distributions. A steady state whose residuals are not numbers
+  (the log of a negative value) is now refused, where it was accepted before.
 - **Dynare files: correlated measurement errors, generalised priors, Dynare 6's macro operations.** `corr y, c = r`
   (or a covariance) on two observed variables in a shocks block is the correlation of their measurement errors, used
   by the Kalman filter, estimation and its analytic gradient; `corr y, c, ...` in `estimated_params` estimates it

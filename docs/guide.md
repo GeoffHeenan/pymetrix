@@ -2693,6 +2693,16 @@ prior parameters of `estimated_params` give Dynare's generalised priors (a beta 
 gamma shifted to start at low; `GeneralisedBeta`, `ShiftedGamma`...), and `estimation(prior_trunc=0.01)` bounds each
 parameter by its prior's quantiles, as Dynare.
 
+**Model → Analysis → Stability mapping…** draws a model's parameters from their priors and counts the draws with a
+unique stable solution, as Dynare's `dynare_sensitivity` (Ratto 2008); the Smirnov test says which parameters move
+the model out of that region:
+
+```python
+from pymetrix.models import stability_mapping
+st = stability_mapping(dyn, draws=2000, seed=1)   # dyn's estimated_params priors; or priors={"phi_pi": Uniform(0, 3)}
+st.shares; st.smirnov; st.plot()                  # classes, Smirnov tests, cumulative distributions
+```
+
 Correlated shocks are read from the shocks block (`corr e1, e2 = 0.3;`, or a covariance `var e1, e2 = 0.01;`) into
 `dyn.shock_corr`, and pass wherever the shock sizes do:
 

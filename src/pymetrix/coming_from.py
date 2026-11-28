@@ -170,6 +170,8 @@ TRANSLATIONS: tuple[Translation, ...] = (
                 "est.decompose()"),
     Translation("Dynare", ("identification",), "identification", "Model → Analysis → Identification…",
                 "est.identification()"),
+    Translation("Dynare", ("dynare_sensitivity",), "prior stability mapping", "Model → Analysis → Stability mapping…",
+                "stability_mapping(mod, draws=2000, seed=1)"),
     Translation("Dynare", ("osr",), "optimal simple rule", "Model → Policy → Optimal simple rule…",
                 'osr(mod, ["phi_pi", "phi_y"], {"pi": 1.0, "y": 0.25})'),
     Translation("Dynare", ("ramsey_model", "discretionary_policy"), "optimal policy", "Model → Policy → Optimal policy…",

@@ -1115,6 +1115,15 @@ def _register_late() -> None:
     def _(obj: Identification) -> list[Section]:
         return [("Identification", obj.summary())]
 
+    from .models.sensitivity import StabilityMapping
+
+    @register_view(StabilityMapping)
+    def _(obj: StabilityMapping) -> list[Section]:  # Model → Analysis → Stability mapping…
+        by_class = [(f"Against {name}", _frame_table(frame, f"Smirnov tests: determinate against {name} draws"))
+                    for name, frame in obj.smirnov_by_class().items()]
+        return [("Summary", obj.summary()), ("Smirnov tests", obj.table()), *_figure(obj.plot), *by_class,
+                ("Draws", _frame_table(obj.draws, "Each draw's parameter values and class"))]
+
     @register_view(FittedModel)
     def _(obj: FittedModel) -> list[Section]:
         smoothed = obj.smoothed.frame

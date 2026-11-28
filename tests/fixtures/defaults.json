@@ -1252,6 +1252,13 @@
   "round_name": "<required>",
   "variables": ""
  },
+ "command pymetrix:map_stability (schema 1)": {
+  "draws": 2000,
+  "name": "stability",
+  "pvalue_ks": 0.001,
+  "seed": 0,
+  "source": "<required>"
+ },
  "command pymetrix:mark_change (schema 1)": {
   "annualise": false,
   "color": "",

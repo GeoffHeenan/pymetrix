@@ -19,10 +19,11 @@ from .particle import ParticleFilter, particle_filter
 from .policy import OptimalPolicy, OSRResult, optimal_policy, osr
 from .control import OptimalControl, optimal_control
 from .calibrate import Calibration
+from .sensitivity import StabilityMapping, stability_mapping
 from . import templates
 
 __all__ = [
     "Block", "Fallback", "GaussSeidel", "LinearModel", "LinearSolution", "Model", "ModelEquation",
     "ModelError", "Newton", "PerfectForesight", "FirstOrder", "Scenario", "Solution", "SteadyState",
-    "ModelCheck", "ModelSystem", "Parameter", "ParameterSet", "SystemEquation", "MeasurementMap", "FittedModel", "FittedDSGEVAR", "Posterior", "Identification", "OccBinPath", "occbin", "OccBinFilter", "occbin_filter", "Regime", "RegimeFilter", "parse_regimes", "regime_filter", "Link", "ModelSource", "SourceCheck", "SolutionCheck", "check_solution", "Translation", "export_model", "AlgebraicEquation", "algebraic_equations", "write_latex", "SecondOrderSolution", "second_order", "ParticleFilter", "particle_filter", "OptimalPolicy", "OSRResult", "optimal_policy", "osr", "OptimalControl", "optimal_control", "Calibration", "templates",
+    "ModelCheck", "ModelSystem", "Parameter", "ParameterSet", "SystemEquation", "MeasurementMap", "FittedModel", "FittedDSGEVAR", "Posterior", "Identification", "OccBinPath", "occbin", "OccBinFilter", "occbin_filter", "Regime", "RegimeFilter", "parse_regimes", "regime_filter", "Link", "ModelSource", "SourceCheck", "SolutionCheck", "check_solution", "Translation", "export_model", "AlgebraicEquation", "algebraic_equations", "write_latex", "SecondOrderSolution", "second_order", "ParticleFilter", "particle_filter", "OptimalPolicy", "OSRResult", "optimal_policy", "osr", "OptimalControl", "optimal_control", "Calibration", "StabilityMapping", "stability_mapping", "templates",
 ]

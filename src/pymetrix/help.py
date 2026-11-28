@@ -1984,6 +1984,39 @@ add_topic("dynare-files", "Dynare files: measurement errors, generalised priors 
     @#line is accepted; problems are still reported at the model file's lines.
     """, ("Adjemian, S., Juillard, M., Karamé, F., Mutschler, W., Pfeifer, J., Ratto, M., Rion, N. and Villemot, S. (2024). Dynare: reference manual, version 6. Dynare Working Papers 80, CEPREMAP.",),
           ("model-solution", "state-space"))
+add_topic("global-sensitivity", "Global sensitivity analysis: prior stability mapping", """
+    Before estimating a forward-looking model, it is worth knowing where its priors put
+    the parameters: in a region where the model has a unique stable solution, or partly
+    where it has none or many. Ratto's (2008) prior stability mapping, Dynare's
+    dynare_sensitivity, answers this by Monte Carlo filtering. Model > Analysis >
+    Stability mapping draws the parameters from their priors, solves the model at each
+    draw, and puts each draw in one class: determinate (a unique stable solution:
+    Blanchard and Kahn's condition holds), indeterminate (more stable roots than
+    predetermined variables), explosive (fewer), no steady state, or no solution (the
+    roots count right but the stable roots do not pin down the predetermined variables).
+
+    Then each parameter's values in the determinate draws are compared with its values
+    in the others by the Smirnov test (the two-sample Kolmogorov-Smirnov test). Its
+    statistic is the largest distance between the two cumulative distributions, drawn on
+    the Graph tab. A parameter whose p-value is below 0.001 (Dynare's pvalue_ks) drives
+    the model in or out of the determinate region: in a New Keynesian model, the
+    inflation response of the Taylor rule, whose determinate draws all lie above one.
+    A parameter whose two distributions coincide does not matter for stability on its
+    own. The shares are Monte Carlo estimates: their standard error is
+    sqrt(p (1 - p) / draws), shown with them. Draws are random from the session's
+    generator and seed (Dynare's default is a quasi-random Sobol sequence), so the two
+    agree within that error. Shock sizes and measurement errors are not drawn: they do
+    not change whether the model solves.
+
+    In code: stability_mapping(model, draws=2000, seed=1) from pymetrix.models, with a
+    Dynare model (its estimated_params), a template or a model whose parameters carry
+    priors, or priors={"phi_pi": Uniform(0, 3)}. The result's shares, smirnov and
+    smirnov_by_class() hold the numbers; draws holds each draw and its class.
+    """, ("Ratto, M. (2008). Analysing DSGE models with global sensitivity analysis. Computational Economics 31(2), 115-139.",
+          "Saltelli, A., Ratto, M., Andres, T., Campolongo, F., Cariboni, J., Gatelli, D., Saisana, M. and Tarantola, S. (2008). Global Sensitivity Analysis: The Primer. Wiley.",
+          "Smirnov, N. (1948). Table for estimating the goodness of fit of empirical distributions. Annals of Mathematical Statistics 19(2), 279-281.",
+          "Adjemian, S., Juillard, M., Karamé, F., Mutschler, W., Pfeifer, J., Ratto, M., Rion, N. and Villemot, S. (2024). Dynare: reference manual, version 6. Dynare Working Papers 80, CEPREMAP."),
+          ("model-solution", "dynare-files"))
 add_topic("likelihood-gradient", "The gradient of a model's likelihood", """
     Estimating a linearised model means climbing its log likelihood (or log posterior) in
     the parameters, and the No-U-Turn sampler moves along its slope: both need the
