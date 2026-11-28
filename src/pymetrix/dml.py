@@ -23,7 +23,8 @@ by their median, the standard error by sqrt(median(se_s^2 + (theta_s - theta)^2)
 
 Learners: ``"ols"`` (least squares; a logit for the propensity score) needs nothing more; ``"lasso"``, ``"forest"``
 and ``"boosting"`` (and pymetrix's ``Lasso()``, ``RandomForest()`` and ``GradientBoosting()`` with their settings)
-need scikit-learn (``pip install pymetrix[ml]``).
+need scikit-learn (``pip install pymetrix[ml]``); ``"lightgbm"`` and ``"xgboost"`` (and ``LightGBM()``, ``XGBoost()``)
+need LightGBM or XGBoost (``pip install pymetrix[lightgbm]``, ``pymetrix[xgboost]``).
 """
 
 from __future__ import annotations
@@ -48,7 +49,7 @@ if TYPE_CHECKING:
 
 __all__ = ["FittedDoubleML", "double_ml", "dml_learner"]
 
-LEARNERS = ("ols", "lasso", "forest", "boosting")
+LEARNERS = ("ols", "lasso", "forest", "boosting", "lightgbm", "xgboost")
 
 
 # -- learners ---------------------------------------------------------------------------------------------------------
@@ -78,17 +79,33 @@ def _logit_fit(X: np.ndarray, y: np.ndarray, max_iter: int = 100) -> Callable[[n
 
 
 def dml_learner(spec: Any, classifier: bool, seed: int) -> tuple[str, Callable[[np.ndarray, np.ndarray], Callable[[np.ndarray], np.ndarray]]]:
-    """(label, fit) for a learner given by name (``"ols"``, ``"lasso"``, ``"forest"``, ``"boosting"``) or as one of
-    pymetrix's scikit-learn learners; ``fit(X, y)`` returns a predictor (of probabilities, for a classifier)."""
+    """(label, fit) for a learner given by name (``"ols"``, ``"lasso"``, ``"forest"``, ``"boosting"``, ``"lightgbm"``,
+    ``"xgboost"``) or as one of pymetrix's learners; ``fit(X, y)`` returns a predictor (of probabilities, for a classifier)."""
     kind = type(spec).__name__ if not isinstance(spec, str) else spec.lower()
     if kind == "ols":
         return ("logit" if classifier else "least squares"), (_logit_fit if classifier else _ols_fit)
-    names = {"lasso": "Lasso", "forest": "RandomForest", "boosting": "GradientBoosting"}
+    names = {"lasso": "Lasso", "forest": "RandomForest", "boosting": "GradientBoosting", "lightgbm": "LightGBM", "xgboost": "XGBoost"}
     kind = {v: v for v in names.values()}.get(kind, names.get(kind, kind))
     if kind not in names.values():
-        raise SpecificationError(f"a learner is one of {', '.join(map(repr, LEARNERS))} or Lasso(), RandomForest(), GradientBoosting(); "
-                                 f"not {spec!r}")
+        raise SpecificationError(f"a learner is one of {', '.join(map(repr, LEARNERS))} or Lasso(), RandomForest(), GradientBoosting(), "
+                                 f"LightGBM(), XGBoost(); not {spec!r}")
     from .adapters import require
+
+    if kind in ("LightGBM", "XGBoost"):  # their own classes give the library's estimator, with pymetrix's fixed settings
+        from .ext import boosting
+
+        method = getattr(boosting, kind)() if isinstance(spec, str) else spec
+        boosted = method.estimator(classifier, seed=int(method.seed) + seed)
+
+        def fit_boosted(X: np.ndarray, y: np.ndarray) -> Callable[[np.ndarray], np.ndarray]:
+            m = require("sklearn.base").clone(boosted)
+            if classifier:
+                m.fit(X, y.astype(int))
+                return lambda Xn: m.predict_proba(Xn)[:, 1]
+            m.fit(X, y)
+            return m.predict
+
+        return f"{method.label} ({method.trees} rounds)", fit_boosted
 
     def opt(name: str, default: Any) -> Any:
         return default if isinstance(spec, str) else getattr(spec, name, default)

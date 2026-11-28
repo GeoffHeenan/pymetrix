@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **LightGBM and XGBoost learners, SHAP values and conformal intervals.** `LightGBM()` and `XGBoost()` (extras
+  `[lightgbm]`, `[xgboost]`) fit equations as the scikit-learn learners do, on one thread in the libraries'
+  reproducible modes, and are double ML's learners `"lightgbm"` and `"xgboost"`. `shap_values(fit)` or `fit.shap()`
+  (extra `[shap]`) gives each regressor's contribution to each prediction: TreeSHAP for trees, exact or seeded
+  permutation explainers otherwise. `conformal(fit, data, span)` gives split-conformal intervals for any estimated
+  equation, conformalised quantile regression for boosted trees, and adaptive conformal inference for series that
+  are not exchangeable. Estimate → Machine learning → SHAP values… and Conformal intervals…; a learner's Next ▸
+  menu offers them, with Forecast… and Backtest….
 - **Nested and mixed logits, Kaplan-Meier and Cox models.** `nested_logit(data, choice, regressors, nests=...)` fits a
   nested logit by full-information maximum likelihood in the form consistent with utility maximisation (RU2), with a
   lambda per nest or one shared, and the likelihood-ratio test of IIA (every lambda 1 is the conditional logit,

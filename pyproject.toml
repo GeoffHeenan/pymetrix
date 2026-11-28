@@ -62,12 +62,22 @@ report = ["python-docx>=1.1", "openpyxl>=3.1"]
 jax = ["jax>=0.4"]
 fast = ["numba>=0.60"]  # the Kalman filter's loops compiled (pymetrix.models._kalman_compiled); never required, not in all
 ml = ["scikit-learn>=1.5"]  # 1.5.0 fixes PYSEC-2024-110 (TfidfVectorizer)
+# boosted trees beside scikit-learn's (pymetrix.ext.boosting) and SHAP values of learners (pymetrix.ml_explain); not in
+# all, since XGBoost brings NVIDIA's NCCL on Linux. LightGBM 4.6.0 and XGBoost 2.1.4 are the first to work with
+# scikit-learn 1.6; shap 0.48.0 is the first with wheels for every Python pymetrix supports
+lightgbm = ["lightgbm>=4.6", "scikit-learn>=1.5"]
+xgboost = ["xgboost>=2.1.4", "scikit-learn>=1.5"]
+shap = ["shap>=0.48", "scikit-learn>=1.5"]
 mcp = ["mcp>=2.3"]  # the MCP server for AI assistants (pymetrix-mcp)
 jdemetra = ["pymetrix-seasonal[jdemetra]"]  # TRAMO-SEATS through JDemetra+, in the seasonal plugin (Java 21; pymetrix_seasonal.jdemetra.install() fetches its jars)
 all = ["linearmodels>=6", "arch>=7", "scikit-learn>=1.5", "mcp>=2.3", "openpyxl>=3.1", "python-docx>=1.1",
        "PySide6>=6.6,!=6.12.0; python_version < '3.12'", "PySide6>=6.6; python_version >= '3.12'",
        "qtconsole>=5.5", "qtpy>=2.4", "pyflakes>=3", "jedi>=0.19", "ipywidgets>=8"]
-dev = ["pytest>=9.0.3", "pytest-xdist>=3.5", "openpyxl>=3.1", "linearmodels>=6", "arch>=7", "scikit-learn>=1.5", "mcp>=2.3", "python-docx>=1.1"]
+dev = ["pytest>=9.0.3", "pytest-xdist>=3.5", "openpyxl>=3.1", "linearmodels>=6", "arch>=7", "scikit-learn>=1.5", "mcp>=2.3", "python-docx>=1.1",
+       "lightgbm>=4.6", "shap>=0.48",
+       # XGBoost's Linux wheel pulls NVIDIA's NCCL (hundreds of MB) for GPUs the tests never use: xgboost-cpu is the same
+       # module without it (Linux and Windows wheels only; macOS's xgboost has no NCCL)
+       "xgboost-cpu>=2.1.4; platform_system != 'Darwin'", "xgboost>=2.1.4; platform_system == 'Darwin'"]
 
 [project.scripts]
 pymetrix-gui = "pymetrix_app:main"  # the launcher: its opening screen shows before pymetrix loads

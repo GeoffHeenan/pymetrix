@@ -1413,6 +1413,51 @@ add_topic("double-ml", "Double/debiased machine learning", """
           "machine learning for treatment and structural parameters. Econometrics Journal 21(1), C1-C68. doi:10.1111/ectj.12097",
           "Robinson, P. M. (1988). Root-N-consistent semiparametric regression. Econometrica 56(4), 931-954. doi:10.2307/1912705"),
           ("treatment-effects",))
+add_topic("shap-values", "SHAP values", """
+    A machine-learning fit has no coefficients to read. SHAP values split each prediction into a base value (the
+    average prediction) and one contribution per regressor: the Shapley values of a game whose players are the
+    regressors and whose payoff is the prediction with only some of them known. They add up to the prediction
+    exactly, a regressor the model ignores gets zero, and two regressors the model uses alike get the same. Averaged
+    as mean |SHAP|, they rank the regressors by how much the predictions move with each, a companion to permutation
+    importance.
+
+    For trees (random forests, boosted trees, LightGBM, XGBoost), TreeSHAP computes them exactly from the trees
+    themselves, with an absent regressor handled by following each split in proportion to the training observations
+    that went each way. For other learners they come from the model's predictions, with absent regressors drawn from
+    a background sample of the training periods: exactly, over every subset of regressors, when there are at most
+    ten; otherwise from a seeded sample of orderings, whose seed and number of evaluations are recorded. Either way
+    they describe the fitted model, not causal effects, and with correlated regressors the credit each gets depends
+    on how absence is defined.
+    """, ("Shapley, L. S. (1953). A value for n-person games. In Kuhn, H. W. and Tucker, A. W. (eds.), Contributions to the Theory of "
+          "Games, volume 2, 307-317. Princeton University Press.",
+          "Lundberg, S. M. and Lee, S.-I. (2017). A unified approach to interpreting model predictions. Advances in Neural Information "
+          "Processing Systems 30, 4765-4774.",
+          "Lundberg, S. M., Erion, G., Chen, H., DeGrave, A., Prutkin, J. M., Nair, B., Katz, R., Himmelfarb, J., Bansal, N. and Lee, S.-I. "
+          "(2020). From local explanations to global understanding with explainable AI for trees. Nature Machine Intelligence 2(1), 56-67."),
+          ("conformal-prediction", "forecast-workflow"))
+add_topic("conformal-prediction", "Conformal prediction intervals", """
+    A conformal interval covers a new outcome with a chosen probability without assuming anything about the model:
+    it is calibrated on the model's own errors. Split conformal holds back the last part of the sample, estimates the
+    model on the rest, and takes the interval as the prediction plus or minus the k-th smallest absolute error of the
+    n held-back periods, k = ceil((n + 1)(1 - alpha)). If the held-back periods and the new one are exchangeable, the
+    interval covers with probability at least 1 - alpha, and no more than 1 - alpha + 1/(n + 1). Conformalised
+    quantile regression calibrates the band between two quantile learners in the same way, so its width follows the
+    learners' estimate of the spread.
+
+    Exchangeability is the catch for time series: a trend, a break or changing volatility makes the past errors a
+    poor guide to the next, and the coverage can fall short. Adaptive conformal inference moves the level after each
+    outcome, alpha_t+1 = alpha_t + gamma (alpha - miss_t), so a run of misses widens the intervals until they cover
+    again; over T periods the share of misses is within (max(alpha, 1 - alpha) + gamma) / (gamma T) of alpha whatever
+    the data. That is coverage on average over time, not in each period, and the guarantee needs outcomes as they
+    arrive: true forecasts beyond the data keep the last level.
+    """, ("Vovk, V., Gammerman, A. and Shafer, G. (2005). Algorithmic Learning in a Random World. Springer.",
+          "Lei, J., G'Sell, M., Rinaldo, A., Tibshirani, R. J. and Wasserman, L. (2018). Distribution-free predictive inference for "
+          "regression. Journal of the American Statistical Association 113(523), 1094-1111.",
+          "Romano, Y., Patterson, E. and Candès, E. (2019). Conformalized quantile regression. Advances in Neural Information Processing "
+          "Systems 32, 3543-3553.",
+          "Gibbs, I. and Candès, E. (2021). Adaptive conformal inference under distribution shift. Advances in Neural Information "
+          "Processing Systems 34, 1660-1672."),
+          ("shap-values", "forecast-workflow"))
 add_topic("shift-share", "Shift-share (Bartik) instruments", """
     A shift-share instrument combines regions' exposure to industries (the shares) with shocks to those industries
     (the shifts): regions exposed to industries that boomed get a large instrument. Identification can rest on the

@@ -8,6 +8,7 @@ from . import nonparametric as _nonparametric  # noqa: F401 - registers the dial
 from .arima import FitSARIMA, FitSTLForecast, FitTheta
 from .breaks import FindBreaks
 from . import micro as _micro  # noqa: F401 - registers the dialogs
+from .learners import ConformalForecast, ExplainLearner  # noqa: F401 - Estimate > Machine learning
 from .treatment import DifferenceInDifferences, FitEventStudy, FitSyntheticControl, PropensityWeighting, RegressionDiscontinuity
 from .systems import FitSystem
 from .panel import BalancePanel, PanelStatistics, PivotTable, Slice, ToLong, ToWide

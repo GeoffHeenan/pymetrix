@@ -247,5 +247,7 @@ as `spa`, `model_confidence_set` and `stepm` in `pymetrix/stats/evaluation.py`, 
 | linearmodels | `pymetrix/ext/linearmodels.py` | LIML, IV-GMM, random effects, between, first difference, Fama-MacBeth |
 | arch | `pymetrix/ext/arch.py`, `stats/evaluation.py`, `stats/data_tests.py` | GARCH family; Phillips-Perron, Zivot-Andrews, DF-GLS, variance-ratio and Phillips-Ouliaris tests; SPA, MCS, StepM |
 | scikit-learn | `pymetrix/ext/sklearn.py` | Ridge, lasso, elastic net; random forests, boosting, neural networks, nearest neighbours |
+| LightGBM, XGBoost | `pymetrix/ext/boosting.py` | Gradient-boosted trees (`LightGBM`, `XGBoost`), returning the scikit-learn plugin's `FittedLearner` |
+| shap | `pymetrix/ml_explain.py` | SHAP values of learners: TreeSHAP, exact and permutation explainers |
 
 The `ext` modules are written against the Extension API only, so each could move to its own package unchanged.

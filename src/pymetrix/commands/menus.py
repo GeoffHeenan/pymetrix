@@ -43,6 +43,7 @@ MENU_LAYOUT: dict[str, list[Any]] = {
                                "RegressionDiscontinuity", "PropensityWeighting", "FitSyntheticControl", "FitSyntheticDiD"]),
         ("Microeconometrics", ["DoubleMachineLearning", "ShiftShareIV", "FitInteractiveFE", "FitConditionalLogit", "FitChoiceLogit", "ClogitMarginalEffects",
                                "FitNestedLogit", "FitMixedLogit", SEPARATOR, "FitKaplanMeier", "FitCoxPH"]),
+        ("Machine learning", ["ExplainLearner", "ConformalForecast"]),  # after a learner from Estimate → Equation…
         # estimation first (reduced-form VARs, then cointegrated systems, then local projections), then identification
         # and what an identified VAR shows (responses, decompositions), then the lag-order searches
         ("VARs and local projections", ["FitVAR", "FitPanelVAR", "FitPanelMeanGroup", "FitFAVAR", "FitBVARSV", "FitTVPVAR",

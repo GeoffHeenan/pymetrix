@@ -490,7 +490,15 @@ blocking you, say so: that is how priorities get set.
     networks;
   - shrinkage and machine learning need scikit-learn (`[ml]`); learners give no standard errors beyond one step
     ahead for dynamic forecasts that feed on themselves, no classification learners, and no hyperparameter search
-    beyond the shrinkage penalty;
+    beyond the shrinkage penalty (LightGBM and XGBoost included: no early stopping, no categorical features);
+  - conformal intervals are for static (one-step) predictions: none for dynamic multi-step forecasts, whose errors
+    compound; the calibration periods are the end of the sample (no cross-conformal, jackknife+ or CV+); split
+    conformal's guarantee needs exchangeability, which time series rarely have, and adaptive conformal inference
+    (`method="aci"`) guarantees coverage only on average over time, with the model fixed after the training periods
+    (not refitted as outcomes arrive); a fit made with `where=` is estimated again on its span alone;
+  - SHAP values are for `FittedLearner`s (not shrinkage or least squares, whose contribution of x is
+    b (x - mean x)); TreeSHAP is the path-dependent kind only (no interventional TreeSHAP with a background), and no
+    interaction values or dependence plots;
   - realized-volatility (HAR) and multivariate GARCH models (chapter 13) are in the finance plugin
     (`pymetrix-finance`), not the core package.
 - **Data connectors** cache searches and metadata but not downloaded data (each `Dataset.read` asks the provider

@@ -50,7 +50,7 @@ class _Call(Command):
 
 
 _LEARNER_HELP = ("ols: least squares (a logit for a propensity score), no extra library; lasso, forest, boosting: scikit-learn "
-                 "(pip install pymetrix[ml])")
+                 "(pip install pymetrix[ml]); lightgbm, xgboost: LightGBM or XGBoost (pip install pymetrix[lightgbm], pymetrix[xgboost])")
 
 
 @command(menu="Estimate/Double machine learning...")
@@ -93,8 +93,8 @@ class DoubleMachineLearning(_Call):
     model: Annotated[Literal["plr", "pliv", "irm"], Widget("choice", help="plr: partially linear; pliv: partially linear IV (needs an instrument); irm: interactive, a 0/1 treatment")] = "plr"
     instrument: Annotated[str, Widget("series", depends_on="data", help="the instrument Z (partially linear IV only)")] = ""
     score: Annotated[Literal["ATE", "ATTE"], Widget("choice", help="interactive model: the average effect (ATE) or the average effect on the treated (ATTE)")] = "ATE"
-    learner: Annotated[Literal["ols", "lasso", "forest", "boosting"], Widget("choice", help=_LEARNER_HELP)] = "ols"
-    learner_treatment: Annotated[Literal["", "ols", "lasso", "forest", "boosting"], Widget("choice", advanced=True, help="the learner for the treatment (and instrument); empty: the same as the outcome's")] = ""
+    learner: Annotated[Literal["ols", "lasso", "forest", "boosting", "lightgbm", "xgboost"], Widget("choice", help=_LEARNER_HELP)] = "ols"
+    learner_treatment: Annotated[Literal["", "ols", "lasso", "forest", "boosting", "lightgbm", "xgboost"], Widget("choice", advanced=True, help="the learner for the treatment (and instrument); empty: the same as the outcome's")] = ""
     folds: Annotated[int, Widget("number", advanced=True, min=1, max=20, help="cross-fitting folds; 1 fits the nuisance functions on the whole sample (no cross-fitting)")] = 5
     repeats: Annotated[int, Widget("number", advanced=True, min=1, max=100, help="repetitions of the sample split, aggregated by the median")] = 1
     cluster: Annotated[str, Widget("level", depends_on="data", advanced=True, help="a series or axis to cluster the standard errors (and keep together in folds) by; empty: none")] = ""

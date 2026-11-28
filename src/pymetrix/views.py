@@ -863,6 +863,19 @@ def _register_late() -> None:
                 ("Cross-validation", _frame_table(obj.cv_resid.to_frame(), "Out-of-sample errors of the validation windows")),
                 ("Residuals", _frame_table(frame, "In-sample fit"))]
 
+    from .ml_conformal import ConformalIntervals
+    from .ml_explain import ShapValues
+
+    @register_view(ShapValues)
+    def _(obj: ShapValues) -> list[Section]:
+        return [("Summary", obj.summary()), *_figure(obj.plot),
+                ("Values", _frame_table(obj.to_frame(), "Each regressor's contribution, the base value and the prediction"))]
+
+    @register_view(ConformalIntervals)
+    def _(obj: ConformalIntervals) -> list[Section]:
+        return [("Summary", obj.summary()), *_figure(obj.plot), ("Intervals", _frame_table(obj.frame, "Conformal prediction intervals")),
+                ("Scores", _frame_table(obj.scores, "Conformity scores of the calibration periods"))]
+
     @register_view(FittedThresholdAR)
     def _(obj: FittedThresholdAR) -> list[Section]:
         from .nonlinear import _series_data
