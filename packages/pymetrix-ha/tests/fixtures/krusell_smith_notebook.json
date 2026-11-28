@@ -1,0 +1,26 @@
+{
+ "source": "sequence-jacobian's Krusell-Smith notebook, notebooks/krusell_smith.ipynb at commit eb4ac4c (github.com/shade-econ/sequence-jacobian, 9 September 2024): numbers as its saved outputs print them",
+ "package": "sequence-jacobian",
+ "package_version": "1.0.0",
+ "calibration": {"eis": 1, "delta": 0.025, "alpha": 0.11, "rho_e": 0.966, "sd_e": 0.5, "L": 1.0, "nE": 7, "nA": 500, "amin": 0, "amax": 200},
+ "grid": "grids.agrid(amin=amin, amax=amax, n=nA)",
+ "cells": {
+  "steady_state_keys": {"cell": 15, "printed": ["eis", "delta", "alpha", "rho_e", "sd_e", "L", "nE", "nA", "amin", "amax", "beta", "Z", "K", "r", "w", "Y", "A", "C", "asset_mkt", "goods_mkt"]},
+  "J_firm_Y_Z_diagonal": {"cell": 27, "printed": 1.13424196, "digits": 8},
+  "J_ha_C_r_T5": {"cell": 30, "digits": 8, "printed": [
+   [0.09578534, -0.68179015, -0.64119935, -0.60434415, -0.57057436],
+   [0.09413756, 0.13463153, -0.64841526, -0.61133486, -0.5771951],
+   [0.09250592, 0.12963223, 0.16651934, -0.61980277, -0.58527967],
+   [0.09087539, 0.12509918, 0.15952962, 0.1938437, -0.59485549],
+   [0.08926245, 0.12116257, 0.15312513, 0.18541035, 0.21770361]]},
+  "J_ha_C_r_times_J_firm_r_Z_T5": {"cell": 32, "digits": 8, "printed": [
+   [0.00380253, -0.02706602, -0.02545463, -0.02399154, -0.02265093],
+   [0.00373712, 0.00534467, -0.02574109, -0.02426906, -0.02291376],
+   [0.00367234, 0.0051462, 0.00661056, -0.02460522, -0.02323471],
+   [0.00360761, 0.00496625, 0.00633308, 0.0076953, -0.02361485],
+   [0.00354358, 0.00480997, 0.00607883, 0.00736051, 0.0086425]]},
+  "nonlinear_errors_Z_1pct_rho_0.8": {"cell": 82, "shock": "Z = 0.01 * 0.8**t, T = 300", "printed": ["3.37E-02", "5.73E-05", "1.26E-07", "1.75E-10"]},
+  "nonlinear_errors_Z_10pct_rho_0.8": {"cell": 86, "shock": "Z = 0.1 * 0.8**t, T = 300", "printed": ["3.47E-01", "5.22E-03", "1.16E-04", "1.69E-06", "1.13E-08", "2.95E-10"]}
+ },
+ "not_printed": "The notebook prints no steady-state values and no impulse-response values: those are checked against the library called directly, the hand formulas K = alpha Y / (r + delta) and w = (1 - alpha) Y / L, and the notebook's own step-by-step chain rule (its section 5.1)."
+}

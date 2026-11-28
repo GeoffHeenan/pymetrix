@@ -54,7 +54,7 @@ jobs:
           distribution: temurin
           java-version: "21"
       - name: Install with every optional library
-        run: python -m pip install -e ".[dev,qt,jupyter,excel]" -e packages/pymetrix-finance -e packages/pymetrix-labbook -e packages/pymetrix-guide -e packages/pymetrix-assistant -e packages/pymetrix-psets -e "packages/pymetrix-seasonal[jdemetra]" -e packages/pymetrix-eviews
+        run: python -m pip install -e ".[dev,qt,jupyter,excel]" -e packages/pymetrix-finance -e packages/pymetrix-labbook -e packages/pymetrix-guide -e packages/pymetrix-assistant -e packages/pymetrix-psets -e "packages/pymetrix-seasonal[jdemetra]" -e packages/pymetrix-eviews -e packages/pymetrix-ha
       - uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/jdemetra

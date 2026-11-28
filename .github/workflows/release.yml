@@ -20,7 +20,7 @@ on:
       package:
         description: "what to release"
         type: choice
-        options: ["pymetrix", "pymetrix-assistant", "pymetrix-finance", "pymetrix-guide", "pymetrix-labbook", "pymetrix-psets", "pymetrix-seasonal", "pymetrix-eviews"]
+        options: ["pymetrix", "pymetrix-assistant", "pymetrix-finance", "pymetrix-guide", "pymetrix-labbook", "pymetrix-psets", "pymetrix-seasonal", "pymetrix-eviews", "pymetrix-ha"]
         default: "pymetrix"
 
 permissions:

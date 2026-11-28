@@ -41,6 +41,10 @@ every detail.
   through a bundle its export program writes, and translates EViews programs into readable pymetrix scripts with a
   report on every line: data work, estimation, tests, models and control flow (loops, ifs, subroutines), in code or
   with File → Translate EViews program… and its panel.
+- **Heterogeneous-agent models.** The `pymetrix-ha` plugin (experimental, `packages/pymetrix-ha`,
+  `pip install -e packages/pymetrix-ha` in a clone) solves models with households that differ in income and wealth, such as
+  Krusell-Smith, by wrapping sequence-jacobian. It gives steady states, Jacobians, impulse responses and nonlinear
+  transitions as pymetrix results, in code.
 
 ## Install
 

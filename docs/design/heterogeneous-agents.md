@@ -1,6 +1,7 @@
 # Heterogeneous-agent macro models: the `pymetrix-ha` plugin
 
-Design note, 28 November 2026 · a proposal for the owner to approve or change; nothing here is built · builds on
+Design note, 28 November 2026 · approved the same day (questions 1 to 5 below, as recommended) · **phase 1 built**
+(`packages/pymetrix-ha`, "Built" under section 11) · builds on
 the modelling side as it is (`src/pymetrix/models/`), [plugin-split.md](plugin-split.md) ("Heterogeneous-agent
 (HANK) models", which first proposed wrapping sequence-jacobian), the extension API ([plugins.md](plugins.md),
 `pymetrix.plugins.API` 1.10) and the adapters ([adapters.md](adapters.md))
@@ -430,6 +431,30 @@ Rough figures for one developer who knows the codebase. Tests add about as much 
 Phase 1 alone is a usable deliverable: Krusell–Smith's steady state and responses, in code, with provenance and
 checks.
 
+*Built (phase 1, 28 November 2026):* `packages/pymetrix-ha` 0.1.0a1, on sequence-jacobian 1.0.0 from PyPI
+(`sequence-jacobian>=1.0,<2`, with numba, NumPy and SciPy declared by the plugin). `pymetrix[ha]` installs it; it is
+not in `[all]`.
+- `HAModel` over sequence-jacobian's blocks, checked when made: outputs that are names, inputs that something gives,
+  targets and shocks that exist. `pymetrix_ha.simple` and `het` say what to do when the library cannot read a
+  block's source; `blocks_from_source` runs block text with its source registered, so such blocks work.
+- `steady_state()` (`HASteadyState`: a table, the internals, checks), `jacobian()` (one block's, `Jacobians`),
+  `linearize()` (`HALinear`, holding `G`; `irf()` gives an `IRF`) and `solve()` (`HATransition`, a `Solution` in
+  levels, the linear transition beside it).
+- `HAOptions` passes every tolerance and iteration limit (the library's 1.0.0 defaults, checked against its
+  signatures in a test). The library's printing is kept in provenance. Each Newton iteration's error and the
+  steady state's evaluations are recorded, from wrappers around the model's own calls.
+- Provenance records the grids (shape, range, a hash of the points), each block's source fingerprint, and the
+  library's, numba's and NumPy's versions. No seed is recorded: nothing in phase 1 is random.
+- Checks (`packages/pymetrix-ha/tests`), all on the notebook's calibration and grid (`agrid`):
+  - the notebook's printed household Jacobian, firm Jacobian and their product, to 8 digits;
+  - its Newton errors for the 1% and 10% shocks, as printed;
+  - sequence-jacobian called directly with its defaults: steady state, `G`, responses and transitions, to 1e-12;
+  - the hand checks of section 9, item 4, except the fake-news-against-direct-method and Toeplitz checks;
+  - the RBC limit against pymetrix's QZ responses (1e-8; the transition and likelihood checks wait for phases 2
+    and 3).
+- In the app: the help topic only (`heterogeneous-agents`); the dialog is phase 2. CI's full job installs the plugin
+  (numba has wheels for Python 3.11 to 3.13 on Linux, macOS and Windows).
+
 ## 12. Left out
 
 - **Aggregate risk beyond first order.** The method is linear in aggregate shocks (and exact in the
@@ -460,6 +485,9 @@ checks.
 - **Scope creep.** The literature moves fast. The phases list what is in; the rest is listed above.
 
 ## 14. Open questions for the owner
+
+*Decided (28 November 2026):* questions 1 to 5 as recommended: wrap the library, in its own plugin, on the PyPI
+release 1.0.0, with Python blocks first, offered as `pymetrix[ha]` and not in `[all]`; phase 1 built (section 11).
 
 1. **Wrap sequence-jacobian (option A), or write it natively (B)?** *Recommendation:* A. It works on today's
    stack, and the native route stays open with the same tests if it stops working.

@@ -85,6 +85,12 @@ in a clone, `python -m pip install -e packages/pymetrix-finance`.
 Its export program, run in EViews, writes a bundle that File → Import EViews workfile… reads. The program is experimental (it
 has not been run in EViews); saving the workfile from EViews as CSV or Excel needs no plugin and is the supported way.
 
+**Heterogeneous-agent models** (Krusell-Smith so far, by sequence-jacobian) are in the plugin `pymetrix-ha`, a
+package of its own and not yet on PyPI. In a clone: `python -m pip install -e packages/pymetrix-ha`; `"pymetrix[ha]"`
+installs it once it is published. It is not in `[all]`: it brings numba, which has wheels for Python 3.11 to 3.13 on
+Linux, macOS and Windows but supports new Python versions late, and sequence-jacobian 1.0.0, whose release declares
+no dependencies (the plugin declares NumPy, SciPy and numba for it).
+
 **Or nothing to install:** open the repository in GitHub Codespaces (see the README), which runs the
 desktop app in your browser.
 

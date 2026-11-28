@@ -54,6 +54,10 @@ The reference plugins (`pymetrix.ext.connectors`, `ext.linearmodels`, `ext.arch`
 written against this API only, and `tests/sample_plugin.py` is a minimal outside package. They are the
 worked examples.
 
+The first-party plugins in `packages/` are packages of their own, written against the same API and listed in
+`plugins.FIRST_PARTY`: pymetrix-finance, -labbook, -guide, -assistant, -psets, -seasonal, -eviews and -ha
+(heterogeneous-agent models by sequence-jacobian; [heterogeneous-agents.md](heterogeneous-agents.md)).
+
 ### What a plugin imports, and the API's versions
 
 A plugin imports pymetrix's inside only through `pymetrix.extension`, under names that stay put as pymetrix changes,
