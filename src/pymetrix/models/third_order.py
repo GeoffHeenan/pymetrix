@@ -206,8 +206,8 @@ class ThirdOrderSolution:
             x, _ = self._run(hit, pruning, start)
             out[:, :, j] = (x - calm).mean(axis=1)[:, keep]
         kind = f"generalised, {replications} replications" if replications else "no other shocks"
-        where = "from the given state" if state else "from the stochastic steady state"
-        return IRF(out, list(self.endogenous), list(self.shocks), identification=f"model, third order ({kind}, {where})")
+        start = "from the given state" if state else "from the stochastic steady state"
+        return IRF(out, list(self.endogenous), list(self.shocks), identification=f"model, third order ({kind}, {start})")
 
     def moments(self, periods: int = 100_000, seed: int | None = 0, burn: int = 1000, pruning: bool = True) -> Table:
         """Moments of the variables from a long simulation (pruned unless ``pruning=False``): mean, standard deviation,

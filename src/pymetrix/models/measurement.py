@@ -77,7 +77,6 @@ class MeasurementMap:
     equations: Sequence[str]
     params: Mapping[str, float] = field(default_factory=dict)
     errors: Mapping[str, float] = field(default_factory=dict)  # measurement-error standard deviations
-    error_corr: Mapping[Any, float] = field(default_factory=dict)  # correlations of two series' measurement errors
     sources: Mapping[str, str] = field(default_factory=dict)  # data series names, where not the observable's name
     units: Mapping[str, str] = field(default_factory=dict)
     labels: Mapping[str, str] = field(default_factory=dict)
@@ -85,6 +84,8 @@ class MeasurementMap:
     trend_base: str | None = None  # the period where ttrend is 0, for trends that use it
     transforms: Mapping[str, str] = field(default_factory=dict)  # observed series made from raw data: {"growth": "400*dlog(gdp)"}
     reported: Sequence[str] = ()  # reported, not observed: "gap = 100*(y - y_pot)" (pseudo-observables)
+    # correlations of two series' measurement errors; last, so a map built by position keeps its meaning
+    error_corr: Mapping[Any, float] = field(default_factory=dict)
 
     measurements: tuple[Measurement, ...] = field(init=False, repr=False)
     trend_exprs: Mapping[str, Any] = field(init=False, repr=False)
