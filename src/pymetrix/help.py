@@ -1457,6 +1457,66 @@ add_topic("conditional-logit", "Conditional logit", """
     """, ("Chamberlain, G. (1980). Analysis of covariance with qualitative data. Review of Economic Studies 47(1), 225-238. doi:10.2307/2297110",
           "McFadden, D. (1974). Conditional logit analysis of qualitative choice behavior. In P. Zarembka (ed.), Frontiers in Econometrics, "
           "105-142. New York: Academic Press."), ("maximum-likelihood",))
+add_topic("nested-and-mixed-logit", "Nested and mixed logit", """
+    The conditional logit assumes the independence of irrelevant alternatives: the odds between two alternatives do
+    not depend on the others, so a new alternative draws from every other in proportion to its share. Two models
+    relax it, for the same long data (one row per case and alternative).
+
+    The nested logit groups alternatives in nests (bus and train in "public") whose unobserved utilities are
+    correlated: IIA holds within a nest, not across nests. Each nest has a dissimilarity (log-sum) parameter lambda.
+    pymetrix writes the model in McFadden's form consistent with random utility maximisation (Hensher and Greene's
+    "RU2": utilities divided by their nest's lambda inside the nest's inclusive value). With every lambda 1 it is the
+    conditional logit exactly; between 0 and 1 it is consistent with utility maximisation; near 0 the nest's
+    alternatives are near-perfect substitutes; above 1 is a warning sign. A nest of one alternative has no lambda (it
+    cancels), so it is fixed at 1; lambdas can be constrained equal. Estimation is full-information maximum
+    likelihood, and the likelihood-ratio test of every lambda = 1 against the conditional logit is a test of IIA.
+
+    The mixed (random-parameters) logit lets coefficients vary across decision makers, normal or lognormal (positive:
+    enter the negative of a price), uncorrelated or correlated; with repeated choices by one decision maker (a
+    panel), their choices share one draw of the coefficients. Its probabilities are integrals over the coefficients'
+    distribution, simulated with Halton draws (deterministic) or pseudo-random ones, and the simulated likelihood is
+    maximised. Too few draws bias the estimates: estimate again with more and compare. Each decision maker's
+    conditional mean of a coefficient, given their choices, describes where they lie in the distribution.
+
+    Marginal effects (fit.marginal_effects()): derivatives and elasticities of each alternative's probability in
+    each attribute of each alternative and each characteristic of the case, with delta-method standard errors, as
+    after the conditional logit; unlike there, a column's cross elasticities differ.
+    """, ("McFadden, D. (1978). Modelling the choice of residential location. In A. Karlqvist, L. Lundqvist, F. Snickars and J. W. Weibull (eds.), "
+          "Spatial Interaction Theory and Planning Models, 75-96. Amsterdam: North-Holland.",
+          "Hensher, D. A. and Greene, W. H. (2002). Specification and estimation of the nested logit model: alternative normalisations. "
+          "Transportation Research Part B: Methodological 36(1), 1-17.",
+          "McFadden, D. and Train, K. (2000). Mixed MNL models for discrete response. Journal of Applied Econometrics 15(5), 447-470.",
+          'Train, K. E. (2009). Discrete Choice Methods with Simulation, 2nd ed., chapters 4 ("GEV"), 6 ("Mixed logit"), 9 ("Drawing from '
+          'densities"), 10 ("Simulation-assisted estimation") and 11 ("Individual-level parameters"). Cambridge University Press.'),
+          ("conditional-logit", "maximum-likelihood"))
+add_topic("survival-analysis", "Survival analysis", """
+    Durations, such as time to finding a job, to default or to relapse, are often censored: for some subjects the
+    event has not happened when observation ends. The Kaplan-Meier estimator gives the probability of surviving past
+    each time as a product over the event times of the share of those at risk who survive it; censored subjects count
+    as at risk until they leave. Its intervals are pointwise (log-log by default, as Stata; log as R's survfit), from
+    Greenwood's variance. The log-rank test compares the events seen in each group with those expected if survival
+    were the same in every group; the Wilcoxon (Gehan-Breslow) and Tarone-Ware versions give early events more
+    weight.
+
+    Cox's proportional hazards model leaves the baseline hazard unspecified and estimates how regressors shift it:
+    exp(coefficient) is the hazard ratio, the same at every time. The partial likelihood needs a rule for events at
+    the same time: Breslow's (the default here, as in Stata and statsmodels) or Efron's (R's default, closer to the
+    exact likelihood with many ties). Strata give each stratum its own baseline hazard; an entry time handles
+    subjects observed only after some time at risk (left truncation); robust standard errors are Lin and Wei's. The
+    proportional-hazards assumption is checked by Grambsch and Therneau's test: the scaled Schoenfeld residuals
+    should not trend with time.
+    """, ("Kaplan, E. L. and Meier, P. (1958). Nonparametric estimation from incomplete observations. Journal of the American Statistical "
+          "Association 53(282), 457-481.",
+          "Mantel, N. (1966). Evaluation of survival data and two new rank order statistics arising in its consideration. Cancer Chemotherapy "
+          "Reports 50(3), 163-170.",
+          "Cox, D. R. (1972). Regression models and life-tables. Journal of the Royal Statistical Society, Series B (Methodological) 34(2), 187-220.",
+          "Breslow, N. (1974). Covariance analysis of censored survival data. Biometrics 30(1), 89-99.",
+          "Efron, B. (1977). The efficiency of Cox's likelihood function for censored data. Journal of the American Statistical Association "
+          "72(359), 557-565.",
+          "Lin, D. Y. and Wei, L. J. (1989). The robust inference for the Cox proportional hazards model. Journal of the American Statistical "
+          "Association 84(408), 1074-1078.",
+          "Grambsch, P. M. and Therneau, T. M. (1994). Proportional hazards tests and diagnostics based on weighted residuals. Biometrika 81(3), "
+          "515-526."), ("maximum-likelihood",))
 add_topic("large-and-switching-vars", "BVARs with stochastic volatility, FAVARs and Markov-switching VARs", """
     Three ways to let a VAR handle more. A Bayesian VAR with stochastic volatility keeps its coefficients fixed but
     lets each shock's size drift, which matters for forecast bands and for telling large shocks from changed

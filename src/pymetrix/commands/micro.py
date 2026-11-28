@@ -1,5 +1,6 @@
-"""Dialogs for applied microeconometrics: double machine learning, shift-share IV, interactive fixed effects and
-conditional logit (fixed effects for panels, McFadden's for choices)."""
+"""Dialogs for applied microeconometrics: double machine learning, shift-share IV, interactive fixed effects,
+conditional logit (fixed effects for panels, McFadden's for choices), nested and mixed logits, and survival analysis
+(Kaplan-Meier, Cox proportional hazards)."""
 
 from __future__ import annotations
 
@@ -467,3 +468,300 @@ class ClogitMarginalEffects(Command):
 
     def to_code(self) -> str:
         return self.to_call().to_code()
+
+
+_CHOICE_EXAMPLE = """
+        import numpy as np
+        import pandas as pd
+        from pymetrix import Dataset, nested_logit
+
+        rng = np.random.default_rng(0)      # 500 trips by car, bus or train; bus and train share a nest
+        n = 500
+        cost = rng.normal(5, 2, (n, 3))
+        public = 0.7 * rng.gumbel(size=(n, 1))   # an unobserved taste for public transport, shared by bus and train
+        utility = -0.5 * cost + [0.0, -0.5, -0.3] + [0, 1, 1] * public + rng.gumbel(size=(n, 3)) * [1.0, 0.5, 0.5]
+        trips = Dataset.from_frame(pd.DataFrame({
+            "trip": np.repeat(range(n), 3), "mode": ["car", "bus", "train"] * n, "cost": cost.ravel(),
+            "nest": ["private", "public", "public"] * n,
+            "chosen": (utility == utility.max(1, keepdims=True)).ravel() * 1.0}), entity=["trip", "mode"])
+"""
+
+
+@command(menu="Estimate/Nested logit...")
+@dataclass(frozen=True)
+class FitNestedLogit(_Call):
+    """The nested logit: a choice model in which alternatives in the same nest are closer substitutes.
+
+    Alternatives are grouped in nests (bus and train in "public", car in "private"); the unobserved utilities of the
+    alternatives in a nest are correlated, so the independence of irrelevant alternatives holds within a nest but not
+    across nests. Each nest has a dissimilarity (log-sum) parameter lambda: 1 is the conditional logit; between 0 and 1
+    is consistent with utility maximisation, near 0 the nest's alternatives are near-perfect substitutes. A nest of one
+    alternative has no lambda (it is fixed at 1). The model is in McFadden's form consistent with utility maximisation
+    (RU2), estimated by full-information maximum likelihood; the likelihood-ratio test of every lambda = 1 is a test of
+    IIA. The data are long, as for the choice model (conditional logit).
+    """
+
+    maturity: ClassVar[str] = "beta"
+    example: ClassVar[str] = _CHOICE_EXAMPLE + """
+        fit = nested_logit(trips, "chosen", ["cost"], nests="nest", alternative_constants=True)
+        print(fit.summary())                # lambda:public below 1; the LR test of IIA
+        print(fit.nest_table())
+    """
+    results: ClassVar[tuple[tuple[str, str], ...]] = (
+        ("Summary", "coefficients and the nests' lambdas with standard errors, the log likelihood and the LR test of IIA"),
+        ("Nests", "each nest's alternatives and lambda, with a test of lambda = 1"),
+        ("Marginal effects", "own derivatives of the probabilities, averaged over the cases (cross effects: marginal_effects())"),
+    )
+    topics: ClassVar[tuple[str, ...]] = ("nested-and-mixed-logit", "conditional-logit")
+    call_id: ClassVar[str] = "pymetrix:nested_logit"
+
+    choice: Annotated[str, Widget("series", depends_on="data", help="1 for the chosen alternative, 0 for the others")]
+    regressors: Annotated[str, Widget("series", depends_on="data", multiple=True, help="attributes that vary across alternatives")]
+    nests: Annotated[str, Widget("level", depends_on="data", help="the series naming each alternative's nest (the same for an alternative in every case)")]
+    data: Annotated[str, Widget("object", source="Dataset", help="long choice data: one row per case and alternative")] = "data"
+    case: Annotated[str, Widget("level", depends_on="data", help="the series or axis identifying each choice situation; empty: the first entity axis")] = ""
+    alternative: Annotated[str, Widget("level", depends_on="data", help="the series or axis naming the alternatives; empty: the second entity axis")] = ""
+    alternative_constants: Annotated[bool, Widget("checkbox", help="a constant for each alternative but the base")] = False
+    case_variables: Annotated[str, Widget("series", depends_on="data", multiple=True, help="characteristics of the decision maker, one coefficient per alternative but the base")] = ""
+    dissimilarity: Annotated[Literal["free", "equal", "one"], Widget("choice", help="a lambda for each nest, one lambda for every nest, or every lambda 1 (the conditional logit)")] = "free"
+    base: Annotated[str, Widget("text", advanced=True, help="the base alternative; empty: the first")] = ""
+    cov: Annotated[Literal["hessian", "cluster"], Widget("choice", advanced=True, help="standard errors from the inverse Hessian, or clustered by case")] = "hessian"
+    name: str = "nested"
+
+    def _arguments(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"choice": self.choice, "regressors": _names(self.regressors), "nests": self.nests}
+        for key in ("case", "alternative"):
+            if getattr(self, key):
+                out[key] = getattr(self, key)
+        if self.alternative_constants:
+            out["alternative_constants"] = True
+        if self.case_variables.strip():
+            out["case_variables"] = _names(self.case_variables)
+        if self.base:
+            out["base"] = self.base
+        if self.dissimilarity != "free":
+            out["dissimilarity"] = self.dissimilarity
+        if self.cov != "hessian":
+            out["cov"] = self.cov
+        return out
+
+
+@command(menu="Estimate/Mixed logit...")
+@dataclass(frozen=True)
+class FitMixedLogit(_Call):
+    """The mixed (random-parameters) logit: a choice model whose coefficients vary across decision makers.
+
+    Each random coefficient is normal or lognormal (positive: give the negative of a price) across decision makers,
+    uncorrelated or correlated; with repeated choices by the same decision maker (a panel), their choices share one
+    draw of the coefficients, which captures persistent tastes. The model does not assume the independence of
+    irrelevant alternatives. It is estimated by simulated maximum likelihood: the probabilities are averaged over
+    draws of the coefficients, Halton draws by default (deterministic) or pseudo-random ones from the seed. Too few
+    draws bias the estimates: check them with more. The result has each random coefficient's mean, median and
+    standard deviation, and each decision maker's conditional mean given their choices.
+    """
+
+    maturity: ClassVar[str] = "beta"
+    example: ClassVar[str] = """
+        import numpy as np
+        import pandas as pd
+        from pymetrix import Dataset, mixed_logit
+
+        rng = np.random.default_rng(0)      # 300 people, 5 choices each among three products
+        people, tasks = 300, 5
+        n = people * tasks
+        taste = np.repeat(1.0 + 0.8 * rng.standard_normal(people), tasks)   # quality matters more to some
+        price, quality = rng.uniform(0, 4, (n, 3)), rng.normal(0, 1, (n, 3))
+        utility = -0.6 * price + taste[:, None] * quality + rng.gumbel(size=(n, 3))
+        shop = Dataset.from_frame(pd.DataFrame({
+            "person": np.repeat(range(people), 3 * tasks), "task": np.repeat(range(n), 3), "product": ["a", "b", "c"] * n,
+            "price": price.ravel(), "quality": quality.ravel(),
+            "chosen": (utility == utility.max(1, keepdims=True)).ravel() * 1.0}), entity=["task", "product"])
+        fit = mixed_logit(shop, "chosen", ["price", "quality"], random={"quality": "normal"}, panel="person", draws=200)
+        print(fit.summary())                # sd.quality: the spread of tastes for quality
+        print(fit.random_coefficients())
+    """
+    results: ClassVar[tuple[tuple[str, str], ...]] = (
+        ("Summary", "fixed coefficients, the random coefficients' means and standard deviations (or Cholesky factor), the log likelihood"),
+        ("Random coefficients", "each random coefficient's mean, median and standard deviation, and correlations"),
+        ("Individual", "each decision maker's conditional mean of each random coefficient, given their choices"),
+        ("Marginal effects", "own derivatives of the probabilities, integrated over the coefficients and averaged over the cases"),
+    )
+    topics: ClassVar[tuple[str, ...]] = ("nested-and-mixed-logit", "conditional-logit")
+    call_id: ClassVar[str] = "pymetrix:mixed_logit"
+
+    choice: Annotated[str, Widget("series", depends_on="data", help="1 for the chosen alternative, 0 for the others")]
+    regressors: Annotated[str, Widget("series", depends_on="data", multiple=True, help="attributes that vary across alternatives")]
+    random: Annotated[str, Widget("text", help="random coefficients and their distributions, e.g. time: normal, mprice: lognormal")]
+    data: Annotated[str, Widget("object", source="Dataset", help="long choice data: one row per case and alternative")] = "data"
+    panel: Annotated[str, Widget("level", depends_on="data", help="the decision maker, whose choices share one draw of the coefficients; empty: each case its own")] = ""
+    case: Annotated[str, Widget("level", depends_on="data", help="the series or axis identifying each choice situation; empty: the first entity axis")] = ""
+    alternative: Annotated[str, Widget("level", depends_on="data", help="the series or axis naming the alternatives; empty: the second entity axis")] = ""
+    alternative_constants: Annotated[bool, Widget("checkbox", help="a constant for each alternative but the base")] = False
+    case_variables: Annotated[str, Widget("series", depends_on="data", multiple=True, help="characteristics of the decision maker, one fixed coefficient per alternative but the base")] = ""
+    correlated: Annotated[bool, Widget("checkbox", help="correlated random coefficients (the Cholesky factor of their covariance)")] = False
+    draws: Annotated[int, Widget("number", min=1, help="draws per decision maker; more is more accurate and slower")] = 500
+    draw_type: Annotated[Literal["halton", "random"], Widget("choice", advanced=True, help="Halton sequences (deterministic) or pseudo-random draws from the seed")] = "halton"
+    seed: Annotated[int, Widget("number", advanced=True, help="the seed of pseudo-random draws")] = 0
+    base: Annotated[str, Widget("text", advanced=True, help="the base alternative; empty: the first")] = ""
+    cov: Annotated[Literal["hessian", "cluster"], Widget("choice", advanced=True, help="standard errors from the inverse Hessian, or clustered by decision maker")] = "hessian"
+    name: str = "mixed"
+
+    def validate(self, session: Session) -> list[str]:
+        try:
+            pairs = _pairs(self.random)
+        except SpecificationError as exc:
+            return [f"random: {exc}"]
+        if not pairs:
+            return ["random: name at least one random coefficient, e.g. time: normal"]
+        bad = [v for v in pairs.values() if v not in ("normal", "lognormal")]
+        return [f"random: a distribution is normal or lognormal, not {bad[0]!r}"] if bad else []
+
+    def _arguments(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"choice": self.choice, "regressors": _names(self.regressors), "random": _pairs(self.random)}
+        for key in ("panel", "case", "alternative"):
+            if getattr(self, key):
+                out[key] = getattr(self, key)
+        if self.alternative_constants:
+            out["alternative_constants"] = True
+        if self.case_variables.strip():
+            out["case_variables"] = _names(self.case_variables)
+        if self.base:
+            out["base"] = self.base
+        if self.correlated:
+            out["correlated"] = True
+        if self.draws != 500:
+            out["draws"] = self.draws
+        if self.draw_type != "halton":
+            out["draw_type"] = self.draw_type
+            out["seed"] = self.seed
+        if self.cov != "hessian":
+            out["cov"] = self.cov
+        return out
+
+
+@command(menu="Estimate/Kaplan-Meier survival...")
+@dataclass(frozen=True)
+class FitKaplanMeier(_Call):
+    """Kaplan-Meier survival curves, by group, with the log-rank test of equal survival.
+
+    The data are one row per subject: the time to the event or to censoring, and whether the event happened (1) or
+    the subject was censored (0). The curve is the product-limit estimate of the probability of surviving past each
+    time; censored subjects count among those at risk until they leave. The log-rank test compares the events
+    observed in each group with those expected if survival were the same in every group (within strata if given);
+    the Wilcoxon (Gehan-Breslow) and Tarone-Ware versions weight early differences more. An entry time handles
+    subjects who join the risk set late (left truncation).
+    """
+
+    maturity: ClassVar[str] = "beta"
+    example: ClassVar[str] = """
+        import pandas as pd
+        from pymetrix import Dataset, kaplan_meier
+
+        # Freireich et al. (1963): weeks in remission of leukaemia patients on 6-MP or placebo (0: still in remission)
+        weeks = [6, 6, 6, 6, 7, 9, 10, 10, 11, 13, 16, 17, 19, 20, 22, 23, 25, 32, 32, 34, 35,
+                 1, 1, 2, 2, 3, 4, 4, 5, 5, 8, 8, 8, 8, 11, 11, 12, 12, 15, 17, 22, 23]
+        relapse = [1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0] + [1] * 21
+        trial = Dataset.from_frame(pd.DataFrame({"patient": range(42), "weeks": weeks, "relapse": relapse,
+                                                 "drug": ["6-MP"] * 21 + ["placebo"] * 21}), entity=["patient"])
+        km = kaplan_meier(trial, "weeks", "relapse", group="drug")
+        print(km.summary())                 # medians by group; log-rank chi-squared 16.79
+        km.plot()
+    """
+    results: ClassVar[tuple[tuple[str, str], ...]] = (
+        ("Summary", "subjects, events and median survival with its interval, by group; the log-rank test"),
+        ("Graph", "the survival curves with their intervals"),
+        ("Survival table", "at each event time: at risk, events, S(t), its standard error and interval"),
+    )
+    topics: ClassVar[tuple[str, ...]] = ("survival-analysis",)
+    call_id: ClassVar[str] = "pymetrix:kaplan_meier"
+
+    duration: Annotated[str, Widget("series", depends_on="data", help="time to the event or to censoring")]
+    event: Annotated[str, Widget("series", depends_on="data", help="1 if the event happened, 0 if censored")]
+    data: Annotated[str, Widget("object", source="Dataset", help="one row per subject")] = "data"
+    group: Annotated[str, Widget("level", depends_on="data", help="a curve for each value, and the test across them; empty: one curve")] = ""
+    entry: Annotated[str, Widget("series", depends_on="data", advanced=True, help="entry time (left truncation): at risk only after it; empty: from 0")] = ""
+    strata: Annotated[str, Widget("level", depends_on="data", advanced=True, help="test across groups within these strata")] = ""
+    test: Annotated[Literal["logrank", "wilcoxon", "tarone-ware"], Widget("choice", help="the test of equal survival across groups")] = "logrank"
+    interval: Annotated[Literal["log-log", "log", "plain"], Widget("choice", advanced=True, help="the scale of the pointwise intervals")] = "log-log"
+    bands: Annotated[bool, Widget("checkbox", advanced=True, help="Hall-Wellner simultaneous 95% bands as well")] = False
+    name: str = "km"
+
+    def _arguments(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"duration": self.duration, "event": self.event}
+        for key in ("group", "entry", "strata"):
+            if getattr(self, key):
+                out[key] = getattr(self, key)
+        if self.test != "logrank":
+            out["test"] = self.test
+        if self.interval != "log-log":
+            out["interval"] = self.interval
+        if self.bands:
+            out["bands"] = True
+        return out
+
+
+@command(menu="Estimate/Cox proportional hazards...")
+@dataclass(frozen=True)
+class FitCoxPH(_Call):
+    """Cox's proportional hazards regression: how regressors shift the hazard of an event, whatever its baseline shape.
+
+    The hazard of subject i at time t is a baseline hazard, left unspecified, times exp(x_i'beta): exp(coefficient)
+    is the hazard ratio of a unit change in a regressor, the same at every time. It is estimated by partial
+    likelihood, with Breslow's or Efron's handling of events at the same time (Efron's is closer to the exact
+    likelihood when there are many ties). Strata give each stratum its own baseline hazard; an entry time handles
+    left truncation; robust standard errors allow for misspecification and clustered ones for dependence within
+    clusters. The proportional-hazards tab tests whether each effect is constant over time (Grambsch and Therneau's
+    test from the scaled Schoenfeld residuals).
+    """
+
+    maturity: ClassVar[str] = "beta"
+    example: ClassVar[str] = """
+        import pandas as pd
+        from pymetrix import Dataset, cox_ph
+
+        weeks = [6, 6, 6, 6, 7, 9, 10, 10, 11, 13, 16, 17, 19, 20, 22, 23, 25, 32, 32, 34, 35,
+                 1, 1, 2, 2, 3, 4, 4, 5, 5, 8, 8, 8, 8, 11, 11, 12, 12, 15, 17, 22, 23]
+        relapse = [1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0] + [1] * 21
+        trial = Dataset.from_frame(pd.DataFrame({"patient": range(42), "weeks": weeks, "relapse": relapse,
+                                                 "placebo": [0] * 21 + [1] * 21}), entity=["patient"])
+        cox = cox_ph(trial, "weeks", "relapse", ["placebo"])     # Breslow: 1.509 (s.e. 0.410)
+        print(cox.hazard_ratios())          # placebo patients relapse about 4.5 times as fast
+        print(cox.ph_test())
+    """
+    results: ClassVar[tuple[tuple[str, str], ...]] = (
+        ("Summary", "coefficients with standard errors, the log partial likelihood and the LR test"),
+        ("Hazard ratios", "exp(coefficient) with 95% intervals"),
+        ("Proportional hazards", "Grambsch and Therneau's test for each regressor and globally"),
+        ("Baseline", "the baseline cumulative hazard and survival, by stratum"),
+    )
+    topics: ClassVar[tuple[str, ...]] = ("survival-analysis",)
+    call_id: ClassVar[str] = "pymetrix:cox_ph"
+
+    duration: Annotated[str, Widget("series", depends_on="data", help="time to the event or to censoring")]
+    event: Annotated[str, Widget("series", depends_on="data", help="1 if the event happened, 0 if censored")]
+    regressors: Annotated[str, Widget("series", depends_on="data", multiple=True, help="regressors (no constant: the baseline hazard absorbs it)")]
+    data: Annotated[str, Widget("object", source="Dataset", help="one row per subject")] = "data"
+    ties: Annotated[Literal["breslow", "efron"], Widget("choice", help="how events at the same time are handled")] = "breslow"
+    strata: Annotated[str, Widget("level", depends_on="data", advanced=True, help="a baseline hazard for each stratum")] = ""
+    entry: Annotated[str, Widget("series", depends_on="data", advanced=True, help="entry time (left truncation): at risk only after it; empty: from 0")] = ""
+    cov: Annotated[Literal["hessian", "robust", "cluster"], Widget("choice", advanced=True, help="standard errors from the inverse Hessian, robust, or clustered")] = "hessian"
+    cluster: Annotated[str, Widget("level", depends_on="data", advanced=True, help="the clusters, with clustered standard errors")] = ""
+    name: str = "cox"
+
+    def validate(self, session: Session) -> list[str]:
+        if self.cov == "cluster" and not self.cluster:
+            return ["clustered standard errors need the clusters"]
+        return []
+
+    def _arguments(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"duration": self.duration, "event": self.event, "regressors": _names(self.regressors)}
+        for key in ("entry", "strata"):
+            if getattr(self, key):
+                out[key] = getattr(self, key)
+        if self.ties != "breslow":
+            out["ties"] = self.ties
+        if self.cov != "hessian":
+            out["cov"] = self.cov
+        if self.cov == "cluster":
+            out["cluster"] = self.cluster
+        return out

@@ -387,6 +387,18 @@ def _choices():
     return Dataset.from_frame(frame, entity=["trip", "mode"])
 
 
+def _spells():
+    """120 durations in weeks, about a quarter censored, the hazard higher with age and lower when treated."""
+    from pymetrix import Dataset
+
+    rng = np.random.default_rng(0)
+    age, treated = rng.normal(0, 1, 120), (rng.random(120) < 0.5).astype(float)
+    t = rng.exponential(10 * np.exp(-(0.4 * age - 0.6 * treated)))
+    c = rng.uniform(5, 40, 120)
+    frame = pd.DataFrame({"id": np.arange(120), "weeks": np.ceil(np.minimum(t, c)), "event": (t <= c).astype(float), "age": age, "treated": treated})
+    return Dataset.from_frame(frame, entity=["id"])
+
+
 BUILDERS: dict[str, Callable[[], Any]] = {
     "Equation": lambda: __import__("pymetrix").Equation("c ~ y + c[-1]"),
     "Series": lambda: _macro()["c"],
@@ -524,6 +536,12 @@ BUILDERS: dict[str, Callable[[], Any]] = {
     "FittedInteractiveFE": lambda: __import__("pymetrix").interactive_fe(_factor_panel(), "y", ["x"], factors="auto", max_factors=3),
     "FittedConditionalLogit": lambda: __import__("pymetrix").choice_logit(_choices(), "chosen", ["cost"], alternative_constants=True),
     "ConditionalLogitEffects": lambda: __import__("pymetrix").choice_logit(_choices(), "chosen", ["cost"], alternative_constants=True).marginal_effects(),
+    "FittedNestedLogit": lambda: __import__("pymetrix").nested_logit(_choices(), "chosen", ["cost"], nests={"road": ["bus", "car"], "rail": ["train"]},
+                                                                      alternative_constants=True),
+    "FittedMixedLogit": lambda: __import__("pymetrix").mixed_logit(_choices(), "chosen", ["cost"], random={"cost": "normal"}, alternative_constants=True,
+                                                                    draws=50),
+    "FittedKaplanMeier": lambda: __import__("pymetrix").kaplan_meier(_spells(), "weeks", "event", group="treated"),
+    "FittedCoxPH": lambda: __import__("pymetrix").cox_ph(_spells(), "weeks", "event", ["treated", "age"]),
     "SavedResult": lambda: __import__("pymetrix.saved", fromlist=["x"]).result_from_bytes(
         __import__("pymetrix.saved", fromlist=["x"]).result_bytes(__import__("pymetrix").Equation("c ~ y").fit(_macro()), "cons")),
 }

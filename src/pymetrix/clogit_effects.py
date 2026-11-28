@@ -239,6 +239,7 @@ class ConditionalLogitEffects:
     cases: int = 0
     discrete: dict[str, str] = field(default_factory=dict)  # variable: its discrete change ("0 to 1", "x to x + 1")
     provenance: Any = field(default=None, repr=False)
+    model: str = "conditional logit"  # or "nested logit", "mixed logit" (pymetrix.nested_logit, pymetrix.mixed_logit)
 
     stage = "estimate"
 
@@ -301,10 +302,11 @@ class ConditionalLogitEffects:
         keep = [(v, m, p, k) for v, m, p, k in f.index if m == wanted[v] and (k == p or k == "")]
         index = [(f"ΔP({p})/Δ{v}({k})" if k else f"ΔP({p})/Δ{v}") if m == "discrete change" else
                  (f"dP({p})/d{v}({k})" if k else f"dP({p})/d{v}") for v, m, p, k in keep]
-        notes = (f"Marginal effects on the choice probabilities, {self._label()} ({self.cases} cases): own effects of each attribute "
-                 "and the effects of each characteristic of the case. Cross effects and elasticities are in the tables by variable.",
-                 "Delta-method standard errors. Derivatives of an attribute sum to zero over the alternatives; under IIA each column's "
-                 "cross elasticities are equal at the means.")
+        iia = ("under IIA each column's cross elasticities are equal at the means." if self.model == "conditional logit" else
+               f"the {self.model} does not assume IIA, so a column's cross elasticities differ.")
+        notes = (f"Marginal effects on the choice probabilities{'' if self.model == 'conditional logit' else f' ({self.model})'}, {self._label()} ({self.cases} cases): own effects of each "
+                 "attribute and the effects of each characteristic of the case. Cross effects and elasticities are in the tables by variable.",
+                 "Delta-method standard errors. Derivatives of an attribute sum to zero over the alternatives; " + iia)
         if self.discrete:
             notes += ("Discrete changes (ΔP) in place of derivatives for " + "; ".join(f"{v} ({how})" for v, how in self.discrete.items())
                       + ": the probability after the change less before it, computed exactly; they sum to zero over the alternatives too.",)

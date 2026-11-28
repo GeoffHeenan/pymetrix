@@ -1502,6 +1502,55 @@ def _register_micro() -> None:
 _register_micro()
 
 
+def _register_choice_and_survival() -> None:
+    """Nested and mixed logits; Kaplan-Meier and Cox proportional hazards."""
+    from .mixed_logit import FittedMixedLogit
+    from .nested_logit import FittedNestedLogit
+    from .survival import FittedCoxPH, FittedKaplanMeier
+
+    def effects(obj: Any) -> list[Section]:
+        try:
+            return [("Marginal effects", obj.marginal_effects().summary())]
+        except Exception as exc:  # noqa: BLE001 - a convenience: say why there are none
+            return [("Marginal effects", Table(["note"], [[str(exc)]]))]
+
+    @register_view(FittedNestedLogit)
+    def _(obj: FittedNestedLogit) -> list[Section]:
+        out = [("Summary", obj.summary()), *_figure(obj.plot), ("Nests", obj.nest_table())]
+        if obj.iia_test is not None:
+            out.append(("IIA test", obj.iia_test.to_table()))
+        out += [("Statistics", _statistics(obj)), ("Probabilities", _frame_table(obj.probabilities.to_frame(), "Fitted choice probabilities")),
+                *effects(obj)]
+        return [*out, *_provenance(obj)]
+
+    @register_view(FittedMixedLogit)
+    def _(obj: FittedMixedLogit) -> list[Section]:
+        out = [("Summary", obj.summary()), *_figure(obj.plot), ("Random coefficients", obj.random_coefficients()),
+               ("Statistics", _statistics(obj)), ("Probabilities", _frame_table(obj.probabilities.to_frame(), "Simulated choice probabilities")),
+               ("Individual", _frame_table(obj.individual, "Each decision maker's conditional mean of each random coefficient, given their choices")),
+               *effects(obj)]
+        return [*out, *_provenance(obj)]
+
+    @register_view(FittedKaplanMeier)
+    def _(obj: FittedKaplanMeier) -> list[Section]:
+        out = [("Summary", obj.summary()), *_figure(obj.plot),
+               ("Survival table", _frame_table(obj.table, "At each event time: at risk, events, S(t), Greenwood's standard error and the interval"))]
+        if obj.test is not None:
+            out.append(("Test", obj.test.to_table()))
+        return [*out, *_provenance(obj)]
+
+    @register_view(FittedCoxPH)
+    def _(obj: FittedCoxPH) -> list[Section]:
+        out = [("Summary", obj.summary()), *_figure(obj.plot), ("Hazard ratios", _frame_table(obj.hazard_ratios(), "Hazard ratios with 95% intervals")),
+               ("Proportional hazards", obj.ph_test()), ("Statistics", _statistics(obj)),
+               ("Baseline", _frame_table(obj.baseline, "Baseline cumulative hazard and survival (every regressor 0), by stratum")),
+               ("Schoenfeld residuals", _frame_table(obj.schoenfeld, "Schoenfeld residuals at each event"))]
+        return [*out, *_provenance(obj)]
+
+
+_register_choice_and_survival()
+
+
 # -- plain results of recorded calls (1 November 2026 dialogs: bond measures, Merton at a point, copula portfolio
 # VaR): a dict of numbers as a table of its entries, a tuple of arrays as one table per item ----------------
 
