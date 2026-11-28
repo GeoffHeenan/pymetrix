@@ -86,6 +86,8 @@ The [design notes](design/) explain the larger choices, each with its open quest
 - the command record and provenance;
 - the plugin interface;
 - whether to split the core;
-- the lab book.
+- the lab book;
+- heterogeneous-agent models, wrapping sequence-jacobian ([proposal](design/heterogeneous-agents.md));
+- translating R scripts, on the EViews translator's framework ([proposal](design/r-translator.md)).
 
 A critical read by someone who has built statistical software is welcome at any time.
