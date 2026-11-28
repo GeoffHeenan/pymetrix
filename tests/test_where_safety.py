@@ -56,7 +56,13 @@ PAYLOADS = [
     "{1: 2}", "f'{x}' == 'a'", "x is None", "10 ** 10 ** 10 > x", "((9 ** 99) ** 99) ** 99 > x", "'a' * 10 ** 9 == x",
     "[1] * 10 ** 9 == x", "x > 0; import os", "[i for i in x]",
 ]
-SKIP = {"y >", "sample", "span", ", ", "Rows where"}  # not conditions: one a test types half way, a label, other "where ="s
+SKIP = {"y >", "sample", "span", ", ", "Rows where",  # not conditions: one a test types half way, a label, other "where ="s
+        # periods compared with quoted dates (this test's frame has years as numbers) and conditions a test expects
+        # refused: tests/test_large_parquet.py runs each on data with a time axis, against pandas
+        "time < '1995Q3' or time > '1995Q3'", "year >= '2005' and country == 'DEU' and x > 0", "year >= '2015'",
+        "x.__class__ == 1", "x.y > 1",
+        # on columns this frame does not have the range of (ids, trade partners): selecting all or none here
+        "id >= 1000 and id < 1300", "reporter in ['DEU', 'FRA'] and exports > 0"}
 
 
 def _panel() -> Dataset:
