@@ -28,6 +28,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from ..errors import SpecificationError
+
 __all__ = ["Arg", "Attr", "Cmd", "Code", "Def", "For", "If", "Invoke", "Jump", "New", "Op", "Py", "RefTo", "SampleSpec", "Spread",
            "Step", "Text", "Var", "While", "literal", "name_code", "quote", "resolved", "step_code"]
 
@@ -386,7 +388,7 @@ class Def(Op):
 
     def __post_init__(self) -> None:
         if self.result and self.returns:
-            raise ValueError(f"function {self.name}: returns or a result, not both")
+            raise SpecificationError(f"function {self.name}: returns or a result, not both")
 
     @property
     def returned(self) -> tuple[str, ...]:

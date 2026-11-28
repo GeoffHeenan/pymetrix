@@ -780,7 +780,8 @@ equations without standard errors; the learners report their cross-validated err
 which is also their forecast standard error one step ahead. Bagging needs no extra
 package. The methods are in the Method list of **Estimate → Equation…**.
 
-LightGBM and XGBoost (`pip install pymetrix[lightgbm]`, `pymetrix[xgboost]`) are learners too:
+LightGBM and XGBoost (`pip install pymetrix[lightgbm]`, `pymetrix[xgboost]`; on macOS they also need the OpenMP runtime,
+`brew install libomp`) are learners too:
 `eq.fit(data, method=LightGBM())` or `XGBoost(depth=3)`, with the same summary, importance and forecasts, also as
 double ML's learners. `gb.shap()` (`pip install pymetrix[shap]`) splits each prediction into each regressor's
 contribution (SHAP values, exact for trees), and `gb.conformal(data, ("2025Q1", "2025Q4"), alpha=0.1)` gives
