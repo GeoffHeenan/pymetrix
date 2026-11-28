@@ -58,5 +58,7 @@ def test_every_kind_with_a_window_is_covered(demo_objects):
     known = {t.__name__ for t in sections.registry if t is not object}
     if importlib.util.find_spec("sklearn") is None:  # the scikit-learn plugin's results need it to be built
         known.discard("FittedLearner")
+    if importlib.util.find_spec("shap") is None or importlib.util.find_spec("sklearn") is None:  # SHAP values need shap
+        known.discard("ShapValues")
     covered = set(_gallery.BUILDERS) | set(demo_objects)
     assert not known - covered, sorted(known - covered)

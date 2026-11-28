@@ -523,6 +523,12 @@ BUILDERS: dict[str, Callable[[], Any]] = {
     "FittedThresholdAR": lambda: __import__("pymetrix").ThresholdAR("g", lags=1).fit(_macro()),
     **({"FittedLearner": lambda: __import__("pymetrix").Equation("dlog(c) ~ dlog(y) + dlog(c)[-1]").fit(
         _macro(), method=__import__("pymetrix").GradientBoosting(trees=50))} if __import__("importlib.util").util.find_spec("sklearn") else {}),
+    **({"ShapValues": lambda: __import__("pymetrix").Equation("dlog(c) ~ dlog(y) + dlog(c)[-1]").fit(
+        _macro(), method=__import__("pymetrix").GradientBoosting(trees=50)).shap()}
+       if __import__("importlib.util").util.find_spec("shap") and __import__("importlib.util").util.find_spec("sklearn") else {}),
+    "ConformalIntervals": lambda: __import__("pymetrix").conformal(
+        __import__("pymetrix").Equation("dlog(c) ~ dlog(y) + dlog(c)[-1]").fit(_macro(), span=("2000Q1", "2021Q4")), _macro(),
+        ("2022Q1", "2024Q4")),
     "OccBinFilter": _occbin_filter,
     "ParticleFilter": _particle_filter,
     "Translation": lambda: __import__("pymetrix").export_model(_nk(), "dynare"),
