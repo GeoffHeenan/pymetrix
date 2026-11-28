@@ -177,7 +177,8 @@ class ThirdOrderSolution:
         states; the others at the stochastic steady state). With ``replications`` > 0 they are generalised responses
         (Koop, Pesaran and Potter 1996): the mean difference over that many draws of the other shocks, the same
         draws with and without the impulse; with 0, no other shocks occur. Unlike first-order responses they depend
-        on the size and sign of the shock and on the starting point."""
+        on the size and sign of the shock and on the starting point. With pruning, a given start's distance from the
+        steady state is put in the first-order part of the state, and the path without the impulse starts there too."""
         from ..var import IRF
 
         k = len(self.shocks)
