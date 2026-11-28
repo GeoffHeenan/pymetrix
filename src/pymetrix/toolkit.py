@@ -152,7 +152,7 @@ def least_squares(y: np.ndarray, X: np.ndarray, w: np.ndarray | None = None) -> 
 
 def covariance(kind: Any, X: np.ndarray, u: np.ndarray, df_resid: int | None = None, *, groups: Sequence[np.ndarray] = (),
                hac_lags: int | None = None) -> np.ndarray:
-    """Least-squares coefficient covariance: ``classic``, ``white`` (HC1), ``hac`` (Newey-West) or
+    """Least-squares coefficient covariance: ``classic``, ``white`` (HC1), ``hc0``, ``hc2``, ``hc3``, ``hac`` (Newey-West) or
     ``Cluster(...)`` (pass ``groups=design.groups(cov)``). ``X`` is the regressors, or the Jacobian of
     the residuals for nonlinear least squares."""
     df = len(u) - X.shape[1] if df_resid is None else df_resid

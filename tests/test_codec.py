@@ -203,7 +203,7 @@ def test_the_catalogue_lists_every_command_with_its_frozen_id_and_version():
     commands = {e["id"]: e["version"] for e in cat["entries"] if e["kind"] == "command" and e["plugin"] == "pymetrix"}
     assert commands == frozen
     entry = next(e for e in cat["entries"] if e["id"] == "pymetrix:fit_equation")
-    assert entry["schema"]["properties"]["cov"]["enum"] == ["classic", "white", "hac", "cluster"]
+    assert entry["schema"]["properties"]["cov"]["enum"] == ["classic", "white", "hc0", "hc2", "hc3", "hac", "cluster"]
     assert entry["help"].startswith("Estimate a single equation")
 
 

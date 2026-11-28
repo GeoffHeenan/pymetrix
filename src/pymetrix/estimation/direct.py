@@ -59,7 +59,7 @@ def ols(
     index order. ``constant`` adds the intercept ``const``; ``weights`` is a series of weights (weighted least
     squares, as ``fit(weights=...)``); ``missing`` drops (or refuses) rows with a missing value.
 
-    ``cov`` is as for ``OLS``: ``"classic"``, ``"white"`` (HC1), ``"hac"`` (Newey-West, time series; ``hac_lags``
+    ``cov`` is as for ``OLS``: ``"classic"``, ``"white"`` (HC1), ``"hc0"``, ``"hc2"``, ``"hc3"``, ``"hac"`` (Newey-West, time series; ``hac_lags``
     and ``hac_correction`` as ``OLS``), or ``Cluster("a")`` / ``Cluster("a", "b")`` (one- or two-way), the names
     being columns of ``clusters`` (a Series or DataFrame of group labels) or levels of the index; ``cov="cluster"``
     clusters by every column of ``clusters``.
@@ -70,8 +70,8 @@ def ols(
     from .methods import OLS, _ols_on_design
 
     cov = _cluster_spec(cov, clusters)
-    if not isinstance(cov, Cluster) and cov not in ("classic", "white", "hac"):
-        raise SpecificationError(f"unknown covariance {cov!r}; use 'classic', 'white', 'hac', 'cluster' or Cluster(...)")
+    if not isinstance(cov, Cluster) and cov not in ("classic", "white", "hc0", "hc2", "hc3", "hac"):
+        raise SpecificationError(f"unknown covariance {cov!r}; use 'classic', 'white', 'hc0', 'hc2', 'hc3', 'hac', 'cluster' or Cluster(...)")
     method = OLS(cov=cov, hac_lags=hac_lags, hac_correction=hac_correction)
     if missing not in ("drop", "raise"):
         raise SpecificationError("missing must be 'drop' or 'raise'")

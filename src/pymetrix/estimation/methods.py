@@ -21,7 +21,7 @@ from ..errors import SpecificationError
 from ..forms import Widget
 from ..plugins import register
 from ..expr import BinOp, Coef, ExpressionError, diff, evaluate
-from .covariance import Cluster, covariance
+from .covariance import Cluster, check_leverage_kind, covariance, hat_values
 from .priors import Beta as _Beta, Gamma as _Gamma, InvGamma as _InvGamma, InvGamma1 as _InvGamma1, Normal as _Normal, Uniform as _Uniform
 from .design import (
     ExplicitDesign,
@@ -111,7 +111,7 @@ class OLS:
     )
     kind: ClassVar[str] = "ls"
 
-    cov: str | Cluster = "classic"  # "classic", "white", "hac" or Cluster(...)
+    cov: str | Cluster = "classic"  # "classic", "white" (HC1), "hc0", "hc2", "hc3", "hac" or Cluster(...)
     hac_lags: int | None = None
     start: Annotated[Mapping[str, float] | None, _START] = None  # NLS starting values
     hac_correction: Annotated[bool, Widget("checkbox", advanced=True,
@@ -388,7 +388,11 @@ def _ols_on_design(m: OLS, eq: Equation, d: Any, groups: Any, time_series: bool,
         beta, M = _restrict(beta, Xt, R)
     ut = yt - Xt @ beta
     df_resid = n - k - d.absorbed + q
-    cov = covariance(m.cov, Xt, ut, df_resid, groups=groups(), hac_lags=m.hac_lags, hac_correction=getattr(m, "hac_correction", True))
+    if d.absorbed:
+        check_leverage_kind(m.cov, "absorbed fixed effects (the demeaned regressors leave out the effects' leverage)")
+    leverage = hat_values(Xt, M @ np.linalg.inv(Xt.T @ Xt)) if R and m.cov in ("hc2", "hc3") else None
+    cov = covariance(m.cov, Xt, ut, df_resid, groups=groups(), hac_lags=m.hac_lags, hac_correction=getattr(m, "hac_correction", True),
+                     leverage=leverage)
     if R:
         cov = M @ cov @ M.T
     resid = pd.Series(ut / sw, index=d.index, name="resid")
@@ -441,6 +445,7 @@ def _no_restrictions(m: Any, eq: Equation) -> None:
 def _ols_explicit(m: OLS, eq: Equation, data: Dataset, span, where, weights, missing) -> FittedEquation:
     _no_restrictions(m, eq)
     check_hac(m.cov, data)
+    check_leverage_kind(m.cov, "explicit-form (nonlinear) equations")
     d = explicit_design(eq, data, span, where, weights, missing)
     nl = _Nonlinear(eq, d)
     theta = _solve_nonlinear(eq, _start(eq, m.start), nl.f, nl.jac, d.n)
@@ -483,6 +488,7 @@ def _first_stage(Xt: np.ndarray, Zt: np.ndarray, Z_exog: np.ndarray, endog_idx: 
 
 def _iv_linear(m: IV, eq: Equation, data: Dataset, span, where, weights, missing) -> FittedEquation:
     check_hac(m.cov, data)
+    check_leverage_kind(m.cov, "IV")
     labels = [t.label for t in eq.terms]
     unknown = [e for e in m.endog if e not in labels]
     if unknown:
@@ -541,6 +547,7 @@ def _instrument_variables(m: IV) -> list[str]:
 def _iv_explicit(m: IV, eq: Equation, data: Dataset, span, where, weights, missing) -> FittedEquation:
     _no_restrictions(m, eq)
     check_hac(m.cov, data)
+    check_leverage_kind(m.cov, "IV")
     current = {r.id for r in eq.rhs.refs() if r.lag == 0}
     unknown = [e for e in m.endog if e not in current]
     if unknown:

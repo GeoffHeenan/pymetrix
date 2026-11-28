@@ -1289,6 +1289,7 @@
   "embed": true,
   "end": "",
   "entity": "",
+  "first_period": "",
   "freq": "",
   "name": "data",
   "path": "<required>",

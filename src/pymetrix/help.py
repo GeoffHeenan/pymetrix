@@ -704,6 +704,21 @@ add_topic("least-squares", "Least squares", """
     Equations written in explicit form are estimated by nonlinear least squares.
     In code, pymetrix.ols(y, X) estimates without a formula (see "Regression without a formula").
 
+    Heteroskedasticity-robust standard errors come in four versions, which differ in
+    small samples only. All use (X'X)^-1 X' diag(w_i u_i^2) X (X'X)^-1, with u_i the
+    residuals and h_ii the leverages, the diagonal of X (X'X)^-1 X':
+    HC0 (cov="hc0", White's own): w_i = 1;
+    HC1 (cov="white"): w_i = n/(n-k), Stata's vce(robust) and EViews' White;
+    HC2 (cov="hc2"): w_i = 1/(1 - h_ii);
+    HC3 (cov="hc3"): w_i = 1/(1 - h_ii)^2, R's sandwich::vcovHC default.
+    HC2 and HC3 inflate the residuals of high-leverage observations, which least squares
+    fits too closely; Long and Ervin (2000) found HC3's tests the most reliable below
+    about 250 observations. HC2 and HC3 are offered for linear OLS, weighted or
+    restricted (with the restricted fit's leverages), but not with absorbed fixed
+    effects (fe(...), whose demeaned regressors leave out the effects' leverage), for
+    explicit-form equations or for IV; HC0 is offered for OLS and IV. An observation
+    with leverage 1 (fitted exactly by a dummy of its own) leaves HC2 and HC3 undefined.
+
     Restricted least squares imposes linear restrictions on the coefficients, such as
     constant returns (a + b = 1) or a coefficient fixed at a value: type them under
     Method settings → Restrictions for OLS or IV (in code, OLS(restrictions=["a + b = 1"])),
@@ -713,12 +728,16 @@ add_topic("least-squares", "Least squares", """
     covariance, with one residual degree of freedom more for each restriction, and a
     coefficient fixed by a restriction has a standard error of zero. Restrictions must be
     linear; a nonlinear one belongs in an explicit-form equation, written in.
-    """, ("Greene, W. H. (2018). Econometric Analysis, 8th ed., chapters 2 (\"The linear regression model\"), 3 (\"Least squares regression\") and 4 (\"Estimating the regression model by least squares\"). Pearson.",), ("instrumental-variables", "regression-arrays"))
+    """, ("Greene, W. H. (2018). Econometric Analysis, 8th ed., chapters 2 (\"The linear regression model\"), 3 (\"Least squares regression\") and 4 (\"Estimating the regression model by least squares\"). Pearson.",
+          "White, H. (1980). A heteroskedasticity-consistent covariance matrix estimator and a direct test for heteroskedasticity. Econometrica 48(4), 817-838. doi:10.2307/1912934",
+          "MacKinnon, J. G. and White, H. (1985). Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. Journal of Econometrics 29(3), 305-325.",
+          "Long, J. S. and Ervin, L. H. (2000). Using heteroscedasticity consistent standard errors in the linear regression model. The American Statistician 54(3), 217-224."),
+    ("instrumental-variables", "regression-arrays"))
 add_topic("regression-arrays", "Regression without a formula", """
     For code that runs many small regressions (loops, simulations, model building),
     pymetrix.ols(y, X) skips the formula and the dataset: y is a Series (or a 1-d array),
     X a DataFrame (or a 2-d array, with names= for its columns). The options are those
-    of OLS: cov="classic", "white", "hac" (with hac_lags and hac_correction), or
+    of OLS: cov="classic", "white" (HC1), "hc0", "hc2", "hc3", "hac" (with hac_lags and hac_correction), or
     Cluster(...) with clusters= (one- or two-way); constant=False leaves out the
     intercept; weights= gives weighted least squares; missing="raise" refuses missing
     values instead of dropping their rows.
@@ -1259,6 +1278,7 @@ add_topic("defaults", "Defaults, and other packages' defaults", """
     documentation before comparing numbers.
 
     Robust (White) standard errors: HC1, scaled by n/(n-k), as Stata's vce(robust).
+    R's sandwich::vcovHC defaults to HC3 (cov="hc3"); its type = "HC1" is White here.
     Cluster-robust: the G/(G-1) x (n-1)/(n-k) small-sample factor, as Stata.
 
     Newey-West (HAC): Bartlett kernel with floor(4(n/100)^(2/9)) lags, scaled by
@@ -1931,7 +1951,10 @@ add_topic("samples", "Samples", """
     values just assigned, as in EViews. with_series(y=None) makes a series of missing
     values (EViews' series y). File > New dataset makes an empty dataset of a frequency
     from a first to a last period (Dataset.empty("Q", "1990Q1", "2030Q4"); EViews'
-    wfcreate).
+    wfcreate). Data with no dates, one row per period in order, are dated from a first
+    period: File > Load data's Dates start at with a frequency, for a CSV or Excel file,
+    or Dataset.from_frame(df, start="1990Q1", freq="Q") (R's ts(x, start = c(1990, 1),
+    frequency = 4)). The start must begin a period: 1990-03 is not a quarter's start.
 
     A condition uses column names, numbers, text and dates in quotes (time >= '2000Q1'),
     comparisons, in [...] (country in ['DEU', 'FRA']), and, or, not, arithmetic and the

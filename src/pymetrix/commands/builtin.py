@@ -103,7 +103,8 @@ class LoadData(Command):
 
     Parquet files written by PyMetrix carry their own axes and metadata. For CSV and Excel files, name the column of
     dates or periods (Time) and, for panels and cross-sections, the column identifying entities (Entity), and choose
-    the frequency.
+    the frequency. A file with no dates, one row per period in order, is dated from its first period (Dates start
+    at) at the frequency chosen, as R's ts(x, start = c(1990, 1), frequency = 4).
 
     The time column and frequency matter beyond labels: they fix what a lag such as ``x[-1]`` means, the defaults
     that follow the frequency (the HP smoothing parameter, band-pass cycle lengths) and the periods forecasts are
@@ -138,6 +139,8 @@ class LoadData(Command):
                                   label="Keep a copy in the project",
                                   help="off: the project keeps the file's path and fingerprint, reads it again on "
                                        "opening, and refuses if it has changed")] = True
+    first_period: Annotated[str, Widget("text", help="a file with no dates: its first row's period, e.g. 1990Q1, with the "
+                                                    "frequency above; the rows follow one period each; empty = the file's own dates")] = ""
 
     def _parquet(self) -> bool:
         from pathlib import Path
@@ -155,6 +158,8 @@ class LoadData(Command):
                 kw["span"] = _span(self.start, self.end)
             if not self.embed:
                 kw["embed"] = False
+        if self.first_period:  # a file with no dates: dated from this period on (Dataset.read's start=)
+            kw["start"] = self.first_period
         return kw
 
     def validate(self, session: Session) -> list[str]:
@@ -165,6 +170,20 @@ class LoadData(Command):
                 check_condition(self.where.strip())
             except ConditionError as exc:
                 return [str(exc)]
+        if not self.first_period:
+            return []
+        if self.time or self.entity:
+            return ["Dates start at is for a file with no time column: leave Time and Entity empty, or it empty"]
+        if not self.freq:
+            return ["choose the frequency of the periods that Dates start at begins"]
+        if not self.path.lower().endswith((".csv", ".xlsx", ".xls")):
+            return ["Dates start at is for CSV and Excel files; PyMetrix's Parquet files keep their own dates"]
+        from ..data.dataset import first_period
+
+        try:
+            first_period(self.first_period, self.freq)
+        except DataError as exc:
+            return [str(exc)]
         return []
 
     def to_call(self) -> Any:
@@ -469,7 +488,9 @@ class FitEquation(Command):
     dist: Annotated[Literal["normal", "t", "skewt", "ged"], Widget("choice", show_if=("variance", _with_variance), group="Error model")] = "normal"
     variance_settings: Annotated[str, Widget("options", depends_on="variance", source="variances", exclude=("dist",),
                                              show_if=("variance", _with_variance), group="Variance settings")] = ""
-    cov: Annotated[Literal["classic", "white", "hac", "cluster"], Widget("choice", group="Sample and covariance")] = "classic"
+    cov: Annotated[Literal["classic", "white", "hc0", "hc2", "hc3", "hac", "cluster"], Widget("choice", group="Sample and covariance",
+                   help="white is HC1, as Stata's vce(robust); HC3 is R's vcovHC default; HC2 and HC3 for OLS only, HC0 "
+                        "for OLS and IV")] = "classic"
     cluster: Annotated[str, Widget("series", depends_on="data", multiple=True, show_if=("cov", ("cluster",)), group="Sample and covariance",
                                    help="one or two grouping series or axes")] = ""
     start: Annotated[str, Widget("period", group="Sample and covariance")] = ""
@@ -518,6 +539,9 @@ class FitEquation(Command):
             errors.append(f"{self.method} gives Huber's H1 standard errors: leave Standard errors conventional")
         if entry.kind == "iv" and not (_names(self.endog) and _names(self.instruments)):
             errors.append(f"{self.method} needs endogenous regressors and instruments")
+        if self.cov in ("hc0", "hc2", "hc3") and self.method not in (("OLS", "IV") if self.cov == "hc0" else ("OLS",)):
+            errors.append(f"{self.cov.upper()} standard errors are for " + ("OLS and IV" if self.cov == "hc0" else "OLS")
+                          + ": choose White (HC1) for other methods")
         if self.cov == "cluster" and not 1 <= len(_names(self.cluster)) <= 2:
             errors.append("choose one or two cluster variables")
         if self.family != "gaussian" and not ml:

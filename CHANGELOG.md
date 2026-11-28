@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **HC0, HC2 and HC3 standard errors, and a time axis from a first period** (R's `vcovHC` and `ts`). `OLS(cov="hc3")`
+  (and `"hc0"`, `"hc2"`; Standard errors in Estimate → Equation…) gives R's `sandwich::vcovHC` default; `"white"` is
+  still HC1, and no default changed. HC2 and HC3 are for linear OLS, weighted or restricted; HC0 also for IV.
+  `Dataset.from_frame(df, start="1990Q1", freq="Q")` dates a frame without dates one period per row, as
+  `ts(x, start = c(1990, 1), frequency = 4)`; `Dataset.read` takes the same `start=` for CSV and Excel files, as
+  does File → Load data… (Dates start at). A statsmodels result imported with HC0, HC2 or HC3 now says so in its
+  summary, not "White (HC1)".
 - **Prior stability mapping** (Model → Analysis → Stability mapping…, `stability_mapping`): global sensitivity
   analysis of a linearised model, as Dynare's `dynare_sensitivity` (Ratto 2008). Parameters drawn from their priors
   are classified as determinate, indeterminate, explosive, without a steady state or without a solution, and each

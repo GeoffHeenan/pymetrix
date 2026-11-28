@@ -330,6 +330,8 @@ def _covariance_note(method: Any, nobs: Any, used: Any = None) -> str:
         return f"; standard errors clustered by {' and '.join(map(str, cov.levels))}"
     if cov == "white":  # least squares: HC1; maximum likelihood: the sandwich, with no small-sample factor
         return "; quasi-ML (sandwich) standard errors" if getattr(method, "kind", "") == "ml" else "; White (HC1) standard errors"
+    if cov in ("hc0", "hc2", "hc3"):
+        return f"; heteroskedasticity-robust ({cov.upper()}) standard errors"
     if cov == "hac":
         lags = int(used) if used is not None else getattr(method, "hac_lags", None)
         if lags is None and nobs:

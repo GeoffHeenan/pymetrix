@@ -101,6 +101,39 @@ def to_periods(values: pd.Series | pd.Index, freq: str | None) -> pd.PeriodIndex
     return pd.PeriodIndex(pd.Index(values).astype(str), freq=freq)
 
 
+def _freq_code(freq: Any) -> str:
+    """A period frequency as pandas writes it (``"A"`` read as ``"Y"``), or a DataError naming the choices."""
+    code = str(freq).strip().upper()
+    code = "Y" + code[1:] if code[:1] == "A" else code
+    try:
+        pd.Period("2000", freq=code)
+    except (ValueError, TypeError, AttributeError):
+        raise DataError(f"{freq!r} is not a frequency: give Y, Q, M, W or D (Y-JUN for a July-June year)") from None
+    return code
+
+
+def first_period(start: Any, freq: Any) -> pd.Period:
+    """The period of frequency ``freq`` that ``start`` begins: ``"1990Q1"`` for quarters, ``"1990-01"`` for months,
+    ``"1990"`` for years (or the first quarter, month or week of 1990), a date for the week starting on it. A start
+    inside a period rather than at its beginning (``"1990-03"`` for quarters) is refused, not rounded down."""
+    code = _freq_code(freq)
+    text = str(start).strip()
+    try:
+        period = pd.Period(text, freq=code)
+    except (ValueError, TypeError, AttributeError):
+        period = None
+    try:
+        own = pd.Period(text)  # the period the text names at its own frequency, to check it starts ``period``
+    except (ValueError, TypeError, AttributeError):
+        own = None
+    fiscal = own is not None and own.freqstr.startswith("Y") and code.startswith("Y")  # "1990" names a July-June year too
+    if period is None or (own is not None and not fiscal and own.start_time != period.start_time):
+        raise DataError(f"{start!r} is not the start of a period of frequency {code}: e.g. 1990Q1 for quarters, "
+                        "1990-01 for months, 1990 for years, the first day of a week for weeks"
+                        + (f" ({period} starts {period.start_time.date()})" if period is not None else ""))
+    return period
+
+
 @dataclass(frozen=True, eq=False)
 class Dataset:
     frame: pd.DataFrame
@@ -139,12 +172,19 @@ class Dataset:
         variables: Mapping[str, Variable] | None = None,
         meta: DatasetMeta | None = None,
         source: str | None = None,
+        start: str | None = None,
     ) -> Dataset:
         """Build a Dataset from a DataFrame, naming its time and entity columns.
 
-        A frame that already has a PeriodIndex needs no arguments. ``source`` (e.g. ``"user:pandas"``) is recorded on
-        every series that does not already say where it came from.
+        A frame that already has a PeriodIndex needs no arguments. A frame with no dates (row numbers, or a plain
+        integer index, which is dropped) is dated from ``start`` at frequency ``freq``, one period per row in order,
+        on a time axis named ``time``: ``Dataset.from_frame(df, start="1990Q1", freq="Q")`` is R's
+        ``ts(x, start = c(1990, 1), frequency = 4)``. For a NumPy array, make the frame first:
+        ``pd.DataFrame(array, columns=["y", "x"])``. ``source`` (e.g. ``"user:pandas"``) is recorded on every series
+        that does not already say where it came from.
         """
+        if start is not None:
+            return cls._from_start(df, start, freq, time=time, entity=entity, variables=variables, meta=meta, source=source)
         if source is not None:
             built = cls.from_frame(df, time=time, entity=entity, freq=freq, variables=variables, meta=meta)
             stamped = {n: v if v.source else replace(v, source=source) for n, v in built.variables.items()}
@@ -172,6 +212,25 @@ class Dataset:
         return cls(out, tuple(axes), variables, meta=meta)
 
     @classmethod
+    def _from_start(cls, df: pd.DataFrame, start: Any, freq: str | None, *, time: Any, entity: Any, variables: Any, meta: Any,
+                    source: Any) -> Dataset:
+        """``from_frame(df, start=..., freq=...)``: the rows dated from ``start``, one period of ``freq`` each."""
+        if time is not None or entity:
+            raise DataError("start= dates the rows of a frame with no time column; with time= (or entity=) leave it out")
+        if freq is None or not str(freq).strip():
+            raise DataError(f"start={start!r} needs freq=, the frequency of the periods: Y, Q, M, W or D")
+        index = df.index
+        plain = isinstance(index, pd.RangeIndex) or (not isinstance(index, pd.MultiIndex) and pd.api.types.is_integer_dtype(index.dtype))
+        if not plain:
+            raise DataError(f"start= dates a frame indexed by row numbers or integers; this one is indexed by {type(index).__name__} "
+                            "values: give time= (the column of dates) instead")
+        first = first_period(start, freq)
+        periods = pd.period_range(first, periods=len(df), freq=first.freq).rename("time")
+        out = df.copy()
+        out.index = periods
+        return cls.from_frame(out, variables=variables, meta=meta, source=source)
+
+    @classmethod
     @api("pymetrix:dataset.example", show=lambda arguments: {"name"})  # always say which example
     def example(cls, name: str = "sample_macro") -> Dataset:
         """An example dataset shipped with pymetrix (see ``pymetrix.datasets.available()``)."""
@@ -189,12 +248,7 @@ class Dataset:
         ``"W"``, ``"D"``; ``"Y-JUN"`` for a July-June year; ``"A"`` is read as ``"Y"``) from ``start`` to ``end``, both
         included, on a time axis named ``time`` (EViews' ``wfcreate q 1990q1 2030q4``). Add series with ``with_series``:
         ``Dataset.empty("Q", "1990Q1", "2030Q4").with_series(t="1", y=None)``."""
-        code = str(freq).strip().upper()
-        code = "Y" + code[1:] if code[:1] == "A" else code
-        try:
-            pd.Period("2000", freq=code)
-        except (ValueError, TypeError, AttributeError):
-            raise DataError(f"{freq!r} is not a frequency: give Y, Q, M, W or D (Y-JUN for a July-June year)") from None
+        code = _freq_code(freq)
         try:
             first, last = pd.Period(str(start), freq=code), pd.Period(str(end), freq=code)
         except (ValueError, TypeError, AttributeError):

@@ -58,6 +58,9 @@ can be fetched from NIST.
 | ML for explicit-form equations | the linear-form fit (Logit, Probit, Poisson; classic and white); statsmodels GenericLikelihoodModel for a power index in a logit and an identity-link Poisson | 1e-8 (s.e. 1e-9); 1e-6, s.e. 1e-5 relatively |
 | Hannan-Quinn criterion | by its formula from statsmodels OLS's log likelihood; statsmodels ARIMA's hqic for a regression with AR(1) errors | 1e-10; 1e-8 |
 | White (HC1), HAC (Newey-West), one- and two-way cluster standard errors | statsmodels (independent) | default; two-way 1e-8 |
+| HC0, HC2, HC3 (`OLS(cov="hc0"/"hc2"/"hc3")`): OLS, WLS, restricted least squares (as the substituted regression), HC0 with absorbed fixed effects (as the dummy regression) | statsmodels' `cov_type="HC0"`, `"HC2"`, `"HC3"` called directly (independent); the hand formula with the leverages h_ii on six observations; R 4.3.3 `sandwich` 3.1.0 `vcovHC` (HC0 to HC3) on Mroz's hours equation, recorded | 1e-12; 1e-12; 1e-11 (R printed 15 digits) |
+| HC0 for IV (`IV(cov="hc0")`) | linearmodels' `IV2SLS` with `cov_type="robust", debiased=False` (independent) | 1e-10 |
+| A time axis from a first period (`Dataset.from_frame(df, start=, freq=)`, `Dataset.read(..., start=)`, File → Load data… Dates start at): years, July-June years, quarters, months, weeks | pandas' `period_range` from the first period written out by hand; a Parquet round trip (frame, axes, labels and sources equal); a CSV read and the dialog's step equal | exact |
 | HAC with and without the n / (n - k) factor (`hac_correction`), OLS and IV | statsmodels' HAC with `use_correction` set to match | 1e-10 |
 | Fixed effects (within) | statsmodels OLS with entity dummies | default |
 | Nonlinear least squares | SciPy `curve_fit`; exact values on noise-free data | 1e-6 (coefficients), 1e-4 (s.e.) |
