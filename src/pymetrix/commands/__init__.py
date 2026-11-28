@@ -32,6 +32,7 @@ from .model_source import DefineModel
 from .model_tools import AddFactors, ExportModel, ImportEViewsStateSpace, ImportFRBUS, OptimalControlCommand, ShockDecomposition  # model dialogs (Model menu)
 from .matrices import DefineMatrix, EnterMatrix, MatrixFrom
 from .perturbation import SolveSecondOrder
+from .sensitivity import MapStability  # noqa: F401 - Model > Analysis > Stability mapping
 from .model_irf import ModelImpulseResponses  # noqa: F401 - Model > Analysis > Impulse responses
 from .policy import OptimalSimpleRule, SolveOptimalPolicy
 from .contributions import DataContributions

@@ -10,6 +10,11 @@ The two inverse gammas are Dynare's: ``InvGamma1`` (Dynare's ``inv_gamma_pdf`` a
 its standard deviation may be infinite (2 degrees of freedom, as fs2000 uses).
 ``InvGamma`` (also ``InvGamma2``, Dynare's ``inv_gamma2_pdf``) is the inverse gamma of the
 value itself, the usual prior on a variance.
+
+Dynare's generalised priors (the third and fourth prior parameters of ``estimated_params``): ``GeneralisedBeta(mean, sd,
+low, high)``, a beta on (low, high); ``ShiftedGamma``, ``ShiftedInvGamma1`` and ``ShiftedInvGamma2(mean, sd, low)``, on
+(low, inf). The mean and standard deviation are those of the generalised distribution, as in Dynare's manual.
+``quantile(prior, q)`` gives a prior's quantiles (Dynare's ``prior_trunc``).
 """
 
 from __future__ import annotations
@@ -17,6 +22,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from functools import lru_cache
+from typing import Any, ClassVar
 
 import numpy as np
 from scipy import optimize, special
@@ -178,10 +184,119 @@ class Uniform:
         return float(rng.uniform(self.low, self.high))
 
 
-Distribution = Normal | Beta | Gamma | InvGamma | InvGamma1 | Uniform
+@dataclass(frozen=True)
+class GeneralisedBeta:
+    """A beta prior on (low, high) (Dynare's ``beta_pdf`` with its third and fourth parameters): x = low + (high - low) z,
+    z beta; ``mean`` and ``sd`` are x's, so z has mean (mean - low)/(high - low) and standard deviation
+    sd/(high - low)."""
+
+    mean: float
+    sd: float
+    low: float
+    high: float
+
+    def __post_init__(self) -> None:
+        if not self.low < self.mean < self.high:
+            raise SpecificationError("GeneralisedBeta prior: the mean must lie between low and high")
+
+    @property
+    def support(self) -> tuple[float, float]:
+        return (self.low, self.high)
+
+    @property
+    def unit(self) -> Beta:
+        """The beta of z = (x - low)/(high - low)."""
+        width = self.high - self.low
+        return Beta((self.mean - self.low) / width, self.sd / width)
+
+    def logpdf(self, x: float) -> float:
+        width = self.high - self.low
+        return self.unit.logpdf((x - self.low) / width) - math.log(width)
+
+    def rvs(self, rng: np.random.Generator) -> float:
+        return self.low + (self.high - self.low) * self.unit.rvs(rng)
+
+
+@dataclass(frozen=True)
+class _Shifted:
+    """A prior shifted to start at ``low`` (Dynare's third parameter of ``gamma_pdf`` and the inverse gammas): x = low + z,
+    ``mean`` and ``sd`` x's, so z has mean (mean - low) and standard deviation sd."""
+
+    mean: float
+    sd: float
+    low: float
+
+    base: ClassVar[type] = Gamma
+
+    def __post_init__(self) -> None:
+        if not self.mean > self.low:
+            raise SpecificationError(f"{type(self).__name__} prior: the mean must be above low")
+
+    @property
+    def support(self) -> tuple[float, float]:
+        return (self.low, np.inf)
+
+    @property
+    def unshifted(self) -> Any:
+        return self.base(self.mean - self.low, self.sd)
+
+    def logpdf(self, x: float) -> float:
+        return self.unshifted.logpdf(x - self.low)
+
+    def rvs(self, rng: np.random.Generator) -> float:
+        return self.low + self.unshifted.rvs(rng)
+
+
+@dataclass(frozen=True)
+class ShiftedGamma(_Shifted):
+    """A gamma prior on (low, inf) (Dynare's generalised ``gamma_pdf``, third parameter ``low``)."""
+
+    base: ClassVar[type] = Gamma
+
+
+@dataclass(frozen=True)
+class ShiftedInvGamma1(_Shifted):
+    """Dynare's inverse gamma of type 1 on (low, inf) (``inv_gamma_pdf`` with a third parameter)."""
+
+    base: ClassVar[type] = InvGamma1
+
+
+@dataclass(frozen=True)
+class ShiftedInvGamma2(_Shifted):
+    """The inverse gamma of the value itself on (low, inf) (``inv_gamma2_pdf`` with a third parameter)."""
+
+    base: ClassVar[type] = InvGamma
+
+
+Distribution = Normal | Beta | Gamma | InvGamma | InvGamma1 | Uniform | GeneralisedBeta | ShiftedGamma | ShiftedInvGamma1 | ShiftedInvGamma2
 
 
 _NAMES = ("Normal", "Beta", "Gamma", "InvGamma", "InvGamma1", "InvGamma2", "Uniform")
+
+
+def quantile(prior: Any, q: float) -> float:
+    """The ``q`` quantile of a prior (Normal, Beta, Gamma, the inverse gammas, Uniform and their generalised forms),
+    from SciPy's distributions: Dynare's ``prior_trunc`` bounds."""
+    if isinstance(prior, GeneralisedBeta):
+        return prior.low + (prior.high - prior.low) * quantile(prior.unit, q)
+    if isinstance(prior, _Shifted):
+        return prior.low + quantile(prior.unshifted, q)
+    if isinstance(prior, Normal):
+        return float(stats.norm.ppf(q, prior.mean, prior.sd))
+    if isinstance(prior, Beta):
+        common = prior.mean * (1 - prior.mean) / prior.sd**2 - 1
+        return float(stats.beta.ppf(q, prior.mean * common, (1 - prior.mean) * common))
+    if isinstance(prior, Gamma):
+        return float(stats.gamma.ppf(q, (prior.mean / prior.sd) ** 2, scale=prior.sd**2 / prior.mean))
+    if isinstance(prior, InvGamma1):
+        nu, s = prior.nu_s  # s / sigma^2 is chi-squared with nu degrees of freedom: sigma falls as the chi-squared rises
+        return float(math.sqrt(s / stats.chi2.ppf(1 - q, nu)))
+    if isinstance(prior, InvGamma):
+        a = (prior.mean / prior.sd) ** 2 + 2
+        return float(stats.invgamma.ppf(q, a, scale=prior.mean * (a - 1)))
+    if isinstance(prior, Uniform):
+        return prior.low + (prior.high - prior.low) * q
+    raise SpecificationError(f"no quantiles for a {type(prior).__name__} prior")
 
 
 def specs(text: str) -> dict[str, tuple[str, list[float]]]:

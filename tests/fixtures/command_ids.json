@@ -17,6 +17,7 @@
   "pymetrix:check_data": 1,
   "pymetrix:coefficient_plot": 1,
   "pymetrix:check_identification": 1,
+  "pymetrix:map_stability": 1,
   "pymetrix:check_model": 1,
   "pymetrix:combine_forecasts": 1,
   "pymetrix:compare_backtests": 1,

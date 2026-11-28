@@ -989,7 +989,10 @@ def _options(text: str, line: int, column: int, diagnostics: list[Diagnostic]) -
                                                   length=len(m.group(5))))
                     return None
                 args = [float(a) for a in m.group(6).split(",") if a.strip()]
-                out["prior"] = getattr(P, shape)(*args)
+                # a third (and fourth) number: Dynare's generalised priors, beta(mean, sd, low, high), gamma(mean, sd, low)
+                generalised = {("Beta", 4): "GeneralisedBeta", ("Gamma", 3): "ShiftedGamma", ("InvGamma1", 3): "ShiftedInvGamma1",
+                               ("InvGamma2", 3): "ShiftedInvGamma2"}
+                out["prior"] = getattr(P, generalised.get((shape, len(args)), shape))(*args)
             elif m.group(7):
                 out["start"] = float(m.group(8))
             elif m.group(9):

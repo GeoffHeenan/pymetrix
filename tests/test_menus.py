@@ -112,7 +112,7 @@ def test_model_follows_the_workflow_and_vars_put_estimation_first():
     assert stages["Solution"] == ["SolveModel", "AddFactors", "SolveRationalExpectations", "SolveSecondOrder",
                                   "OccasionallyBinding", "OccBinFilterCommand"]
     assert stages["Estimation"] == ["Calibrate", "EstimateModel", "RunMCMC", "RunSMC", "EstimateDSGEVAR"]
-    assert stages["Analysis"] == ["ModelImpulseResponses", "CheckIdentification", "StateSpaceForm", "KalmanFilter",
+    assert stages["Analysis"] == ["ModelImpulseResponses", "CheckIdentification", "MapStability", "StateSpaceForm", "KalmanFilter",
                                   "DataContributions", "ShockDecomposition", "ForecastModel"]
     paths = dict((i.cls.__name__, p) for i, p in menu_order(infos))
     assert paths["RunMCMC"] == "Model → Estimation → Metropolis-Hastings…"

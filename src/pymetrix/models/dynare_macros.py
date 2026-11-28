@@ -9,13 +9,22 @@ check does too, and reports a macro error at the line of its directive. The subs
   ``(1, "a")``, ranges ``1:5`` and ``1:2:9``, comprehensions ``[i^2 for i in 1:3 when i != 2]``; operators ``+ - * / ^``
   (``+`` joins strings and arrays), comparisons, ``&&``, ``||``, ``!``, ``in``, indexing ``a[2]`` and ``a[1:2]``
   (from 1), and the functions ``length``, ``isempty``, ``defined``, ``exp``, ``ln``/``log``, ``log10``, ``sqrt``,
-  ``abs``, ``floor``, ``ceil``, ``round``, ``trunc``, ``mod``, ``max``, ``min``, ``sin``, ``cos``, ``tan``; and macro
-  functions ``@#define f(a, b) = expr``.
+  ``abs``, ``floor``, ``ceil``, ``round``, ``trunc``, ``mod``, ``max``, ``min``, ``sin``, ``cos``, ``tan``, ``sum``,
+  ``gamma``, ``erf``, ``erfc``, ``normpdf`` and ``normcdf`` (``(x)`` or ``(x, mu, sigma)``); and macro functions
+  ``@#define f(a, b) = expr``.
+- Operations on arrays, as Dynare 6: union ``a | b`` (``a``, then the elements of ``b`` not in it), intersection
+  ``a & b`` (the elements of ``b`` that are in ``a``), difference ``a - b`` (the elements of ``a`` not in ``b``),
+  Cartesian product ``a * b`` and power ``a ^ n`` (arrays of tuples). ``&`` binds tighter than ``|``, and both
+  looser than ``+`` and ``-``. Type tests ``isreal``, ``isstring``, ``isboolean``, ``istuple``, ``isarray``, and
+  casts ``(real)``, ``(string)``, ``(bool)``, ``(tuple)``, ``(array)``. Equality is of type and value
+  (``1 == true`` is false).
 - ``@{expr}`` anywhere in the text: the value written out (integers without a decimal point, strings without quotes).
 - ``@#if``, ``@#ifdef``, ``@#ifndef``, ``@#elseif``, ``@#else``, ``@#endif``; ``@#for x in expr``, ``@#for (a, b) in
   expr``, with ``when cond``, to ``@#endfor``.
 - ``@#include "file"`` (relative to the model file's folder, then the folders of ``@#includepath``); ``@#echo``
-  (a warning) and ``@#error`` (an error); ``@#echomacrovars`` (a warning listing the macro variables).
+  (a warning) and ``@#error`` (an error); ``@#echomacrovars`` (a warning listing the macro variables); ``@#line
+  "file" n`` is accepted and changes nothing here (in Dynare it renames the place its error messages give: pymetrix
+  keeps reporting the line of the model file, where the editor shows it).
 - A directive is a line of its own; a line ending in ``\\`` continues on the next.
 
 Anything else after ``@#`` is refused with its name and line, as are unclosed blocks and includes not found.
@@ -35,7 +44,8 @@ from .solvers import ModelError
 __all__ = ["MacroError", "expand_macros"]
 
 DIRECTIVES = ("define", "if", "ifdef", "ifndef", "elseif", "else", "endif", "for", "endfor", "include", "includepath",
-              "echo", "error", "echomacrovars")
+              "echo", "error", "echomacrovars", "line")
+CASTS = ("real", "string", "bool", "tuple", "array")
 
 
 class MacroError(ModelError):
@@ -53,7 +63,7 @@ _TOKEN = re.compile(r"""\s*(?:
     (?P<num>(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)
   | (?P<str>"[^"]*"|'[^']*')
   | (?P<name>[A-Za-z_]\w*)
-  | (?P<op>\|\||&&|==|!=|<=|>=|[<>!+\-*/^:()\[\],])
+  | (?P<op>\|\||&&|==|!=|<=|>=|[<>!+\-*/^:()\[\],|&])
 )""", re.X)
 
 
@@ -103,7 +113,7 @@ class _Parser:
     def expr(self) -> Any:
         return self.binary(0)
 
-    _LEVELS = (("||",), ("&&",), ("==", "!="), ("<", ">", "<=", ">="), ("in",), (":",), ("+", "-"), ("*", "/"))
+    _LEVELS = (("||",), ("&&",), ("==", "!="), ("<", ">", "<=", ">="), ("in",), (":",), ("|",), ("&",), ("+", "-"), ("*", "/"))
 
     def binary(self, level: int) -> Any:
         if level == len(self._LEVELS):
@@ -164,10 +174,14 @@ class _Parser:
                 return ("call", value, args)
             return ("name", value)
         if value == "(":
+            nxt, after = self.peek(), self.toks[self.i + 1] if self.i + 1 < len(self.toks) else ("end", None)
+            if nxt[0] == "name" and nxt[1] in CASTS and after == ("op", ")"):  # a cast: (real)"3.5"
+                self.i += 2
+                return ("cast", nxt[1], self.unary())
             first = self.expr()
             if self.at(","):
                 self.take()
-                rest = self._list(")")
+                rest = [] if self.at(")") else self._list(")")  # (5,): a tuple of one
                 self.expect(")")
                 return ("tuple", [first, *rest])
             self.expect(")")
@@ -236,7 +250,8 @@ _FUNCS: dict[str, tuple[Any, int | None]] = {
     "abs": _fn(abs), "floor": _fn(lambda x: float(math.floor(x))), "ceil": _fn(lambda x: float(math.ceil(x))),
     "round": _fn(lambda x: float(math.floor(x + 0.5)) if x >= 0 else -float(math.floor(-x + 0.5))),
     "trunc": _fn(lambda x: float(math.trunc(x))), "sin": _fn(math.sin), "cos": _fn(math.cos), "tan": _fn(math.tan),
-    "mod": _fn(math.fmod, 2), "max": _fn(max, None), "min": _fn(min, None),
+    "mod": _fn(math.fmod, 2), "max": _fn(max, None), "min": _fn(min, None), "gamma": _fn(math.gamma), "erf": _fn(math.erf),
+    "erfc": _fn(math.erfc),
 }
 
 
@@ -292,6 +307,8 @@ def _eval(node: Any, env: dict[str, Any], line: int) -> Any:
         return _index(_eval(node[1], env, line), _eval(node[2], env, line), line)
     if kind == "call":
         return _call(node[1], node[2], env, line)
+    if kind == "cast":
+        return _cast(node[1], _eval(node[2], env, line), line)
     op, a = node[1], _eval(node[2], env, line)
     if op in ("&&", "||"):  # short-circuit, as Dynare
         left = _truth(a, line, f"the left of {op}")
@@ -300,11 +317,13 @@ def _eval(node: Any, env: dict[str, Any], line: int) -> Any:
         return _truth(_eval(node[3], env, line), line, f"the right of {op}")
     b = _eval(node[3], env, line)
     if op == "in":
-        return a in _iterable(b, line)
+        return any(_same(a, x) for x in _iterable(b, line))
     if op == "==":
-        return a == b
+        return _same(a, b)
     if op == "!=":
-        return a != b
+        return not _same(a, b)
+    if op in ("|", "&") or (op in ("-", "*", "^") and isinstance(a, list)):
+        return _set_operation(op, a, b, line)
     if op in ("<", ">", "<=", ">="):
         if type(a) is not type(b) or not isinstance(a, (float, str)):
             raise MacroError(f"line {line}: {op} compares two numbers or two strings, not {_text(a, True)} and {_text(b, True)}", line)
@@ -325,6 +344,73 @@ def _eval(node: Any, env: dict[str, Any], line: int) -> Any:
             raise MacroError(f"line {line}: division by zero in a macro expression", line)
         return x / y
     return x ** y
+
+
+def _same(a: Any, b: Any) -> bool:
+    """Equality as Dynare's: of type and value (``1 == true`` is false), element by element in arrays and tuples."""
+    if isinstance(a, (list, tuple)) and type(a) is type(b):
+        return len(a) == len(b) and all(_same(x, y) for x, y in zip(a, b))
+    return type(a) is type(b) and a == b
+
+
+def _set_operation(op: str, a: Any, b: Any, line: int) -> list[Any]:
+    """Dynare 6's operations on arrays: union, intersection, difference, Cartesian product and power."""
+    if op == "^":
+        n = _number(b, line, "^ on an array")
+        if not float(n).is_integer():
+            raise MacroError(f"line {line}: the power of an array is a whole number, not {_text(n)}", line)
+        out = list(a)
+        for _ in range(int(n) - 1):
+            out = _set_operation("*", out, a, line)
+        return out
+    if not isinstance(a, list) or not isinstance(b, list):
+        raise MacroError(f"line {line}: {op} takes two arrays, not {_text(a, True)} and {_text(b, True)}", line)
+    if op == "|":
+        out = list(a)
+        for x in b:
+            if not any(_same(x, y) for y in out):
+                out.append(x)
+        return out
+    if op == "&":
+        return [x for x in b if any(_same(x, y) for y in a)]
+    if op == "-":
+        return [x for x in a if not any(_same(x, y) for y in b)]
+    flat = lambda x: x if isinstance(x, tuple) else (x,)  # noqa: E731  (tuples are spliced: (a*b)*c gives triples)
+    return [flat(x) + flat(y) for x in a for y in b]
+
+
+def _cast(kind: str, value: Any, line: int) -> Any:
+    """``(real)``, ``(string)``, ``(bool)``, ``(tuple)``, ``(array)`` as Dynare 6 casts: an array or tuple of one element
+    to a real or a boolean as that element; strings to reals by reading them, to booleans if "true" or "false"."""
+    def fail() -> MacroError:
+        return MacroError(f"line {line}: ({kind}) cannot cast {_text(value, True)}", line)
+
+    if kind in ("real", "bool") and isinstance(value, (list, tuple)):
+        if len(value) != 1:
+            raise fail()
+        value = value[0]
+    if kind == "real":
+        if isinstance(value, bool):
+            return 1.0 if value else 0.0
+        if isinstance(value, float):
+            return value
+        try:
+            return float(str(value).strip())
+        except ValueError:
+            raise fail() from None
+    if kind == "bool":
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, float):
+            return value != 0
+        if isinstance(value, str) and value.strip() in ("true", "false"):
+            return value.strip() == "true"
+        raise fail()
+    if kind == "string":
+        return _text(value)
+    if kind == "tuple":
+        return tuple(value) if isinstance(value, (list, tuple)) else (value,)
+    return list(value) if isinstance(value, (list, tuple)) else [value]
 
 
 def _iterable(value: Any, line: int) -> list[Any]:
@@ -367,6 +453,23 @@ def _call(name: str, args: list[Any], env: dict[str, Any], line: int) -> Any:
         if len(values) != len(fn.params):
             raise MacroError(f"line {line}: the macro function {name} takes {len(fn.params)} arguments, not {len(values)}", line)
         return _eval(fn.body, {**env, **dict(zip(fn.params, values))}, line)
+    tests = {"isreal": float, "isstring": str, "isboolean": bool, "istuple": tuple, "isarray": list}
+    if name in tests:
+        if len(values) != 1:
+            raise MacroError(f"line {line}: {name} takes one argument", line)
+        return type(values[0]) is tests[name]
+    if name == "sum":
+        if len(values) != 1 or not isinstance(values[0], list):
+            raise MacroError(f"line {line}: sum takes one array of numbers", line)
+        return float(sum(_number(v, line, "sum") for v in values[0]))
+    if name in ("normpdf", "normcdf"):
+        if len(values) not in (1, 3):
+            raise MacroError(f"line {line}: {name} takes (x) or (x, mu, sigma)", line)
+        x, mu, sigma = [_number(v, line, name) for v in values] + ([0.0, 1.0] if len(values) == 1 else [])
+        z = (x - mu) / sigma
+        if name == "normcdf":
+            return 0.5 * math.erfc(-z / math.sqrt(2.0))
+        return math.exp(-0.5 * z * z) / (sigma * math.sqrt(2.0 * math.pi))
     if name in ("length", "isempty"):
         if len(values) != 1 or not isinstance(values[0], (list, tuple, str)):
             raise MacroError(f"line {line}: {name} takes one array or string", line)
@@ -385,19 +488,18 @@ def _call(name: str, args: list[Any], env: dict[str, Any], line: int) -> Any:
 
 
 def _text(value: Any, quote: bool = False) -> str:
-    """A value as ``@{...}`` writes it."""
+    """A value as ``@{...}`` writes it, as Dynare 6: numbers to 15 significant digits (``%.15g``), strings without
+    quotes, also inside arrays and tuples. ``quote``: strings in quotes, for messages."""
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, float):
-        if value.is_integer() and abs(value) < 1e15:
-            return str(int(value))
-        return repr(value)
+        return f"{value:.15g}"
     if isinstance(value, str):
         return f'"{value}"' if quote else value
     if isinstance(value, list):
-        return "[" + ", ".join(_text(v, True) for v in value) + "]"
+        return "[" + ", ".join(_text(v, quote) for v in value) + "]"
     if isinstance(value, tuple):
-        return "(" + ", ".join(_text(v, True) for v in value) + ")"
+        return "(" + ", ".join(_text(v, quote) for v in value) + ")"
     return str(value)
 
 
@@ -597,6 +699,9 @@ def _run(nodes: list[Any], st: _State) -> None:
             st.depth += 1
             _run(_parse(_lines(included), at), st)
             st.depth -= 1
+        elif kind == "line":  # @#line "file" n: where Dynare's messages say they are; the model file's lines are kept
+            if not re.fullmatch(r'"[^"]*"\s+\d+', node[1]):
+                raise MacroError(f'line {node[2]}: @#line reads \'"file" n\', not {node[1]!r}', node[2])
         elif kind == "echo":
             warnings.warn(f"@#echo (line {node[2]}): {_text(evaluate(node[1], st.env, node[2]))}", UserWarning, stacklevel=4)
         elif kind == "error":

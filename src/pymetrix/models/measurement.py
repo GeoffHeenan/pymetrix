@@ -15,7 +15,9 @@ notation, used by the Kalman filter, and used again to report model results in t
 Each equation has an observed series on the left (its name; ``sources`` gives the data series if it is
 called something else) and an expression in model variables, their lags and the map's parameters on the
 right. Leads are not allowed: an observation depends on the present and the past. ``errors`` gives the
-standard deviation of each series' measurement error (none by default). A map may have no observed series and only
+standard deviation of each series' measurement error (none by default), and ``error_corr`` the correlations of two
+series' errors, ``{("infl", "rate"): 0.3}`` (either order; pairs not given are uncorrelated): the filter's
+measurement-error covariance is then ``D C D``, as the shocks' (``pymetrix.models.covariance``). A map may have no observed series and only
 report some (``MeasurementMap([], reported=[...])``): it reports, but gives no state-space form and cannot be estimated.
 
 **From raw data and back** (``transforms``). An observed series is often made from a raw one: annualised growth
@@ -75,6 +77,7 @@ class MeasurementMap:
     equations: Sequence[str]
     params: Mapping[str, float] = field(default_factory=dict)
     errors: Mapping[str, float] = field(default_factory=dict)  # measurement-error standard deviations
+    error_corr: Mapping[Any, float] = field(default_factory=dict)  # correlations of two series' measurement errors
     sources: Mapping[str, str] = field(default_factory=dict)  # data series names, where not the observable's name
     units: Mapping[str, str] = field(default_factory=dict)
     labels: Mapping[str, str] = field(default_factory=dict)
@@ -140,6 +143,7 @@ class MeasurementMap:
             transforms[name] = (expr, raw)
         object.__setattr__(self, "equations", tuple(self.equations))
         object.__setattr__(self, "reported", tuple(self.reported))
+        object.__setattr__(self, "error_corr", _error_corr(names, self.error_corr))
         object.__setattr__(self, "measurements", tuple(built))
         object.__setattr__(self, "reports", tuple(reports))
         object.__setattr__(self, "transform_exprs", transforms)
@@ -155,9 +159,28 @@ class MeasurementMap:
         object.__setattr__(self, "trend_exprs", exprs)
 
     @classmethod
-    def direct(cls, observables: Sequence[str], errors: Mapping[str, float] | None = None) -> MeasurementMap:
+    def direct(cls, observables: Sequence[str], errors: Mapping[str, float] | None = None,
+               error_corr: Mapping[Any, float] | None = None) -> MeasurementMap:
         """Model variables observed as they are, in levels: ``x = x`` for each."""
-        return cls([f"{o} = {o}" for o in observables], errors=dict(errors or {}))
+        return cls([f"{o} = {o}" for o in observables], errors=dict(errors or {}), error_corr=dict(error_corr or {}))
+
+    def error_covariance(self) -> np.ndarray:
+        """The measurement errors' covariance (observables x observables): ``D C D``, ``D`` the errors' standard
+        deviations and ``C`` their correlations (``error_corr``), which must be positive semi-definite."""
+        sd = np.array([float(self.errors.get(o, 0.0)) for o in self.observables])
+        H = np.diag(sd ** 2)
+        corr = getattr(self, "error_corr", None) or {}  # (a map saved before correlations had none)
+        if corr:
+            names = list(self.observables)
+            C = np.eye(len(names))
+            for (a, b), r in corr.items():
+                i, j = names.index(a), names.index(b)
+                C[i, j] = C[j, i] = r
+            if np.min(np.linalg.eigvalsh(C)) < -1e-12:
+                raise ModelError("the correlations of the measurement errors (error_corr) are not a valid correlation matrix "
+                                 "(not positive semi-definite)")
+            H = sd[:, None] * C * sd[None, :]
+        return H
 
     @property
     def observables(self) -> tuple[str, ...]:
@@ -280,14 +303,17 @@ class MeasurementMap:
             frame = frame.join(self.reverse(frame[list(self.observables)], data))
         return Dataset.from_frame(frame)
 
-    def with_errors(self, errors: Mapping[str, float]) -> MeasurementMap:
-        """The same map with these measurement-error sizes (the equations are not parsed again: estimation calls this
-        at every trial value)."""
+    def with_errors(self, errors: Mapping[str, float], error_corr: Mapping[Any, float] | None = None) -> MeasurementMap:
+        """The same map with these measurement-error sizes, and these correlations of them added (the equations are not
+        parsed again: estimation calls this at every trial value)."""
         extra = sorted(set(errors) - set(self.observables))
         if extra:
             raise ModelError(f"errors given for {extra}, which are not observed series: {list(self.observables)}")
         new = copy.copy(self)
         object.__setattr__(new, "errors", {**self.errors, **errors})
+        if error_corr:
+            old = getattr(self, "error_corr", None) or {}
+            object.__setattr__(new, "error_corr", {**old, **_error_corr(list(self.observables), error_corr)})
         return new
 
     def trend_values(self, index: Any) -> np.ndarray:
@@ -363,3 +389,27 @@ class MeasurementMap:
     def _repr_html_(self) -> str:
         return self.table()._repr_html_()
 
+
+
+def _error_corr(observables: Sequence[str], corr: Mapping[Any, float] | None) -> dict[tuple[str, str], float]:
+    """Correlations of measurement errors as ``{(a, b): r}``, ``a`` before ``b`` among the observed series; checked:
+    two different observed series, values in (-1, 1), each pair once."""
+    out: dict[tuple[str, str], float] = {}
+    names = list(observables)
+    for key, value in dict(corr or {}).items():
+        if not isinstance(key, (tuple, list)) or len(key) != 2 or not all(isinstance(k, str) for k in key):
+            raise ModelError(f"error_corr is {{(series, series): correlation}}, not a key {key!r}")
+        a, b = key
+        unknown = [s for s in (a, b) if s not in names]
+        if unknown:
+            raise ModelError(f"error_corr names {', '.join(unknown)}, which {'is not an observed series' if len(unknown) == 1 else 'are not observed series'}: {names}")
+        if a == b:
+            raise ModelError(f"error_corr ({a!r}, {b!r}): a correlation is between two different series")
+        pair = (a, b) if names.index(a) < names.index(b) else (b, a)
+        value = float(value)
+        if not -1 < value < 1:
+            raise ModelError(f"the correlation of the measurement errors of {pair[0]} and {pair[1]} is {value:g}, outside (-1, 1)")
+        if pair in out and out[pair] != value:
+            raise ModelError(f"the correlation of the measurement errors of {pair[0]} and {pair[1]} is given twice")
+        out[pair] = value
+    return out

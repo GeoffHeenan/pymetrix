@@ -213,9 +213,16 @@ blocking you, say so: that is how priorities get set.
     Carlo, no conditional forecasts, no historical decompositions for it; not compared with Dynare's `dsge_var` output
     (none is recorded in the tests). Dynare's `dsge_var` option is used by `DynareModel.dsge_var()`, not by
     `estimate()`.
-- **Model files and other syntaxes.** Dynare files: no generalised prior bounds, no correlations of measurement
-  errors; Dynare's macro processor is read for the directives most files use, not `@#line`, set operations on arrays
-  (`|`, `&`) or Dynare 6's type tests. IRIS's correlations of measurement shocks are not read. Writing models in other
+- **Global sensitivity analysis** covers the prior stability mapping only (determinacy classes and Smirnov tests),
+  from random draws, not Dynare's Sobol sequence (Dynare's own draws are classified as Dynare classifies them: see the
+  validation page). Not done:
+  Morris elementary effects, the reduced-form and RMSE mappings (`redform`, `rmse`), the posterior stability mapping,
+  the correlation analysis of the parameters within each class, and Dynare's `prior_range` and `lik_only` options.
+- **Model files and other syntaxes.** Dynare files: `prior_trunc` bounds the parameters only when the file gives it
+  (Dynare's default, 1e-10, is not applied); a shifted `inv_gamma2_pdf` keeps the mean given, where Dynare 6.0 takes
+  its scale from the mean before the shift (see the help on Dynare files); `weibull_pdf` is not read; correlations of
+  measurement errors are not written back by `export_model`, and the particle filter refuses them; `@#line` is
+  accepted but messages keep the model file's lines. IRIS's correlations of measurement shocks are not read. Writing models in other
   syntaxes (`export_model`): Dynare's estimation blocks and commands, comments and IRIS's loops do not carry across,
   estimated equations must have named coefficients, IRIS models cannot have deterministic exogenous variables, and
   measurement transforms are written only in pymetrix's syntax (reported series in pymetrix's and IRIS's). The model

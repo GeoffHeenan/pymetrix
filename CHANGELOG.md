@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- **Prior stability mapping** (Model → Analysis → Stability mapping…, `stability_mapping`): global sensitivity
+  analysis of a linearised model, as Dynare's `dynare_sensitivity` (Ratto 2008). Parameters drawn from their priors
+  are classified as determinate, indeterminate, explosive, without a steady state or without a solution, and each
+  parameter's Smirnov test (SciPy's `ks_2samp`) compares its determinate draws with the others; the results show the
+  shares, the tests and each parameter's cumulative distributions. A steady state whose residuals are not numbers
+  (the log of a negative value) is now refused, where it was accepted before.
+- **Dynare files: correlated measurement errors, generalised priors, Dynare 6's macro operations.** `corr y, c = r`
+  (or a covariance) on two observed variables in a shocks block is the correlation of their measurement errors, used
+  by the Kalman filter, estimation and its analytic gradient; `corr y, c, ...` in `estimated_params` estimates it
+  (`corr_y_c`; for any model, `MeasurementMap(error_corr=...)`, estimated when `corr_<series>_<series>` is named).
+  Priors with a third and fourth parameter are Dynare's generalised distributions (`GeneralisedBeta`,
+  `ShiftedGamma`, `ShiftedInvGamma1`, `ShiftedInvGamma2`; a normal's are bounds), and `prior_trunc` bounds the
+  parameters by their priors' quantiles. The macro processor reads set operations on arrays (`|`, `&`, `-`, `*`,
+  `^`), type tests, casts, `sum`, `gamma`, `erf`, `normcdf`/`normpdf` and `@#line`. Two changes to what macros write:
+  `@{...}` writes numbers to 15 significant digits and strings inside arrays without quotes, and `==` compares type
+  and value (`1 == true` is false), as Dynare 6.0's preprocessor does. Checked against Dynare 6.0's likelihood,
+  prior densities, prior bounds and preprocessor.
 - **Third-order perturbation.** `solve(order=3)` on a template, a Dynare or an IRIS model (or `third_order(model,
   shocks, shock_sd)`) gives Dynare's `stoch_simul(order=3)` decision rules: the cubic terms and the corrections for
   risk to the responses to states and shocks (ghxxx, ghxxu, ghxuu, ghuuu, ghxss, ghuss). Simulations are pruned

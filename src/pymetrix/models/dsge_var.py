@@ -393,7 +393,7 @@ def _dsge_var(model: Any, data: Any, measurement: Any, lags: int, lambda_: Any, 
     if priors_all:
         stats["logpost"] = float(-fun)
     shock_sizes = {s: values.get(f"sd_{s}", sd[f"sd_{s}"]) for s in shocks}
-    used_measurement = measurement.with_errors({o: values.get(f"sd_{o}", errors[f"sd_{o}"]) for o in measurement.observables})
+    used_measurement = lik.measurement_at(values)
     sources = list(measurement.data_series())
     kind = ("posterior mode" if priors_all else "maximum likelihood") + " (DSGE-VAR)"
     rows_used = index[lags:]
