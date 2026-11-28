@@ -54,6 +54,16 @@ class Line:
     axis: str = "left"  # "right": against a second y-axis on the right
 
 
+class _Columns(dict):
+    """A figure's data columns by name: a name given twice keeps both, the later as "name (2)", "name (3)"..."""
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        name, n = key, 2
+        while name in self:
+            name, n = f"{key} ({n})", n + 1
+        super().__setitem__(name, value)
+
+
 @dataclass(frozen=True, eq=False)
 class Band:
     """A shaded interval, e.g. confidence bands."""
@@ -64,6 +74,7 @@ class Band:
     color: str | None = None
     alpha: float = 0.18
     axis: str = "left"
+    step: bool = False  # a step band: each bound held until the next point, as a step line (survival curves)
 
 
 @dataclass(frozen=True, eq=False)
@@ -894,8 +905,9 @@ class Figure:
         return None
 
     def data(self) -> pd.DataFrame:
-        """Every series drawn, side by side (to copy into a spreadsheet)."""
-        cols: dict[str, pd.Series] = {}
+        """Every series drawn, side by side (to copy into a spreadsheet). Two series with the same name (two unnamed
+        bands, say) both appear, the second as "name (2)"."""
+        cols: dict[str, pd.Series] = _Columns()
         for p, panel in enumerate(self._panels()):
             prefix = f"{panel.title}: " if panel.title and len(self.panels) > 1 else ""
             for layer in panel.layers:
@@ -2074,7 +2086,8 @@ def _draw_panel(ax: Any, panel: Panel, theme: Theme | None = None, figure: Figur
             color = _color(layer.color or PALETTE[0], theme, colors)
             alpha = theme.band_alpha if layer.alpha in (0.15, 0.18) else layer.alpha  # the standard shading follows the theme
             band = target.fill_between(_x(layer.lower, mid), layer.lower.to_numpy(float), layer.upper.to_numpy(float),
-                                       color=color, alpha=alpha, linewidth=0, label=layer.label or None)
+                                       color=color, alpha=alpha, linewidth=0, label=layer.label or None,
+                                       step="post" if layer.step else None)
             artists.setdefault(layer.label, []).append(("band", band))
             labelled |= bool(layer.label)
         elif isinstance(layer, Line):

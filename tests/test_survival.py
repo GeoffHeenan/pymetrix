@@ -193,3 +193,21 @@ def test_the_dialogs_record_the_calls_and_the_script_replays(trial):
     assert np.array_equal(namespace["cox"].values, s.objects["cox"].values)
     assert namespace["km"].test.statistic == s.objects["km"].test.statistic
     assert s.objects["cox"].provenance.backend["name"] == "statsmodels"
+
+
+def test_the_figure_draws_steps_with_each_time_once(trial):
+    """The curves and their intervals are step layers with each time once, so the figure's data line up by time: both
+    groups' curves and both groups' intervals, the curve from 1 at time 0 then the estimate from each event time on."""
+    from pymetrix.figures import Band, Line
+
+    fit = kaplan_meier(trial, "weeks", "relapse", group="placebo")
+    figure = fit.plot()
+    layers = figure.panels[0].layers
+    assert all(layer.step for layer in layers if isinstance(layer, (Band, Line)))
+    data = figure.data()
+    assert data.index.is_unique and data.shape[1] == 6  # two curves, two intervals of two bounds each
+    for gname, part in fit.table.groupby(level="group", sort=False):
+        curve = next(layer.y for layer in layers if isinstance(layer, Line) and layer.label == str(gname))
+        times = part.index.get_level_values("time").to_numpy(float)
+        assert curve.iloc[0] == 1.0 and curve.index[0] == 0.0
+        np.testing.assert_array_equal(curve.loc[times].to_numpy(), part["survival"].to_numpy())

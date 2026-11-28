@@ -217,8 +217,9 @@ def matplotlib_code(figure: Any) -> str:
                 color = _hex(band.get_facecolor()[0]) if band is not None else theme.palette[0]
                 alpha = band.get_alpha() if band is not None and band.get_alpha() is not None else layer.alpha
                 var = sc.name("band")
+                step = ", step='post'" if layer.step else ""
                 sc.add(f"{var} = {target}.fill_between({x}, {lo_v}, {hi_v}, color={color!r}, alpha={_value(alpha)}, linewidth=0, "
-                       f"label={label or None!r})")
+                       f"label={label or None!r}{step})")
                 artists[i].setdefault(label, []).append(("band", var))
             elif isinstance(layer, Bars):
                 container = [a for kind, a in made.get(label, []) if kind == "bars"][k] if label in made else None

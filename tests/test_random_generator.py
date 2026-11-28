@@ -87,7 +87,7 @@ def test_no_module_makes_a_generator_except_through_the_helper():
                 continue
             example = False  # inside a command's example: ClassVar[str] = """...""" (code shown to users, run as it is)
             for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-                if re.match(r'\s*example: ClassVar\[str\] = """', line):
+                if re.match(r'\s*(example: ClassVar\[str\]|_\w*EXAMPLE\w*) = """', line):
                     example = True
                 elif example and '"""' in line:
                     example = False

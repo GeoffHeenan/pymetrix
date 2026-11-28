@@ -87,10 +87,11 @@ def pointwise_interval(S: np.ndarray, se: np.ndarray, alpha: float, interval: st
 
 
 def _step(times: np.ndarray, values: np.ndarray, start: float = 1.0) -> pd.Series:
-    """A step function as points for a line: the value before each time, then after it."""
-    x = np.r_[0.0, np.repeat(times, 2)]
-    y = np.r_[start, start, np.repeat(values, 2)[:-1]] if len(values) else np.array([start])
-    return pd.Series(y, index=pd.Index(x, name="time"))
+    """A step function's points, drawn as a step (``Line(step=True)``, ``Band(step=True)``): ``start`` from time 0, then
+    each value from its time on. Each time once, so the figure's data line up by time."""
+    if len(times) and times[0] == 0.0:
+        return pd.Series(np.asarray(values, float), index=pd.Index(times, name="time"))
+    return pd.Series(np.r_[start, values], index=pd.Index(np.r_[0.0, times], name="time"))
 
 
 # -- Kaplan-Meier -----------------------------------------------------------------------------------------------------
@@ -154,8 +155,8 @@ class FittedKaplanMeier:
             color = PALETTE[i % len(PALETTE)]
             label = str(gname) if self.group else "survival"
             lo, hi = ("band lower", "band upper") if self.bands else ("lower", "upper")
-            layers.append(Band(_step(t, part[lo].to_numpy()), _step(t, part[hi].to_numpy()), color=color))
-            layers.append(Line(_step(t, part["survival"].to_numpy()), label=label, color=color))
+            layers.append(Band(_step(t, part[lo].to_numpy()), _step(t, part[hi].to_numpy()), color=color, step=True))
+            layers.append(Line(_step(t, part["survival"].to_numpy()), label=label, color=color, step=True))
         what = "Hall-Wellner 95% bands" if self.bands else f"pointwise {100 * (1 - self.alpha):g}% intervals"
         return Figure((Panel(tuple(layers), title=f"Kaplan-Meier survival ({what})", ylabel="survival", xlabel=self.duration),))
 
@@ -360,7 +361,7 @@ class FittedCoxPH:
         for i, (s, part) in enumerate(self.baseline.groupby(level="stratum", sort=False)):
             t = part.index.get_level_values("time").to_numpy(float)
             layers.append(Line(_step(t, part["survival"].to_numpy()), label=str(s) if self.strata else "baseline survival",
-                               color=PALETTE[i % len(PALETTE)]))
+                               color=PALETTE[i % len(PALETTE)], step=True))
         return Figure((Panel(tuple(layers), title="Baseline survival (every regressor 0)", ylabel="survival", xlabel=self.duration),))
 
     def to_frame(self, view: str | None = None) -> pd.DataFrame:
